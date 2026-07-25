@@ -1,29 +1,27 @@
 import type { Ticket } from "../types/Ticket";
 
-const tickets: Ticket[] = [
-  {
-    id: 1025,
-    title: "Impressora não está funcionando",
-    category: "Hardware",
-    priority: "Alta",
-    status: "Aberto",
-  },
-  {
-    id: 1024,
-    title: "Erro ao acessar o sistema",
-    category: "Software",
-    priority: "Média",
-    status: "Em andamento",
-  },
-  {
-    id: 1023,
-    title: "Internet lenta no setor financeiro",
-    category: "Rede",
-    priority: "Baixa",
-    status: "Resolvido",
-  },
-];
+import {
+  deleteTicketById,
+  findAllTickets,
+  findTicketById,
+  updateTicketById,
+} from "../repositories/ticketRepository";
 
 export function getTickets(): Ticket[] {
-  return tickets;
+  return findAllTickets();
+}
+
+export function getTicketById(id: number): Ticket | undefined {
+  return findTicketById(id);
+}
+
+export function updateTicket(
+  id: number,
+  updatedData: Partial<Ticket>
+): Ticket | undefined {
+  return updateTicketById(id, updatedData);
+}
+
+export function deleteTicket(id: number): boolean {
+  return deleteTicketById(id);
 }

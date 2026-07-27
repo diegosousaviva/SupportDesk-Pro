@@ -1,9 +1,6 @@
 import {
-  Button,
   Chip,
   Grid,
-  InputAdornment,
-  MenuItem,
   Paper,
   Stack,
   Table,
@@ -12,15 +9,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
-  Typography,
 } from "@mui/material";
-import { Add, Search } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import MainLayout from "../../components/layout/MainLayout";
+import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/dashboard/StatCard";
+import TicketFilters from "../../components/forms/TicketFilters";
 import { getTickets } from "../../services/ticketService";
 
 export default function TicketListPage() {
@@ -47,9 +43,11 @@ export default function TicketListPage() {
   ).length;
 
   const filteredTickets = tickets.filter((ticket) => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
     const matchesSearch = ticket.title
       .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+      .includes(normalizedSearch);
 
     const matchesStatus =
       statusFilter === "Todos" ||
@@ -65,6 +63,13 @@ export default function TicketListPage() {
   return (
     <MainLayout title="Chamados">
       <Stack spacing={3}>
+        <PageHeader
+          title="Lista de chamados"
+          subtitle="Gerencie, acompanhe e consulte os chamados cadastrados."
+          buttonLabel="Novo chamado"
+          onButtonClick={() => navigate("/tickets/new")}
+        />
+
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
@@ -101,81 +106,14 @@ export default function TicketListPage() {
 
         <Paper sx={{ p: 3 }}>
           <Stack spacing={3}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              justifyContent="space-between"
-              alignItems={{ xs: "stretch", sm: "center" }}
-              spacing={2}
-            >
-              <Typography variant="h5">
-                Lista de chamados
-              </Typography>
-
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => navigate("/tickets/new")}
-              >
-                Novo chamado
-              </Button>
-            </Stack>
-
-            <TextField
-              label="Pesquisar chamado"
-              placeholder="Digite o título do chamado"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
-                },
-              }}
+            <TicketFilters
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+              priorityFilter={priorityFilter}
+              onSearchChange={setSearchTerm}
+              onStatusChange={setStatusFilter}
+              onPriorityChange={setPriorityFilter}
             />
-
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-            >
-              <TextField
-                select
-                label="Status"
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value)
-                }
-                fullWidth
-              >
-                <MenuItem value="Todos">Todos</MenuItem>
-                <MenuItem value="Aberto">Aberto</MenuItem>
-                <MenuItem value="Em andamento">
-                  Em andamento
-                </MenuItem>
-                <MenuItem value="Resolvido">
-                  Resolvido
-                </MenuItem>
-              </TextField>
-
-              <TextField
-                select
-                label="Prioridade"
-                value={priorityFilter}
-                onChange={(event) =>
-                  setPriorityFilter(event.target.value)
-                }
-                fullWidth
-              >
-                <MenuItem value="Todas">Todas</MenuItem>
-                <MenuItem value="Baixa">Baixa</MenuItem>
-                <MenuItem value="Média">Média</MenuItem>
-                <MenuItem value="Alta">Alta</MenuItem>
-                <MenuItem value="Crítica">Crítica</MenuItem>
-              </TextField>
-            </Stack>
 
             <TableContainer>
               <Table>

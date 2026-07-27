@@ -1,6 +1,8 @@
 import type { Ticket } from "../types/Ticket";
 
-const tickets: Ticket[] = [
+const STORAGE_KEY = "supportdesk-pro-tickets";
+
+const initialTickets: Ticket[] = [
   {
     id: 1023,
     title: "Computador não liga",
@@ -24,40 +26,120 @@ const tickets: Ticket[] = [
   },
 ];
 
+type CreateTicketData = Omit<Ticket, "id">;
+
+function saveTicketsToStorage(tickets: Ticket[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+  } catch (error) {
+    console.error(
+      "Não foi possível salvar os chamados no Local Storage.",
+      error
+    );
+  }
+}
+
+function loadTicketsFromStorage(): Ticket[] {
+  try {
+    const storedTickets = localStorage.getItem(STORAGE_KEY);
+
+    if (!storedTickets) {
+      saveTicketsToStorage(initialTickets);
+
+      return [...initialTickets];
+    }
+
+    const parsedTickets = JSON.parse(storedTickets);
+
+    if (!Array.isArray(parsedTickets)) {
+      saveTicketsToStorage(initialTickets);
+
+      return [...initialTickets];
+    }
+
+    return parsedTickets as Ticket[];
+  } catch (error) {
+    console.error(
+      "Não foi possível carregar os chamados do Local Storage.",
+      error
+    );
+
+    saveTicketsToStorage(initialTickets);
+
+    return [...initialTickets];
+  }
+}
+
+let tickets: Ticket[] = loadTicketsFromStorage();
+
 export function findAllTickets(): Ticket[] {
-  return tickets;
+  return [...tickets];
 }
 
 export function findTicketById(id: number): Ticket | undefined {
   return tickets.find((ticket) => ticket.id === id);
 }
 
+export function createTicketRepository(
+  ticketData: CreateTicketData
+): Ticket {
+  const highestId = tickets.reduce(
+    (currentHighestId, ticket) =>
+      Math.max(currentHighestId, ticket.id),
+    0
+  );
+
+  const newTicket: Ticket = {
+    id: highestId + 1,
+    ...ticketData,
+  };
+
+  tickets = [...tickets, newTicket];
+
+  saveTicketsToStorage(tickets);
+
+  return newTicket;
+}
+
 export function updateTicketById(
   id: number,
   updatedData: Partial<Ticket>
 ): Ticket | undefined {
-  const ticketIndex = tickets.findIndex((ticket) => ticket.id === id);
+  const ticketIndex = tickets.findIndex(
+    (ticket) => ticket.id === id
+  );
 
   if (ticketIndex === -1) {
     return undefined;
   }
 
-  tickets[ticketIndex] = {
+  const updatedTicket: Ticket = {
     ...tickets[ticketIndex],
     ...updatedData,
+    id,
   };
 
-  return tickets[ticketIndex];
+  tickets = tickets.map((ticket) =>
+    ticket.id === id ? updatedTicket : ticket
+  );
+
+  saveTicketsToStorage(tickets);
+
+  return updatedTicket;
 }
 
 export function deleteTicketById(id: number): boolean {
-  const ticketIndex = tickets.findIndex((ticket) => ticket.id === id);
+  const ticketExists = tickets.some(
+    (ticket) => ticket.id === id
+  );
 
-  if (ticketIndex === -1) {
+  if (!ticketExists) {
     return false;
   }
 
-  tickets.splice(ticketIndex, 1);
+  tickets = tickets.filter((ticket) => ticket.id !== id);
+
+  saveTicketsToStorage(tickets);
 
   return true;
 }

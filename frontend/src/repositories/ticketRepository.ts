@@ -1,36 +1,161 @@
-import type { Ticket } from "../types/Ticket";
+import type {
+  Ticket,
+  TicketPriority,
+  TicketStatus,
+} from "../types/Ticket";
 
 const STORAGE_KEY = "supportdesk-pro-tickets";
+
+type CreateTicketData = Omit<
+  Ticket,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+type StoredTicket = Partial<Ticket> & {
+  id?: unknown;
+  title?: unknown;
+  description?: unknown;
+  category?: unknown;
+  priority?: unknown;
+  status?: unknown;
+  assignedTechnicianId?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
 
 const initialTickets: Ticket[] = [
   {
     id: 1023,
     title: "Computador não liga",
+    description:
+      "O computador não apresenta sinais de energia ao pressionar o botão de ligar.",
     category: "Hardware",
     priority: "Alta",
     status: "Aberto",
+    assignedTechnicianId: null,
+    createdAt: "2026-01-10T09:00:00.000Z",
+    updatedAt: "2026-01-10T09:00:00.000Z",
   },
   {
     id: 1024,
     title: "Erro ao acessar o sistema",
+    description:
+      "O usuário recebe uma mensagem de erro ao tentar acessar o sistema.",
     category: "Software",
     priority: "Média",
     status: "Em andamento",
+    assignedTechnicianId: null,
+    createdAt: "2026-01-11T10:30:00.000Z",
+    updatedAt: "2026-01-11T11:15:00.000Z",
   },
   {
     id: 1025,
     title: "Impressora sem conexão",
+    description:
+      "A impressora não está sendo localizada pelos computadores da rede.",
     category: "Rede",
     priority: "Baixa",
     status: "Resolvido",
+    assignedTechnicianId: null,
+    createdAt: "2026-01-12T08:45:00.000Z",
+    updatedAt: "2026-01-12T14:20:00.000Z",
   },
 ];
 
-type CreateTicketData = Omit<Ticket, "id">;
+function isTicketPriority(
+  value: unknown
+): value is TicketPriority {
+  return (
+    value === "Baixa" ||
+    value === "Média" ||
+    value === "Alta" ||
+    value === "Crítica"
+  );
+}
 
-function saveTicketsToStorage(tickets: Ticket[]): void {
+function isTicketStatus(
+  value: unknown
+): value is TicketStatus {
+  return (
+    value === "Aberto" ||
+    value === "Em andamento" ||
+    value === "Resolvido"
+  );
+}
+
+function isValidDateString(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+function normalizeTechnicianId(
+  value: unknown
+): number | null {
+  if (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value > 0
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+function migrateStoredTicket(
+  storedTicket: StoredTicket
+): Ticket | null {
+  if (
+    typeof storedTicket.id !== "number" ||
+    !Number.isInteger(storedTicket.id) ||
+    typeof storedTicket.title !== "string" ||
+    typeof storedTicket.category !== "string" ||
+    !isTicketPriority(storedTicket.priority) ||
+    !isTicketStatus(storedTicket.status)
+  ) {
+    return null;
+  }
+
+  const migrationDate = new Date().toISOString();
+
+  const createdAt = isValidDateString(
+    storedTicket.createdAt
+  )
+    ? storedTicket.createdAt
+    : migrationDate;
+
+  const updatedAt = isValidDateString(
+    storedTicket.updatedAt
+  )
+    ? storedTicket.updatedAt
+    : createdAt;
+
+  return {
+    id: storedTicket.id,
+    title: storedTicket.title,
+    description:
+      typeof storedTicket.description === "string"
+        ? storedTicket.description
+        : "",
+    category: storedTicket.category,
+    priority: storedTicket.priority,
+    status: storedTicket.status,
+    assignedTechnicianId: normalizeTechnicianId(
+      storedTicket.assignedTechnicianId
+    ),
+    createdAt,
+    updatedAt,
+  };
+}
+
+function saveTicketsToStorage(ticketsToSave: Ticket[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(ticketsToSave)
+    );
   } catch (error) {
     console.error(
       "Não foi possível salvar os chamados no Local Storage.",
@@ -49,15 +174,31 @@ function loadTicketsFromStorage(): Ticket[] {
       return [...initialTickets];
     }
 
-    const parsedTickets = JSON.parse(storedTickets);
+    const parsedData: unknown = JSON.parse(storedTickets);
 
-    if (!Array.isArray(parsedTickets)) {
+    if (!Array.isArray(parsedData)) {
       saveTicketsToStorage(initialTickets);
 
       return [...initialTickets];
     }
 
-    return parsedTickets as Ticket[];
+    const migratedTickets = parsedData
+      .map((storedTicket) =>
+        migrateStoredTicket(storedTicket as StoredTicket)
+      )
+      .filter(
+        (ticket): ticket is Ticket => ticket !== null
+      );
+
+    if (migratedTickets.length === 0) {
+      saveTicketsToStorage(initialTickets);
+
+      return [...initialTickets];
+    }
+
+    saveTicketsToStorage(migratedTickets);
+
+    return migratedTickets;
   } catch (error) {
     console.error(
       "Não foi possível carregar os chamados do Local Storage.",
@@ -76,7 +217,9 @@ export function findAllTickets(): Ticket[] {
   return [...tickets];
 }
 
-export function findTicketById(id: number): Ticket | undefined {
+export function findTicketById(
+  id: number
+): Ticket | undefined {
   return tickets.find((ticket) => ticket.id === id);
 }
 
@@ -89,9 +232,13 @@ export function createTicketRepository(
     0
   );
 
+  const currentDate = new Date().toISOString();
+
   const newTicket: Ticket = {
-    id: highestId + 1,
     ...ticketData,
+    id: highestId + 1,
+    createdAt: currentDate,
+    updatedAt: currentDate,
   };
 
   tickets = [...tickets, newTicket];
@@ -103,20 +250,24 @@ export function createTicketRepository(
 
 export function updateTicketById(
   id: number,
-  updatedData: Partial<Ticket>
+  updatedData: Partial<
+    Omit<Ticket, "id" | "createdAt" | "updatedAt">
+  >
 ): Ticket | undefined {
-  const ticketIndex = tickets.findIndex(
+  const currentTicket = tickets.find(
     (ticket) => ticket.id === id
   );
 
-  if (ticketIndex === -1) {
+  if (!currentTicket) {
     return undefined;
   }
 
   const updatedTicket: Ticket = {
-    ...tickets[ticketIndex],
+    ...currentTicket,
     ...updatedData,
-    id,
+    id: currentTicket.id,
+    createdAt: currentTicket.createdAt,
+    updatedAt: new Date().toISOString(),
   };
 
   tickets = tickets.map((ticket) =>

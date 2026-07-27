@@ -354,7 +354,7 @@ function Header({
 
           <MenuItem onClick={handleCloseUserMenu}>
             <ListItemIcon>
-              <PersonIcon fontSize="small" />
+              <PersonIcon fontSize="small" />git add .
             </ListItemIcon>
 
             Meu perfil

@@ -53,10 +53,12 @@ function CreateTicketPage() {
     }
 
     createTicket({
-      title: title.trim(),
-      category,
-      priority,
-      status: "Aberto",
+  title: title.trim(),
+  description: description.trim(),
+  category,
+  priority,
+  status: "Aberto",
+  assignedTechnicianId: null,
     });
 
     navigate("/tickets");

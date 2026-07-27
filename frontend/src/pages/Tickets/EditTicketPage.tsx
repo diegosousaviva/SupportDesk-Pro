@@ -7,11 +7,17 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { ArrowBack, Save } from "@mui/icons-material";
+
+import {
+  ArrowBack,
+  Save,
+} from "@mui/icons-material";
+
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import MainLayout from "../../components/layout/MainLayout";
+
 import {
   getTicketById,
   updateTicket,
@@ -24,12 +30,21 @@ export default function EditTicketPage() {
   const ticketId = Number(id);
   const ticket = getTicketById(ticketId);
 
-  const [saved, setSaved] = useState(false);
+  const [title, setTitle] = useState(
+    ticket?.title ?? ""
+  );
 
-  const [title, setTitle] = useState(ticket?.title ?? "");
-  const [category, setCategory] = useState(ticket?.category ?? "");
-  const [priority, setPriority] = useState(ticket?.priority ?? "Baixa");
-  const [status, setStatus] = useState(ticket?.status ?? "Aberto");
+  const [category, setCategory] = useState(
+    ticket?.category ?? ""
+  );
+
+  const [priority, setPriority] = useState(
+    ticket?.priority ?? "Baixa"
+  );
+
+  const [status, setStatus] = useState(
+    ticket?.status ?? "Aberto"
+  );
 
   if (!ticket) {
     return (
@@ -50,110 +65,165 @@ export default function EditTicketPage() {
     );
   }
 
-  function handleSave() {
-  const updatedTicket = updateTicket(ticket.id, {
-    title,
-    category,
-    priority,
-    status,
-  });
+  const currentTicketId = ticket.id;
+  const ticketDetailsPath = `/tickets/${currentTicketId}`;
 
-  if (updatedTicket) {
-    setSaved(true);
+  function handleSave(): void {
+    const updatedTicket = updateTicket(
+      currentTicketId,
+      {
+        title: title.trim(),
+        category: category.trim(),
+        priority,
+        status,
+      }
+    );
+
+    if (updatedTicket) {
+      navigate(ticketDetailsPath);
+    }
   }
-}
 
   return (
     <MainLayout title="Editar Chamado">
-      <Paper sx={{ p: 4 }}>
-        <Stack spacing={3}>
-          <Typography variant="h5">
-            Editar chamado #{ticket.id}
-          </Typography>
+      <Stack spacing={2}>
+        <Button
+          variant="text"
+          startIcon={<ArrowBack />}
+          onClick={() => navigate(ticketDetailsPath)}
+          sx={{
+            alignSelf: "flex-start",
+          }}
+        >
+          Voltar aos detalhes
+        </Button>
 
-          {saved && (
-            <Alert severity="success">
-              Alterações salvas com sucesso.
-            </Alert>
-          )}
-
-          <TextField
-            label="Título"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            fullWidth
-          />
-
-          <TextField
-            label="Categoria"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            fullWidth
-          />
-
-          <TextField
-            select
-            label="Prioridade"
-            value={priority}
-            onChange={(event) =>
-              setPriority(
-                event.target.value as
-                  | "Baixa"
-                  | "Média"
-                  | "Alta"
-                  | "Crítica"
-              )
-            }
-            fullWidth
-          >
-            <MenuItem value="Baixa">Baixa</MenuItem>
-            <MenuItem value="Média">Média</MenuItem>
-            <MenuItem value="Alta">Alta</MenuItem>
-            <MenuItem value="Crítica">Crítica</MenuItem>
-          </TextField>
-
-          <TextField
-            select
-            label="Status"
-            value={status}
-            onChange={(event) =>
-              setStatus(
-                event.target.value as
-                  | "Aberto"
-                  | "Em andamento"
-                  | "Resolvido"
-              )
-            }
-            fullWidth
-          >
-            <MenuItem value="Aberto">Aberto</MenuItem>
-            <MenuItem value="Em andamento">
-              Em andamento
-            </MenuItem>
-            <MenuItem value="Resolvido">
-              Resolvido
-            </MenuItem>
-          </TextField>
-
-          <Stack direction="row" spacing={2}>
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBack />}
-              onClick={() => navigate(`/tickets/${ticket.id}`)}
+        <Paper
+          sx={{
+            p: {
+              xs: 2.5,
+              md: 4,
+            },
+          }}
+        >
+          <Stack spacing={3}>
+            <Typography
+              variant="h5"
+              component="h1"
+              sx={{ fontWeight: 700 }}
             >
-              Cancelar
-            </Button>
+              Editar chamado #{currentTicketId}
+            </Typography>
 
-            <Button
-              variant="contained"
-              startIcon={<Save />}
-              onClick={handleSave}
+            <TextField
+              label="Título"
+              value={title}
+              onChange={(event) =>
+                setTitle(event.target.value)
+              }
+              fullWidth
+            />
+
+            <TextField
+              label="Categoria"
+              value={category}
+              onChange={(event) =>
+                setCategory(event.target.value)
+              }
+              fullWidth
+            />
+
+            <TextField
+              select
+              label="Prioridade"
+              value={priority}
+              onChange={(event) =>
+                setPriority(
+                  event.target.value as
+                    | "Baixa"
+                    | "Média"
+                    | "Alta"
+                    | "Crítica"
+                )
+              }
+              fullWidth
             >
-              Salvar alterações
-            </Button>
+              <MenuItem value="Baixa">
+                Baixa
+              </MenuItem>
+
+              <MenuItem value="Média">
+                Média
+              </MenuItem>
+
+              <MenuItem value="Alta">
+                Alta
+              </MenuItem>
+
+              <MenuItem value="Crítica">
+                Crítica
+              </MenuItem>
+            </TextField>
+
+            <TextField
+              select
+              label="Status"
+              value={status}
+              onChange={(event) =>
+                setStatus(
+                  event.target.value as
+                    | "Aberto"
+                    | "Em andamento"
+                    | "Resolvido"
+                )
+              }
+              fullWidth
+            >
+              <MenuItem value="Aberto">
+                Aberto
+              </MenuItem>
+
+              <MenuItem value="Em andamento">
+                Em andamento
+              </MenuItem>
+
+              <MenuItem value="Resolvido">
+                Resolvido
+              </MenuItem>
+            </TextField>
+
+            <Stack
+              direction={{
+                xs: "column",
+                sm: "row",
+              }}
+              spacing={2}
+            >
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBack />}
+                onClick={() =>
+                  navigate(ticketDetailsPath)
+                }
+              >
+                Cancelar
+              </Button>
+
+              <Button
+                variant="contained"
+                startIcon={<Save />}
+                onClick={handleSave}
+                disabled={
+                  !title.trim() ||
+                  !category.trim()
+                }
+              >
+                Salvar alterações
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
-      </Paper>
+        </Paper>
+      </Stack>
     </MainLayout>
   );
 }

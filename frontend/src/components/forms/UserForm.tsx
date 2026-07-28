@@ -1,21 +1,34 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import type {
+  FormEvent,
+} from "react";
 
 import {
   Box,
   Button,
   FormControl,
   Grid,
+  IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   TextField,
 } from "@mui/material";
 
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+
 import type { User } from "../../types/User";
 
 export interface UserFormData {
   name: string;
   email: string;
+  password: string;
   phone: string;
   department: string;
   role: User["role"];
@@ -26,11 +39,13 @@ interface UserFormProps {
   initialValues?: UserFormData;
   onSubmit: (values: UserFormData) => void;
   submitLabel?: string;
+  isEdit?: boolean;
 }
 
 const defaultValues: UserFormData = {
   name: "",
   email: "",
+  password: "",
   phone: "",
   department: "",
   role: "Solicitante",
@@ -41,14 +56,21 @@ function UserForm({
   initialValues,
   onSubmit,
   submitLabel = "Salvar",
+  isEdit = false,
 }: UserFormProps) {
   const [formData, setFormData] =
     useState<UserFormData>(defaultValues);
 
+  const [showPassword, setShowPassword] =
+    useState(false);
+
   useEffect(() => {
     if (initialValues) {
       setFormData(initialValues);
+      return;
     }
+
+    setFormData(defaultValues);
   }, [initialValues]);
 
   function handleChange<K extends keyof UserFormData>(
@@ -62,18 +84,24 @@ function UserForm({
   }
 
   function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      department: formData.department.trim(),
+    });
   }
 
   return (
     <Box
       component="form"
       onSubmit={handleSubmit}
-      noValidate
+      noValidate={false}
     >
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 6 }}>
@@ -81,9 +109,13 @@ function UserForm({
             fullWidth
             required
             label="Nome"
+            autoComplete="name"
             value={formData.name}
             onChange={(event) =>
-              handleChange("name", event.target.value)
+              handleChange(
+                "name",
+                event.target.value
+              )
             }
           />
         </Grid>
@@ -94,9 +126,13 @@ function UserForm({
             required
             type="email"
             label="E-mail"
+            autoComplete="email"
             value={formData.email}
             onChange={(event) =>
-              handleChange("email", event.target.value)
+              handleChange(
+                "email",
+                event.target.value
+              )
             }
           />
         </Grid>
@@ -104,10 +140,79 @@ function UserForm({
         <Grid size={{ xs: 12, md: 6 }}>
           <TextField
             fullWidth
+            required={!isEdit}
+            label={
+              isEdit
+                ? "Nova senha"
+                : "Senha"
+            }
+            type={
+              showPassword
+                ? "text"
+                : "password"
+            }
+            autoComplete={
+              isEdit
+                ? "new-password"
+                : "new-password"
+            }
+            value={formData.password}
+            onChange={(event) =>
+              handleChange(
+                "password",
+                event.target.value
+              )
+            }
+            helperText={
+              isEdit
+                ? "Deixe em branco para manter a senha atual."
+                : "A senha deve possuir pelo menos 6 caracteres."
+            }
+            slotProps={{
+              htmlInput: {
+                minLength: 6,
+              },
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      type="button"
+                      edge="end"
+                      aria-label={
+                        showPassword
+                          ? "Ocultar senha"
+                          : "Mostrar senha"
+                      }
+                      onClick={() =>
+                        setShowPassword(
+                          (current) => !current
+                        )
+                      }
+                    >
+                      {showPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <TextField
+            fullWidth
             label="Telefone"
+            autoComplete="tel"
             value={formData.phone}
             onChange={(event) =>
-              handleChange("phone", event.target.value)
+              handleChange(
+                "phone",
+                event.target.value
+              )
             }
           />
         </Grid>
@@ -127,16 +232,20 @@ function UserForm({
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <FormControl fullWidth>
-            <InputLabel>Perfil</InputLabel>
+          <FormControl fullWidth required>
+            <InputLabel id="user-role-label">
+              Perfil
+            </InputLabel>
 
             <Select
+              labelId="user-role-label"
               label="Perfil"
               value={formData.role}
               onChange={(event) =>
                 handleChange(
                   "role",
-                  event.target.value as User["role"]
+                  event.target
+                    .value as User["role"]
                 )
               }
             >
@@ -156,16 +265,20 @@ function UserForm({
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
+          <FormControl fullWidth required>
+            <InputLabel id="user-status-label">
+              Status
+            </InputLabel>
 
             <Select
+              labelId="user-status-label"
               label="Status"
               value={formData.status}
               onChange={(event) =>
                 handleChange(
                   "status",
-                  event.target.value as User["status"]
+                  event.target
+                    .value as User["status"]
                 )
               }
             >

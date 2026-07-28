@@ -19,23 +19,43 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 
 import MainLayout from "../../components/layout/MainLayout";
+
 import { createTicket } from "../../services/ticketService";
+import { getUsers } from "../../services/userService";
+
 import type { Ticket } from "../../types/Ticket";
 
 type TicketPriority = Ticket["priority"];
 
+const UNASSIGNED_TECHNICIAN_VALUE = "unassigned";
+
 function CreateTicketPage() {
   const navigate = useNavigate();
 
+  const technicians = getUsers().filter(
+    (user) =>
+      user.role === "Técnico" &&
+      user.status === "Ativo"
+  );
+
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+
   const [priority, setPriority] =
     useState<TicketPriority | "">("");
+
+  const [
+    assignedTechnicianId,
+    setAssignedTechnicianId,
+  ] = useState(UNASSIGNED_TECHNICIAN_VALUE);
+
   const [equipment, setEquipment] = useState("");
   const [description, setDescription] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ): void {
     event.preventDefault();
 
     setErrorMessage("");
@@ -49,16 +69,21 @@ function CreateTicketPage() {
       setErrorMessage(
         "Preencha todos os campos obrigatórios."
       );
+
       return;
     }
 
     createTicket({
-  title: title.trim(),
-  description: description.trim(),
-  category,
-  priority,
-  status: "Aberto",
-  assignedTechnicianId: null,
+      title: title.trim(),
+      description: description.trim(),
+      category,
+      priority,
+      status: "Aberto",
+      assignedTechnicianId:
+        assignedTechnicianId ===
+        UNASSIGNED_TECHNICIAN_VALUE
+          ? null
+          : Number(assignedTechnicianId),
     });
 
     navigate("/tickets");
@@ -85,7 +110,14 @@ function CreateTicketPage() {
           </Alert>
         )}
 
-        <Paper sx={{ p: 4 }}>
+        <Paper
+          sx={{
+            p: {
+              xs: 2.5,
+              md: 4,
+            },
+          }}
+        >
           <Box
             component="form"
             onSubmit={handleSubmit}
@@ -169,6 +201,46 @@ function CreateTicketPage() {
                   </MenuItem>
                 </Select>
               </FormControl>
+
+              <FormControl fullWidth>
+                <InputLabel id="technician-label">
+                  Técnico responsável
+                </InputLabel>
+
+                <Select
+                  labelId="technician-label"
+                  label="Técnico responsável"
+                  value={assignedTechnicianId}
+                  onChange={(event) =>
+                    setAssignedTechnicianId(
+                      event.target.value
+                    )
+                  }
+                >
+                  <MenuItem
+                    value={UNASSIGNED_TECHNICIAN_VALUE}
+                  >
+                    Não atribuído
+                  </MenuItem>
+
+                  {technicians.map((technician) => (
+                    <MenuItem
+                      key={technician.id}
+                      value={String(technician.id)}
+                    >
+                      {technician.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {technicians.length === 0 && (
+                <Alert severity="info">
+                  Não há técnicos ativos cadastrados. O
+                  chamado será criado sem técnico
+                  responsável.
+                </Alert>
+              )}
 
               <TextField
                 label="Equipamento"

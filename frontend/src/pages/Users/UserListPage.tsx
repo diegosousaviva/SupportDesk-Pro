@@ -17,6 +17,14 @@ import SearchBar from "../../components/common/SearchBar";
 import UserTable from "../../components/tables/UserTable";
 
 import {
+  Permissions,
+} from "../../auth/permissions";
+
+import {
+  usePermissions,
+} from "../../hooks/usePermissions";
+
+import {
   deleteUser,
   getUsers,
 } from "../../services/userService";
@@ -24,14 +32,24 @@ import {
 function UserListPage() {
   const navigate = useNavigate();
 
+  const { can } = usePermissions();
+
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState(getUsers());
+
+  const canCreate = can(Permissions.users.create);
+  const canEdit = can(Permissions.users.edit);
+  const canDelete = can(Permissions.users.delete);
 
   function refreshUsers() {
     setUsers(getUsers());
   }
 
   function handleDelete(id: number) {
+    if (!canDelete) {
+      return;
+    }
+
     const confirmed = window.confirm(
       "Deseja realmente excluir este usuário?"
     );
@@ -80,28 +98,45 @@ function UserListPage() {
             />
           </Box>
 
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate("/users/new")}
-          >
-            Novo Usuário
-          </Button>
+          {canCreate && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate("/users/new")}
+            >
+              Novo Usuário
+            </Button>
+          )}
         </DataTableToolbar>
 
         {filteredUsers.length === 0 ? (
           <EmptyState
             title="Nenhum usuário encontrado"
             description="Não encontramos usuários com os filtros informados."
-            actionLabel="Novo Usuário"
-            onAction={() => navigate("/users/new")}
+            actionLabel={
+              canCreate ? "Novo Usuário" : undefined
+            }
+            onAction={
+              canCreate
+                ? () => navigate("/users/new")
+                : undefined
+            }
           />
         ) : (
           <UserTable
             users={filteredUsers}
             onView={(id) => navigate(`/users/${id}`)}
-            onEdit={(id) => navigate(`/users/${id}/edit`)}
-            onDelete={handleDelete}
+            onEdit={
+              canEdit
+                ? (id) =>
+                    navigate(`/users/${id}/edit`)
+                : undefined
+            }
+            onDelete={
+              canDelete
+                ? handleDelete
+                : undefined
+            }
           />
         )}
       </PageCard>

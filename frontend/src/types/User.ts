@@ -9,18 +9,12 @@ export type UserStatus =
 
 export interface User {
   id: number;
-
   name: string;
-
   email: string;
-
+  password: string;
   phone: string;
-
   department: string;
-
   role: UserRole;
-
   status: UserStatus;
-
   createdAt: string;
 }

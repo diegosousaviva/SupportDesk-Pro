@@ -13,6 +13,8 @@ import {
   deleteTicketHistory,
 } from "./ticketHistoryService";
 
+import { getUserById } from "./userService";
+
 export type CreateTicketData = Omit<
   Ticket,
   "id" | "createdAt" | "updatedAt"
@@ -29,9 +31,17 @@ function normalizeText(value: string): string {
 function getTechnicianDescription(
   technicianId: number | null
 ): string {
-  return technicianId === null
-    ? "Não atribuído"
-    : `Técnico #${technicianId}`;
+  if (technicianId === null) {
+    return "Não atribuído";
+  }
+
+  const technician = getUserById(technicianId);
+
+  if (!technician) {
+    return `Técnico não encontrado (#${technicianId})`;
+  }
+
+  return technician.name;
 }
 
 function registerTicketChanges(
@@ -56,11 +66,15 @@ function registerTicketChanges(
     createTicketHistoryEntry({
       ticketId: updatedTicket.id,
       eventType: "description_changed",
-      description: "A descrição do chamado foi atualizada.",
+      description:
+        "A descrição do chamado foi atualizada.",
     });
   }
 
-  if (currentTicket.category !== updatedTicket.category) {
+  if (
+    currentTicket.category !==
+    updatedTicket.category
+  ) {
     createTicketHistoryEntry({
       ticketId: updatedTicket.id,
       eventType: "category_changed",
@@ -68,7 +82,10 @@ function registerTicketChanges(
     });
   }
 
-  if (currentTicket.priority !== updatedTicket.priority) {
+  if (
+    currentTicket.priority !==
+    updatedTicket.priority
+  ) {
     createTicketHistoryEntry({
       ticketId: updatedTicket.id,
       eventType: "priority_changed",
@@ -76,7 +93,10 @@ function registerTicketChanges(
     });
   }
 
-  if (currentTicket.status !== updatedTicket.status) {
+  if (
+    currentTicket.status !==
+    updatedTicket.status
+  ) {
     createTicketHistoryEntry({
       ticketId: updatedTicket.id,
       eventType: "status_changed",
@@ -88,13 +108,15 @@ function registerTicketChanges(
     currentTicket.assignedTechnicianId !==
     updatedTicket.assignedTechnicianId
   ) {
-    const previousTechnician = getTechnicianDescription(
-      currentTicket.assignedTechnicianId
-    );
+    const previousTechnician =
+      getTechnicianDescription(
+        currentTicket.assignedTechnicianId
+      );
 
-    const newTechnician = getTechnicianDescription(
-      updatedTicket.assignedTechnicianId
-    );
+    const newTechnician =
+      getTechnicianDescription(
+        updatedTicket.assignedTechnicianId
+      );
 
     createTicketHistoryEntry({
       ticketId: updatedTicket.id,
@@ -117,13 +139,29 @@ export function getTicketById(
 export function createTicket(
   ticketData: CreateTicketData
 ): Ticket {
-  const createdTicket = createTicketRepository(ticketData);
+  const createdTicket =
+    createTicketRepository(ticketData);
 
   createTicketHistoryEntry({
     ticketId: createdTicket.id,
     eventType: "ticket_created",
     description: "Chamado criado.",
   });
+
+  if (
+    createdTicket.assignedTechnicianId !== null
+  ) {
+    const technicianName =
+      getTechnicianDescription(
+        createdTicket.assignedTechnicianId
+      );
+
+    createTicketHistoryEntry({
+      ticketId: createdTicket.id,
+      eventType: "technician_changed",
+      description: `Chamado atribuído ao técnico "${technicianName}".`,
+    });
+  }
 
   return createdTicket;
 }
@@ -138,18 +176,26 @@ export function updateTicket(
     return undefined;
   }
 
-  const updatedTicket = updateTicketById(id, updatedData);
+  const updatedTicket = updateTicketById(
+    id,
+    updatedData
+  );
 
   if (!updatedTicket) {
     return undefined;
   }
 
-  registerTicketChanges(currentTicket, updatedTicket);
+  registerTicketChanges(
+    currentTicket,
+    updatedTicket
+  );
 
   return updatedTicket;
 }
 
-export function deleteTicket(id: number): boolean {
+export function deleteTicket(
+  id: number
+): boolean {
   const deleted = deleteTicketById(id);
 
   if (deleted) {

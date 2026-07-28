@@ -9,8 +9,11 @@ import {
 import type { PaletteMode } from "@mui/material";
 
 import App from "./App";
+
 import { createAppTheme } from "./theme/theme";
+
 import ColorModeContext from "./contexts/ColorModeContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -21,17 +24,22 @@ const COLOR_MODE_STORAGE_KEY =
   "supportdesk-pro-color-mode";
 
 function Root() {
-  const [mode, setMode] = useState<PaletteMode>(() => {
-    const savedMode = localStorage.getItem(
-      COLOR_MODE_STORAGE_KEY
-    );
+  const [mode, setMode] =
+    useState<PaletteMode>(() => {
+      const savedMode =
+        localStorage.getItem(
+          COLOR_MODE_STORAGE_KEY
+        );
 
-    if (savedMode === "dark" || savedMode === "light") {
-      return savedMode;
-    }
+      if (
+        savedMode === "light" ||
+        savedMode === "dark"
+      ) {
+        return savedMode;
+      }
 
-    return "light";
-  });
+      return "light";
+    });
 
   const colorMode = useMemo(
     () => ({
@@ -39,7 +47,9 @@ function Root() {
       toggleColorMode: () => {
         setMode((currentMode) => {
           const newMode =
-            currentMode === "light" ? "dark" : "light";
+            currentMode === "light"
+              ? "dark"
+              : "light";
 
           localStorage.setItem(
             COLOR_MODE_STORAGE_KEY,
@@ -59,11 +69,15 @@ function Root() {
   );
 
   return (
-    <ColorModeContext.Provider value={colorMode}>
+    <ColorModeContext.Provider
+      value={colorMode}
+    >
       <ThemeProvider theme={theme}>
         <CssBaseline />
 
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </ThemeProvider>
     </ColorModeContext.Provider>
   );

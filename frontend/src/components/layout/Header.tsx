@@ -1,391 +1,365 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import type {
+  MouseEvent,
+} from "react";
+
 import {
   AppBar,
   Avatar,
-  Badge,
   Box,
   Divider,
   IconButton,
   ListItemIcon,
   Menu,
   MenuItem,
+  Stack,
   Toolbar,
   Tooltip,
   Typography,
 } from "@mui/material";
 
 import MenuIcon from "@mui/icons-material/Menu";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LogoutIcon from "@mui/icons-material/Logout";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-import { useColorMode } from "../../contexts/ColorModeContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface HeaderProps {
-  title: string;
-  onToggleSidebar: () => void;
+  title?: string;
+  onMenuClick?: () => void;
+}
+
+function getUserInitials(name: string) {
+  const normalizedName = name.trim();
+
+  if (!normalizedName) {
+    return "U";
+  }
+
+  const nameParts = normalizedName
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (nameParts.length === 1) {
+    return nameParts[0]
+      .charAt(0)
+      .toUpperCase();
+  }
+
+  const firstInitial = nameParts[0]
+    .charAt(0)
+    .toUpperCase();
+
+  const lastInitial = nameParts[
+    nameParts.length - 1
+  ]
+    .charAt(0)
+    .toUpperCase();
+
+  return `${firstInitial}${lastInitial}`;
 }
 
 function Header({
-  title,
-  onToggleSidebar,
+  title = "SupportDesk Pro",
+  onMenuClick,
 }: HeaderProps) {
   const navigate = useNavigate();
-  const { mode, toggleColorMode } = useColorMode();
+
+  const {
+    user,
+    logout,
+  } = useAuth();
 
   const [
-    notificationsAnchorElement,
-    setNotificationsAnchorElement,
-  ] = useState<null | HTMLElement>(null);
+    menuAnchorElement,
+    setMenuAnchorElement,
+  ] = useState<HTMLElement | null>(null);
 
-  const [
-    userMenuAnchorElement,
-    setUserMenuAnchorElement,
-  ] = useState<null | HTMLElement>(null);
+  const isUserMenuOpen =
+    Boolean(menuAnchorElement);
 
-  const notificationsMenuOpen = Boolean(
-    notificationsAnchorElement
-  );
-
-  const userMenuOpen = Boolean(
-    userMenuAnchorElement
-  );
-
-  function handleOpenNotificationsMenu(
-    event: React.MouseEvent<HTMLElement>
+  function handleOpenUserMenu(
+    event: MouseEvent<HTMLElement>
   ) {
-    setNotificationsAnchorElement(
+    setMenuAnchorElement(
       event.currentTarget
     );
   }
 
-  function handleCloseNotificationsMenu() {
-    setNotificationsAnchorElement(null);
-  }
-
-  function handleOpenUserMenu(
-    event: React.MouseEvent<HTMLElement>
-  ) {
-    setUserMenuAnchorElement(event.currentTarget);
-  }
-
   function handleCloseUserMenu() {
-    setUserMenuAnchorElement(null);
+    setMenuAnchorElement(null);
   }
 
-  function handleNavigateToSettings() {
+  function handleProfile() {
     handleCloseUserMenu();
-    navigate("/settings");
+
+    if (!user) {
+      return;
+    }
+
+    navigate(`/users/${user.id}`);
   }
 
   function handleLogout() {
     handleCloseUserMenu();
-    navigate("/login");
+
+    logout();
+
+    navigate("/login", {
+      replace: true,
+    });
   }
+
+  const userName =
+    user?.name ?? "Usuário";
+
+  const userRole =
+    user?.role ?? "";
+
+  const userInitials =
+    getUserInitials(userName);
 
   return (
     <AppBar
-      position="fixed"
-      color="inherit"
+      position="sticky"
       elevation={0}
+      color="default"
       sx={{
-        zIndex: (theme) =>
-          theme.zIndex.drawer + 1,
-        borderBottom: "1px solid",
+        borderBottom: 1,
         borderColor: "divider",
-        backdropFilter: "blur(12px)",
-        backgroundColor: (theme) =>
-          theme.palette.mode === "dark"
-            ? "rgba(30, 41, 59, 0.92)"
-            : "rgba(255, 255, 255, 0.92)",
+        backgroundColor:
+          "background.paper",
       }}
     >
-      <Toolbar>
-        <Tooltip title="Abrir ou recolher menu">
-          <IconButton
-            edge="start"
-            onClick={onToggleSidebar}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-        </Tooltip>
+      <Toolbar
+        sx={{
+          minHeight: {
+            xs: 64,
+            sm: 72,
+          },
+          px: {
+            xs: 2,
+            sm: 3,
+          },
+        }}
+      >
+        {onMenuClick && (
+          <Tooltip title="Abrir menu">
+            <IconButton
+              edge="start"
+              color="inherit"
+              aria-label="Abrir menu lateral"
+              onClick={onMenuClick}
+              sx={{
+                mr: 2,
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
+        )}
 
         <Typography
           variant="h6"
+          component="h1"
+          fontWeight={700}
           noWrap
           sx={{
             flexGrow: 1,
-            fontWeight: 600,
           }}
         >
           {title}
         </Typography>
 
-        <Tooltip
-          title={
-            mode === "light"
-              ? "Ativar modo escuro"
-              : "Ativar modo claro"
-          }
-        >
-          <IconButton
-            onClick={toggleColorMode}
-            sx={{ mr: 0.5 }}
-          >
-            {mode === "light" ? (
-              <DarkModeIcon />
-            ) : (
-              <LightModeIcon />
-            )}
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Notificações">
-          <IconButton
-            onClick={handleOpenNotificationsMenu}
-          >
-            <Badge
-              badgeContent={3}
-              color="error"
-              max={9}
-            >
-              <NotificationsNoneIcon />
-            </Badge>
-          </IconButton>
-        </Tooltip>
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            ml: {
-              xs: 1,
-              sm: 2,
-            },
-          }}
-        >
-          <Tooltip title="Menu do usuário">
-            <IconButton
-              onClick={handleOpenUserMenu}
-              sx={{ p: 0 }}
+        <Box>
+          <Tooltip title="Opções do usuário">
+            <Box
+              component="button"
+              type="button"
+              onClick={
+                handleOpenUserMenu
+              }
+              aria-label="Abrir opções do usuário"
+              aria-controls={
+                isUserMenuOpen
+                  ? "user-menu"
+                  : undefined
+              }
+              aria-haspopup="true"
+              aria-expanded={
+                isUserMenuOpen
+                  ? "true"
+                  : undefined
+              }
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.25,
+                minWidth: 0,
+                p: 0.75,
+                border: 0,
+                borderRadius: 2,
+                color: "text.primary",
+                backgroundColor:
+                  "transparent",
+                cursor: "pointer",
+                font: "inherit",
+                transition:
+                  "background-color 0.2s",
+                "&:hover": {
+                  backgroundColor:
+                    "action.hover",
+                },
+              }}
             >
               <Avatar
                 sx={{
+                  width: 40,
+                  height: 40,
                   bgcolor: "primary.main",
-                  width: 38,
-                  height: 38,
+                  color:
+                    "primary.contrastText",
+                  fontSize: "0.875rem",
+                  fontWeight: 700,
                 }}
               >
-                D
+                {userInitials}
               </Avatar>
-            </IconButton>
+
+              <Stack
+                spacing={0}
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "flex",
+                  },
+                  minWidth: 0,
+                  textAlign: "left",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  fontWeight={700}
+                  noWrap
+                  sx={{
+                    maxWidth: 180,
+                  }}
+                >
+                  {userName}
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  noWrap
+                >
+                  {userRole}
+                </Typography>
+              </Stack>
+
+              <KeyboardArrowDownIcon
+                fontSize="small"
+                sx={{
+                  display: {
+                    xs: "none",
+                    sm: "block",
+                  },
+                  transform:
+                    isUserMenuOpen
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
+                  transition:
+                    "transform 0.2s",
+                }}
+              />
+            </Box>
           </Tooltip>
 
-          <Typography
-            sx={{
-              display: {
-                xs: "none",
-                sm: "block",
+          <Menu
+            id="user-menu"
+            anchorEl={
+              menuAnchorElement
+            }
+            open={isUserMenuOpen}
+            onClose={
+              handleCloseUserMenu
+            }
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            slotProps={{
+              paper: {
+                sx: {
+                  mt: 1,
+                  minWidth: 220,
+                  borderRadius: 2,
+                },
               },
-              fontWeight: 600,
-              ml: 1.5,
             }}
           >
-            Diego
-          </Typography>
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+              }}
+            >
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                noWrap
+              >
+                {userName}
+              </Typography>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                noWrap
+              >
+                {user?.email}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            <MenuItem
+              onClick={handleProfile}
+              disabled={!user}
+            >
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+
+              Meu perfil
+            </MenuItem>
+
+            <Divider />
+
+            <MenuItem
+              onClick={handleLogout}
+              sx={{
+                color: "error.main",
+              }}
+            >
+              <ListItemIcon>
+                <LogoutIcon
+                  fontSize="small"
+                  color="error"
+                />
+              </ListItemIcon>
+
+              Sair
+            </MenuItem>
+          </Menu>
         </Box>
-
-        <Menu
-          anchorEl={notificationsAnchorElement}
-          open={notificationsMenuOpen}
-          onClose={handleCloseNotificationsMenu}
-          anchorOrigin={{
-            vertical: "bottom",
-            horizontal: "right",
-          }}
-          transformOrigin={{
-            vertical: "top",
-            horizontal: "right",
-          }}
-          slotProps={{
-            paper: {
-              sx: {
-                mt: 1.5,
-                width: 320,
-                maxWidth: "calc(100vw - 32px)",
-              },
-            },
-          }}
-        >
-          <Box sx={{ px: 2, py: 1 }}>
-            <Typography fontWeight={700}>
-              Notificações
-            </Typography>
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Você possui 3 atualizações.
-            </Typography>
-          </Box>
-
-          <Divider />
-
-          <MenuItem
-            onClick={handleCloseNotificationsMenu}
-            sx={{
-              whiteSpace: "normal",
-              alignItems: "flex-start",
-              py: 1.5,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="body2"
-                fontWeight={600}
-              >
-                Novo chamado aberto
-              </Typography>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Um novo chamado de hardware foi
-                registrado.
-              </Typography>
-            </Box>
-          </MenuItem>
-
-          <MenuItem
-            onClick={handleCloseNotificationsMenu}
-            sx={{
-              whiteSpace: "normal",
-              alignItems: "flex-start",
-              py: 1.5,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="body2"
-                fontWeight={600}
-              >
-                Chamado atualizado
-              </Typography>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                O status de um chamado foi alterado.
-              </Typography>
-            </Box>
-          </MenuItem>
-
-          <MenuItem
-            onClick={handleCloseNotificationsMenu}
-            sx={{
-              whiteSpace: "normal",
-              alignItems: "flex-start",
-              py: 1.5,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="body2"
-                fontWeight={600}
-              >
-                Chamado crítico
-              </Typography>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Existe um chamado com prioridade
-                crítica.
-              </Typography>
-            </Box>
-          </MenuItem>
-        </Menu>
-
-        <Menu
-          anchorEl={userMenuAnchorElement}
-          open={userMenuOpen}
-          onClose={handleCloseUserMenu}
-          anchorOrigin={{
-            vertical: "bottom",
-            horizontal: "right",
-          }}
-          transformOrigin={{
-            vertical: "top",
-            horizontal: "right",
-          }}
-          slotProps={{
-            paper: {
-              sx: {
-                mt: 1.5,
-                minWidth: 210,
-              },
-            },
-          }}
-        >
-          <Box sx={{ px: 2, py: 1.5 }}>
-            <Typography fontWeight={700}>
-              Diego
-            </Typography>
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Administrador
-            </Typography>
-          </Box>
-
-          <Divider />
-
-          <MenuItem onClick={handleCloseUserMenu}>
-            <ListItemIcon>
-              <PersonIcon fontSize="small" />git add .
-            </ListItemIcon>
-
-            Meu perfil
-          </MenuItem>
-
-          <MenuItem
-            onClick={handleNavigateToSettings}
-          >
-            <ListItemIcon>
-              <SettingsOutlinedIcon fontSize="small" />
-            </ListItemIcon>
-
-            Configurações
-          </MenuItem>
-
-          <Divider />
-
-          <MenuItem
-            onClick={handleLogout}
-            sx={{ color: "error.main" }}
-          >
-            <ListItemIcon>
-              <LogoutIcon
-                fontSize="small"
-                color="error"
-              />
-            </ListItemIcon>
-
-            Sair
-          </MenuItem>
-        </Menu>
       </Toolbar>
     </AppBar>
   );

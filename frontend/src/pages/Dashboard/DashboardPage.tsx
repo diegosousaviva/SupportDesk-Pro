@@ -8,21 +8,44 @@ import {
   Typography,
 } from "@mui/material";
 
-import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
-import WarningIcon from "@mui/icons-material/Warning";
-import ScheduleIcon from "@mui/icons-material/Schedule";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import WarningIcon from "@mui/icons-material/Warning";
 
 import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
+import CategoryChart from "../../components/dashboard/CategoryChart";
+import MonthlyChart from "../../components/dashboard/MonthlyChart";
+import PriorityChart from "../../components/dashboard/PriorityChart";
 import StatCard from "../../components/dashboard/StatCard";
 import StatusChart from "../../components/dashboard/StatusChart";
-import PriorityChart from "../../components/dashboard/PriorityChart";
+import TechnicianChart from "../../components/dashboard/TechnicianChart";
 
 import { getTickets } from "../../services/ticketService";
+import { getUsers } from "../../services/userService";
+
+interface CategoryChartItem {
+  [key: string]: string | number;
+  category: string;
+  quantity: number;
+}
+
+interface TechnicianChartItem {
+  [key: string]: string | number;
+  technician: string;
+  quantity: number;
+}
+
+interface MonthlyChartItem {
+  [key: string]: string | number;
+  month: string;
+  quantity: number;
+}
 
 function DashboardPage() {
   const tickets = getTickets();
+  const users = getUsers();
 
   const totalTickets = tickets.length;
 
@@ -67,6 +90,178 @@ function DashboardPage() {
         secondTicket.id - firstTicket.id
     )
     .slice(0, 5);
+
+  const categoryChartData =
+    createCategoryChartData();
+
+  const technicianChartData =
+    createTechnicianChartData();
+
+  const monthlyChartData = createMonthlyChartData();
+
+  function createCategoryChartData(): CategoryChartItem[] {
+    const categoryTotals = new Map<string, number>();
+
+    tickets.forEach((ticket) => {
+      const category =
+        ticket.category.trim() || "Sem categoria";
+
+      const currentTotal =
+        categoryTotals.get(category) ?? 0;
+
+      categoryTotals.set(
+        category,
+        currentTotal + 1
+      );
+    });
+
+    return Array.from(categoryTotals.entries())
+      .map(([category, quantity]) => ({
+        category,
+        quantity,
+      }))
+      .sort((firstItem, secondItem) => {
+        if (
+          firstItem.quantity !== secondItem.quantity
+        ) {
+          return (
+            secondItem.quantity -
+            firstItem.quantity
+          );
+        }
+
+        return firstItem.category.localeCompare(
+          secondItem.category,
+          "pt-BR"
+        );
+      });
+  }
+
+  function createTechnicianChartData():
+    TechnicianChartItem[] {
+    const technicianTotals = new Map<
+      string,
+      number
+    >();
+
+    tickets.forEach((ticket) => {
+      let technicianName = "Não atribuído";
+
+      if (ticket.assignedTechnicianId !== null) {
+        const technician = users.find(
+          (user) =>
+            user.id ===
+            ticket.assignedTechnicianId
+        );
+
+        if (technician) {
+          technicianName =
+            technician.status === "Inativo"
+              ? `${technician.name} — Inativo`
+              : technician.name;
+        } else {
+          technicianName =
+            `Técnico não encontrado (#${ticket.assignedTechnicianId})`;
+        }
+      }
+
+      const currentTotal =
+        technicianTotals.get(technicianName) ?? 0;
+
+      technicianTotals.set(
+        technicianName,
+        currentTotal + 1
+      );
+    });
+
+    return Array.from(technicianTotals.entries())
+      .map(([technician, quantity]) => ({
+        technician,
+        quantity,
+      }))
+      .sort((firstItem, secondItem) => {
+        if (
+          firstItem.quantity !== secondItem.quantity
+        ) {
+          return (
+            secondItem.quantity -
+            firstItem.quantity
+          );
+        }
+
+        return firstItem.technician.localeCompare(
+          secondItem.technician,
+          "pt-BR"
+        );
+      });
+  }
+
+  function createMonthlyChartData():
+    MonthlyChartItem[] {
+    const currentDate = new Date();
+
+    const months = Array.from(
+      { length: 6 },
+      (_item, index) => {
+        const monthDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() - (5 - index),
+          1
+        );
+
+        const key = [
+          monthDate.getFullYear(),
+          String(
+            monthDate.getMonth() + 1
+          ).padStart(2, "0"),
+        ].join("-");
+
+        const label = new Intl.DateTimeFormat(
+          "pt-BR",
+          {
+            month: "short",
+            year: "2-digit",
+          }
+        )
+          .format(monthDate)
+          .replace(".", "");
+
+        return {
+          key,
+          label,
+          quantity: 0,
+        };
+      }
+    );
+
+    tickets.forEach((ticket) => {
+      const createdAt = new Date(ticket.createdAt);
+
+      if (Number.isNaN(createdAt.getTime())) {
+        return;
+      }
+
+      const ticketMonthKey = [
+        createdAt.getFullYear(),
+        String(
+          createdAt.getMonth() + 1
+        ).padStart(2, "0"),
+      ].join("-");
+
+      const month = months.find(
+        (item) => item.key === ticketMonthKey
+      );
+
+      if (month) {
+        month.quantity += 1;
+      }
+    });
+
+    return months.map((month) => ({
+      month: month.label,
+      quantity: month.quantity,
+    }));
+  }
 
   function getPriorityColor(
     priority: string
@@ -125,11 +320,15 @@ function DashboardPage() {
         />
 
         {criticalTickets > 0 && (
-          <Alert severity="error" icon={<WarningIcon />}>
+          <Alert
+            severity="error"
+            icon={<WarningIcon />}
+          >
             Existem{" "}
             <strong>
               {criticalTickets} chamado
-              {criticalTickets === 1 ? "" : "s"} crítico
+              {criticalTickets === 1 ? "" : "s"}{" "}
+              crítico
               {criticalTickets === 1 ? "" : "s"}
             </strong>{" "}
             que precisam de atenção.
@@ -178,7 +377,9 @@ function DashboardPage() {
           <Grid size={{ xs: 12, lg: 7 }}>
             <StatusChart
               openTickets={openTickets}
-              inProgressTickets={inProgressTickets}
+              inProgressTickets={
+                inProgressTickets
+              }
               resolvedTickets={resolvedTickets}
             />
           </Grid>
@@ -186,12 +387,34 @@ function DashboardPage() {
           <Grid size={{ xs: 12, lg: 5 }}>
             <PriorityChart
               criticalTickets={criticalTickets}
-              highPriorityTickets={highPriorityTickets}
-              mediumPriorityTickets={mediumPriorityTickets}
-              lowPriorityTickets={lowPriorityTickets}
+              highPriorityTickets={
+                highPriorityTickets
+              }
+              mediumPriorityTickets={
+                mediumPriorityTickets
+              }
+              lowPriorityTickets={
+                lowPriorityTickets
+              }
             />
           </Grid>
         </Grid>
+
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <CategoryChart
+              data={categoryChartData}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <TechnicianChart
+              data={technicianChartData}
+            />
+          </Grid>
+        </Grid>
+
+        <MonthlyChart data={monthlyChartData} />
 
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, lg: 8 }}>
@@ -228,7 +451,8 @@ function DashboardPage() {
                           xs: "flex-start",
                           sm: "center",
                         },
-                        justifyContent: "space-between",
+                        justifyContent:
+                          "space-between",
                         gap: 2,
                         p: 2,
                         border: "1px solid",
@@ -237,8 +461,10 @@ function DashboardPage() {
                         transition:
                           "border-color 200ms ease, transform 200ms ease",
                         "&:hover": {
-                          borderColor: "primary.main",
-                          transform: "translateY(-2px)",
+                          borderColor:
+                            "primary.main",
+                          transform:
+                            "translateY(-2px)",
                         },
                       }}
                     >
@@ -367,7 +593,8 @@ function DashboardPage() {
                   color="text.secondary"
                   sx={{ mt: 2 }}
                 >
-                  {resolvedTickets} de {totalTickets} chamado
+                  {resolvedTickets} de {totalTickets}{" "}
+                  chamado
                   {totalTickets === 1 ? "" : "s"} foram
                   resolvidos.
                 </Typography>

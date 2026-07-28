@@ -20,22 +20,35 @@ import { createUser } from "../../services/userService";
 function CreateUserPage() {
   const navigate = useNavigate();
 
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] =
+    useState("");
+  const [saving, setSaving] =
+    useState(false);
 
-  function handleSubmit(values: UserFormData) {
+  async function handleSubmit(
+    values: UserFormData
+  ) {
     try {
       setErrorMessage("");
+      setSaving(true);
 
-      createUser({
+      await createUser({
         ...values,
         createdAt: new Date().toISOString(),
       });
 
       navigate("/users");
-    } catch {
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
       setErrorMessage(
         "Não foi possível cadastrar o usuário. Tente novamente."
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -54,6 +67,7 @@ function CreateUserPage() {
       >
         <Button
           variant="outlined"
+          disabled={saving}
           onClick={() => navigate("/users")}
         >
           Voltar para usuários
@@ -81,7 +95,8 @@ function CreateUserPage() {
           color="text.secondary"
           mb={3}
         >
-          Preencha os dados abaixo para realizar o cadastro.
+          Preencha os dados abaixo para realizar o
+          cadastro.
         </Typography>
 
         {errorMessage && (
@@ -94,8 +109,13 @@ function CreateUserPage() {
         )}
 
         <UserForm
+          isEdit={false}
           onSubmit={handleSubmit}
-          submitLabel="Cadastrar usuário"
+          submitLabel={
+            saving
+              ? "Cadastrando..."
+              : "Cadastrar usuário"
+          }
         />
       </Paper>
     </MainLayout>

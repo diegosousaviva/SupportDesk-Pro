@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import type {
+  FormEvent,
+} from "react";
+
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -19,14 +24,53 @@ import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
+import { useAuth } from "../../contexts/AuthContext";
+
 function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] =
+    useState("");
+  const [remember, setRemember] =
+    useState(true);
+  const [showPassword, setShowPassword] =
+    useState(false);
+  const [loading, setLoading] =
+    useState(false);
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
-    navigate("/dashboard");
+
+    setErrorMessage("");
+    setLoading(true);
+
+    try {
+      await login({
+        email,
+        password,
+        remember,
+      });
+
+      navigate("/dashboard", {
+        replace: true,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage(
+          "Não foi possível realizar o login."
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -49,49 +93,95 @@ function LoginPage() {
         sx={{
           width: "100%",
           maxWidth: 440,
-          p: { xs: 3, sm: 5 },
+          p: {
+            xs: 3,
+            sm: 5,
+          },
           borderRadius: 3,
         }}
       >
         <Stack spacing={3}>
-          <Stack alignItems="center" spacing={1}>
-            <SupportAgentIcon color="primary" sx={{ fontSize: 64 }} />
+          <Stack
+            spacing={1}
+            alignItems="center"
+          >
+            <SupportAgentIcon
+              color="primary"
+              sx={{
+                fontSize: 64,
+              }}
+            />
 
-            <Typography variant="h4" color="primary">
+            <Typography
+              variant="h4"
+              color="primary"
+              fontWeight={700}
+            >
               SupportDesk Pro
             </Typography>
 
-            <Typography color="text.secondary" textAlign="center">
-              Entre com seus dados para acessar o sistema
+            <Typography
+              color="text.secondary"
+              textAlign="center"
+            >
+              Entre com seus dados para acessar o
+              sistema
             </Typography>
           </Stack>
+
+          {errorMessage && (
+            <Alert severity="error">
+              {errorMessage}
+            </Alert>
+          )}
 
           <TextField
             label="E-mail"
             type="email"
-            name="email"
-            autoComplete="email"
-            fullWidth
             required
+            fullWidth
+            autoFocus
+            autoComplete="email"
+            value={email}
+            disabled={loading}
+            onChange={(event) =>
+              setEmail(event.target.value)
+            }
           />
 
           <TextField
             label="Senha"
-            type={showPassword ? "text" : "password"}
-            name="password"
-            autoComplete="current-password"
-            fullWidth
             required
+            fullWidth
+            autoComplete="current-password"
+            type={
+              showPassword
+                ? "text"
+                : "password"
+            }
+            value={password}
+            disabled={loading}
+            onChange={(event) =>
+              setPassword(event.target.value)
+            }
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      aria-label={
-                        showPassword ? "Ocultar senha" : "Mostrar senha"
-                      }
-                      onClick={() => setShowPassword((current) => !current)}
+                      type="button"
                       edge="end"
+                      aria-label={
+                        showPassword
+                          ? "Ocultar senha"
+                          : "Mostrar senha"
+                      }
+                      disabled={loading}
+                      onClick={() =>
+                        setShowPassword(
+                          (current) => !current
+                        )
+                      }
                     >
                       {showPassword ? (
                         <VisibilityOffIcon />
@@ -106,22 +196,49 @@ function LoginPage() {
           />
 
           <Stack
-            direction={{ xs: "column", sm: "row" }}
-            alignItems={{ xs: "flex-start", sm: "center" }}
+            direction={{
+              xs: "column",
+              sm: "row",
+            }}
             justifyContent="space-between"
+            alignItems={{
+              xs: "flex-start",
+              sm: "center",
+            }}
           >
             <FormControlLabel
-              control={<Checkbox />}
+              control={
+                <Checkbox
+                  checked={remember}
+                  disabled={loading}
+                  onChange={(event) =>
+                    setRemember(
+                      event.target.checked
+                    )
+                  }
+                />
+              }
               label="Lembrar de mim"
             />
 
-            <Link href="#" underline="hover">
+            <Link
+              href="#"
+              underline="hover"
+            >
               Esqueci minha senha
             </Link>
           </Stack>
 
-          <Button type="submit" variant="contained" size="large" fullWidth>
-            Entrar
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            disabled={loading}
+          >
+            {loading
+              ? "Entrando..."
+              : "Entrar"}
           </Button>
 
           <Typography
@@ -129,7 +246,8 @@ function LoginPage() {
             color="text.secondary"
             textAlign="center"
           >
-            Acesso exclusivo para usuários autorizados
+            Acesso exclusivo para usuários
+            autorizados
           </Typography>
         </Stack>
       </Paper>

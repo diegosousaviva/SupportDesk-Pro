@@ -1,4 +1,8 @@
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
+
 import {
   Navigate,
   useNavigate,
@@ -28,7 +32,10 @@ function EditUserPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] =
+    useState("");
+  const [saving, setSaving] =
+    useState(false);
 
   const userId = Number(id);
 
@@ -44,22 +51,27 @@ function EditUserPage() {
     return <Navigate to="/users" replace />;
   }
 
-  const currentUserId = user.id;
-
   const initialValues: UserFormData = {
     name: user.name,
     email: user.email,
+    password: "",
     phone: user.phone,
     department: user.department,
     role: user.role,
     status: user.status,
   };
 
-  function handleSubmit(values: UserFormData) {
+  async function handleSubmit(
+    values: UserFormData
+  ) {
     try {
       setErrorMessage("");
+      setSaving(true);
 
-      const updatedUser = updateUser(currentUserId, values);
+      const updatedUser = await updateUser(
+        user.id,
+        values
+      );
 
       if (!updatedUser) {
         setErrorMessage(
@@ -69,11 +81,18 @@ function EditUserPage() {
         return;
       }
 
-      navigate(`/users/${currentUserId}`);
-    } catch {
+      navigate(`/users/${user.id}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
       setErrorMessage(
         "Não foi possível atualizar o usuário. Tente novamente."
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -92,6 +111,7 @@ function EditUserPage() {
       >
         <Button
           variant="outlined"
+          disabled={saving}
           onClick={() => navigate("/users")}
         >
           Voltar para usuários
@@ -119,7 +139,8 @@ function EditUserPage() {
           color="text.secondary"
           mb={3}
         >
-          Altere os campos necessários e salve as mudanças.
+          Altere os campos necessários e salve as
+          mudanças.
         </Typography>
 
         {errorMessage && (
@@ -132,9 +153,14 @@ function EditUserPage() {
         )}
 
         <UserForm
+          isEdit
           initialValues={initialValues}
           onSubmit={handleSubmit}
-          submitLabel="Salvar alterações"
+          submitLabel={
+            saving
+              ? "Salvando..."
+              : "Salvar alterações"
+          }
         />
       </Paper>
     </MainLayout>

@@ -11,12 +11,24 @@ export type TicketStatus =
 
 export interface Ticket {
   id: number;
+
   title: string;
+
   description: string;
+
   category: string;
+
   priority: TicketPriority;
+
   status: TicketStatus;
+
+  requesterUserId: number;
+
   assignedTechnicianId: number | null;
+
   createdAt: string;
+
   updatedAt: string;
+
+  closedAt: string | null;
 }

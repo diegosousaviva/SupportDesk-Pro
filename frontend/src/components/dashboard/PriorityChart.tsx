@@ -8,6 +8,8 @@ import {
 
 import { PieChart } from "@mui/x-charts/PieChart";
 
+import useChartWidth from "../../hooks/useChartWidth";
+
 interface PriorityChartProps {
   criticalTickets: number;
   highPriorityTickets: number;
@@ -22,6 +24,13 @@ function PriorityChart({
   lowPriorityTickets,
 }: PriorityChartProps) {
   const theme = useTheme();
+
+  const {
+    containerRef,
+    chartWidth,
+  } = useChartWidth();
+
+  const chartHeight = 320;
 
   const totalTickets =
     criticalTickets +
@@ -60,12 +69,18 @@ function PriorityChart({
     <Paper
       sx={{
         p: 3,
+        width: "100%",
+        minWidth: 0,
         height: "100%",
         overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
       <Stack spacing={0.5} sx={{ mb: 2 }}>
-        <Typography variant="h6" fontWeight={700}>
+        <Typography
+          variant="h6"
+          fontWeight={700}
+        >
           Chamados por prioridade
         </Typography>
 
@@ -73,60 +88,74 @@ function PriorityChart({
           variant="body2"
           color="text.secondary"
         >
-          Distribuição dos chamados por nível de prioridade.
+          Distribuição dos chamados por nível de
+          prioridade.
         </Typography>
       </Stack>
 
       {totalTickets > 0 ? (
         <Box
+          ref={containerRef}
           sx={{
             width: "100%",
-            height: 320,
+            minWidth: 0,
+            height: chartHeight,
+            overflow: "hidden",
           }}
         >
-          <PieChart
-            series={[
-              {
-                data: chartData,
-                innerRadius: 65,
-                outerRadius: 110,
-                paddingAngle: 3,
-                cornerRadius: 5,
-                startAngle: -90,
-                endAngle: 270,
-                valueFormatter: (item) => {
-                  const percentage = Math.round(
-                    (item.value / totalTickets) * 100
-                  );
+          {chartWidth > 320 && (
+            <PieChart
+              width={chartWidth}
+              height={chartHeight}
+              series={[
+                {
+                  data: chartData,
+                  innerRadius: 65,
+                  outerRadius: 100,
+                  paddingAngle: 3,
+                  cornerRadius: 5,
+                  startAngle: -90,
+                  endAngle: 270,
+                  valueFormatter: (item) => {
+                    const percentage =
+                      Math.round(
+                        (item.value /
+                          totalTickets) *
+                          100
+                      );
 
-                  return `${item.value} chamado${
-                    item.value === 1 ? "" : "s"
-                  } (${percentage}%)`;
+                    return `${
+                      item.value
+                    } chamado${
+                      item.value === 1
+                        ? ""
+                        : "s"
+                    } (${percentage}%)`;
+                  },
                 },
-              },
-            ]}
-            height={320}
-            margin={{
-              top: 20,
-              right: 20,
-              bottom: 20,
-              left: 20,
-            }}
-            slotProps={{
-              legend: {
-                direction: "horizontal",
-                position: {
-                  vertical: "bottom",
-                  horizontal: "center",
+              ]}
+              margin={{
+                top: 20,
+                right: 20,
+                bottom: 55,
+                left: 20,
+              }}
+              slotProps={{
+                legend: {
+                  direction: "horizontal",
+                  position: {
+                    vertical: "bottom",
+                    horizontal: "center",
+                  },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          )}
         </Box>
       ) : (
         <Box
           sx={{
-            height: 320,
+            height: chartHeight,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

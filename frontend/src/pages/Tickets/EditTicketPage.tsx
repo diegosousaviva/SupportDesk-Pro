@@ -14,27 +14,40 @@ import {
 } from "@mui/icons-material";
 
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 import MainLayout from "../../components/layout/MainLayout";
+
+import { useSnackbar } from "../../hooks/useSnackbar";
 
 import {
   getTicketById,
   updateTicket,
 } from "../../services/ticketService";
 
-import { getUsers } from "../../services/userService";
+import {
+  getUsers,
+} from "../../services/userService";
 
-import type { Ticket } from "../../types/Ticket";
+import type {
+  Ticket,
+} from "../../types/Ticket";
 
 type TicketPriority = Ticket["priority"];
 type TicketStatus = Ticket["status"];
 
-const UNASSIGNED_TECHNICIAN_VALUE = "unassigned";
+const UNASSIGNED_TECHNICIAN_VALUE =
+  "unassigned";
 
 export default function EditTicketPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  const { showSnackbar } = useSnackbar();
 
   const ticketId = Number(id);
   const ticket = getTicketById(ticketId);
@@ -44,7 +57,8 @@ export default function EditTicketPage() {
       user.role === "Técnico" &&
       (
         user.status === "Ativo" ||
-        user.id === ticket?.assignedTechnicianId
+        user.id ===
+          ticket?.assignedTechnicianId
       )
   );
 
@@ -71,10 +85,19 @@ export default function EditTicketPage() {
     setAssignedTechnicianId,
   ] = useState(
     ticket?.assignedTechnicianId === null ||
-      ticket?.assignedTechnicianId === undefined
+      ticket?.assignedTechnicianId ===
+        undefined
       ? UNASSIGNED_TECHNICIAN_VALUE
-      : String(ticket.assignedTechnicianId)
+      : String(
+          ticket.assignedTechnicianId
+        )
   );
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
+
+  const [isSaving, setIsSaving] =
+    useState(false);
 
   if (!ticket) {
     return (
@@ -87,7 +110,9 @@ export default function EditTicketPage() {
           sx={{ mt: 2 }}
           variant="outlined"
           startIcon={<ArrowBack />}
-          onClick={() => navigate("/tickets")}
+          onClick={() =>
+            navigate("/tickets")
+          }
         >
           Voltar para chamados
         </Button>
@@ -96,7 +121,9 @@ export default function EditTicketPage() {
   }
 
   const currentTicketId = ticket.id;
-  const ticketDetailsPath = `/tickets/${currentTicketId}`;
+
+  const ticketDetailsPath =
+    `/tickets/${currentTicketId}`;
 
   const assignedTechnicianNumber =
     assignedTechnicianId ===
@@ -108,24 +135,108 @@ export default function EditTicketPage() {
     assignedTechnicianNumber === null ||
     technicians.some(
       (technician) =>
-        technician.id === assignedTechnicianNumber
+        technician.id ===
+        assignedTechnicianNumber
     );
+
+  function handleBack(): void {
+    if (isSaving) {
+      return;
+    }
+
+    navigate(ticketDetailsPath);
+  }
 
   function handleSave(): void {
-    const updatedTicket = updateTicket(
-      currentTicketId,
-      {
-        title: title.trim(),
-        category: category.trim(),
-        priority,
-        status,
-        assignedTechnicianId:
-          assignedTechnicianNumber,
-      }
-    );
+    const normalizedTitle = title.trim();
 
-    if (updatedTicket) {
+    const normalizedCategory =
+      category.trim();
+
+    setErrorMessage("");
+
+    if (
+      !normalizedTitle ||
+      !normalizedCategory
+    ) {
+      const validationMessage =
+        "Preencha o título e a categoria do chamado.";
+
+      setErrorMessage(validationMessage);
+
+      showSnackbar(validationMessage, {
+        severity: "warning",
+      });
+
+      return;
+    }
+
+    if (
+      assignedTechnicianNumber !== null &&
+      Number.isNaN(
+        assignedTechnicianNumber
+      )
+    ) {
+      const validationMessage =
+        "Selecione um técnico responsável válido.";
+
+      setErrorMessage(validationMessage);
+
+      showSnackbar(validationMessage, {
+        severity: "warning",
+      });
+
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const updatedTicket = updateTicket(
+        currentTicketId,
+        {
+          title: normalizedTitle,
+          category: normalizedCategory,
+          priority,
+          status,
+          assignedTechnicianId:
+            assignedTechnicianNumber,
+        }
+      );
+
+      if (!updatedTicket) {
+        throw new Error(
+          "O serviço não retornou o chamado atualizado."
+        );
+      }
+
+      showSnackbar(
+        "Chamado atualizado com sucesso.",
+        {
+          severity: "success",
+        }
+      );
+
       navigate(ticketDetailsPath);
+    } catch (error) {
+      console.error(
+        "Não foi possível atualizar o chamado.",
+        error
+      );
+
+      const failureMessage =
+        "Não foi possível atualizar o chamado. Tente novamente.";
+
+      setErrorMessage(failureMessage);
+
+      showSnackbar(
+        "Não foi possível atualizar o chamado.",
+        {
+          severity: "error",
+        }
+      );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -135,13 +246,25 @@ export default function EditTicketPage() {
         <Button
           variant="text"
           startIcon={<ArrowBack />}
-          onClick={() => navigate(ticketDetailsPath)}
+          onClick={handleBack}
+          disabled={isSaving}
           sx={{
             alignSelf: "flex-start",
           }}
         >
           Voltar aos detalhes
         </Button>
+
+        {errorMessage && (
+          <Alert
+            severity="error"
+            onClose={() =>
+              setErrorMessage("")
+            }
+          >
+            {errorMessage}
+          </Alert>
+        )}
 
         <Paper
           sx={{
@@ -157,25 +280,44 @@ export default function EditTicketPage() {
               component="h1"
               sx={{ fontWeight: 700 }}
             >
-              Editar chamado #{currentTicketId}
+              Editar chamado #
+              {currentTicketId}
             </Typography>
 
             <TextField
               label="Título"
               value={title}
               onChange={(event) =>
-                setTitle(event.target.value)
+                setTitle(
+                  event.target.value
+                )
               }
               fullWidth
+              required
+              disabled={isSaving}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                },
+              }}
             />
 
             <TextField
               label="Categoria"
               value={category}
               onChange={(event) =>
-                setCategory(event.target.value)
+                setCategory(
+                  event.target.value
+                )
               }
               fullWidth
+              required
+              disabled={isSaving}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 80,
+                },
+              }}
             />
 
             <TextField
@@ -184,10 +326,12 @@ export default function EditTicketPage() {
               value={priority}
               onChange={(event) =>
                 setPriority(
-                  event.target.value as TicketPriority
+                  event.target
+                    .value as TicketPriority
                 )
               }
               fullWidth
+              disabled={isSaving}
             >
               <MenuItem value="Baixa">
                 Baixa
@@ -212,10 +356,12 @@ export default function EditTicketPage() {
               value={status}
               onChange={(event) =>
                 setStatus(
-                  event.target.value as TicketStatus
+                  event.target
+                    .value as TicketStatus
                 )
               }
               fullWidth
+              disabled={isSaving}
             >
               <MenuItem value="Aberto">
                 Aberto
@@ -245,15 +391,19 @@ export default function EditTicketPage() {
                   : "Selecione o técnico responsável pelo chamado."
               }
               fullWidth
+              disabled={isSaving}
             >
               <MenuItem
-                value={UNASSIGNED_TECHNICIAN_VALUE}
+                value={
+                  UNASSIGNED_TECHNICIAN_VALUE
+                }
               >
                 Não atribuído
               </MenuItem>
 
               {!assignedTechnicianExists &&
-                assignedTechnicianNumber !== null && (
+                assignedTechnicianNumber !==
+                  null && (
                   <MenuItem
                     value={String(
                       assignedTechnicianNumber
@@ -265,17 +415,22 @@ export default function EditTicketPage() {
                   </MenuItem>
                 )}
 
-              {technicians.map((technician) => (
-                <MenuItem
-                  key={technician.id}
-                  value={String(technician.id)}
-                >
-                  {technician.name}
-                  {technician.status === "Inativo"
-                    ? " — Inativo"
-                    : ""}
-                </MenuItem>
-              ))}
+              {technicians.map(
+                (technician) => (
+                  <MenuItem
+                    key={technician.id}
+                    value={String(
+                      technician.id
+                    )}
+                  >
+                    {technician.name}
+                    {technician.status ===
+                    "Inativo"
+                      ? " — Inativo"
+                      : ""}
+                  </MenuItem>
+                )
+              )}
             </TextField>
 
             <Stack
@@ -288,9 +443,8 @@ export default function EditTicketPage() {
               <Button
                 variant="outlined"
                 startIcon={<ArrowBack />}
-                onClick={() =>
-                  navigate(ticketDetailsPath)
-                }
+                onClick={handleBack}
+                disabled={isSaving}
               >
                 Cancelar
               </Button>
@@ -299,12 +453,16 @@ export default function EditTicketPage() {
                 variant="contained"
                 startIcon={<Save />}
                 onClick={handleSave}
+                loading={isSaving}
                 disabled={
+                  isSaving ||
                   !title.trim() ||
                   !category.trim()
                 }
               >
-                Salvar alterações
+                {isSaving
+                  ? "Salvando..."
+                  : "Salvar alterações"}
               </Button>
             </Stack>
           </Stack>

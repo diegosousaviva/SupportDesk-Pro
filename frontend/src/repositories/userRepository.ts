@@ -2,36 +2,34 @@ import type { User } from "../types/User";
 
 const STORAGE_KEY = "supportdesk-pro-users";
 
-type StoredUser = Omit<User, "password"> & {
-  password?: string;
-};
-
-const DEFAULT_PASSWORD_HASH =
-  "pbkdf2$210000$lVAqH2FRQiAkxrOrGuDERA==$uLrFdnCK91RJqDx3Kygi2L7anKM90tpxO5pYQsvv+Vg=";
-
-const DEFAULT_PASSWORD_HASHES: Record<
-  string,
-  string
-> = {
-  "admin@supportdesk.com":
-    "pbkdf2$210000$YD+N2MVWe9LwtYOlsjiJPg==$kkUcb4YV4v9sco5f7gW7s6E/4MK4CGo7k3BODMqeGFU=",
-
-  "carlos@supportdesk.com":
-    "pbkdf2$210000$ztYlHzwuPFukwCzCnV4tjA==$08r1480cua430RBPqmy5x1vYGEV7adKmHuDaX8H6Hzo=",
-
-  "mariana@supportdesk.com":
-    "pbkdf2$210000$ixNzr40mibiVgeBAZce+KA==$W9dPUt2R8smRdxmQq/8zVaie1A1uD0Z4/gXaLNxxTgw=",
-};
+/*
+ * Senhas iniciais de demonstração:
+ *
+ * Administrador:
+ * E-mail: admin@supportdesk.com
+ * Senha: Admin@123
+ *
+ * Técnico:
+ * E-mail: carlos@supportdesk.com
+ * Senha: Tecnico@123
+ *
+ * Solicitante:
+ * E-mail: mariana@supportdesk.com
+ * Senha: Solicitante@123
+ *
+ * As senhas começam em texto puro somente para permitir
+ * a inicialização dos usuários de demonstração.
+ *
+ * No primeiro login, o authService converte automaticamente
+ * a senha para hash PBKDF2.
+ */
 
 const initialUsers: User[] = [
   {
     id: 1,
     name: "Administrador",
     email: "admin@supportdesk.com",
-    password:
-      DEFAULT_PASSWORD_HASHES[
-        "admin@supportdesk.com"
-      ],
+    password: "Admin@123",
     phone: "(11) 99999-0001",
     department: "TI",
     role: "Administrador",
@@ -42,10 +40,7 @@ const initialUsers: User[] = [
     id: 2,
     name: "Carlos Oliveira",
     email: "carlos@supportdesk.com",
-    password:
-      DEFAULT_PASSWORD_HASHES[
-        "carlos@supportdesk.com"
-      ],
+    password: "Tecnico@123",
     phone: "(11) 99999-0002",
     department: "Suporte",
     role: "Técnico",
@@ -56,10 +51,7 @@ const initialUsers: User[] = [
     id: 3,
     name: "Mariana Souza",
     email: "mariana@supportdesk.com",
-    password:
-      DEFAULT_PASSWORD_HASHES[
-        "mariana@supportdesk.com"
-      ],
+    password: "Solicitante@123",
     phone: "(11) 99999-0003",
     department: "Financeiro",
     role: "Solicitante",
@@ -75,49 +67,6 @@ function saveUsers(users: User[]): void {
   );
 }
 
-function getInitialPasswordHash(
-  user: StoredUser
-): string {
-  const normalizedEmail = user.email
-    .trim()
-    .toLowerCase();
-
-  return (
-    DEFAULT_PASSWORD_HASHES[normalizedEmail] ??
-    DEFAULT_PASSWORD_HASH
-  );
-}
-
-function migrateUsers(
-  storedUsers: StoredUser[]
-): User[] {
-  let migrationRequired = false;
-
-  const migratedUsers = storedUsers.map(
-    (user) => {
-      if (
-        typeof user.password === "string" &&
-        user.password.length > 0
-      ) {
-        return user as User;
-      }
-
-      migrationRequired = true;
-
-      return {
-        ...user,
-        password: getInitialPasswordHash(user),
-      };
-    }
-  );
-
-  if (migrationRequired) {
-    saveUsers(migratedUsers);
-  }
-
-  return migratedUsers;
-}
-
 function loadUsers(): User[] {
   const data = localStorage.getItem(STORAGE_KEY);
 
@@ -128,9 +77,7 @@ function loadUsers(): User[] {
   }
 
   try {
-    const storedUsers = JSON.parse(
-      data
-    ) as StoredUser[];
+    const storedUsers = JSON.parse(data) as User[];
 
     if (!Array.isArray(storedUsers)) {
       saveUsers(initialUsers);
@@ -138,7 +85,7 @@ function loadUsers(): User[] {
       return initialUsers;
     }
 
-    return migrateUsers(storedUsers);
+    return storedUsers;
   } catch {
     saveUsers(initialUsers);
 

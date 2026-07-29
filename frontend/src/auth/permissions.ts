@@ -25,6 +25,13 @@ export const Permissions = {
     comment: "tickets.comment",
   },
 
+  categories: {
+    view: "categories.view",
+    create: "categories.create",
+    edit: "categories.edit",
+    delete: "categories.delete",
+  },
+
   reports: {
     view: "reports.view",
   },

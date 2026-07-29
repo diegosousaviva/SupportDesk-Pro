@@ -1,7 +1,12 @@
-import { useState } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
 
 import {
+  Navigate,
   useNavigate,
+  useParams,
 } from "react-router-dom";
 
 import {
@@ -14,69 +19,108 @@ import {
 
 import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
-import UserForm from "../../components/forms/UserForm";
+import CategoryForm from "../../components/forms/CategoryForm";
 
 import type {
-  UserFormData,
-} from "../../components/forms/UserForm";
+  CategoryFormData,
+} from "../../components/forms/CategoryForm";
 
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
 
 import {
-  createUser,
-} from "../../services/userService";
+  getCategoryById,
+  updateCategory,
+} from "../../services/categoryService";
 
-function CreateUserPage() {
+function EditCategoryPage() {
   const navigate = useNavigate();
+  const { id } = useParams();
 
-  const { showSnackbar } = useSnackbar();
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
+  const { showSnackbar } =
+    useSnackbar();
 
   const [
     saving,
     setSaving,
   ] = useState(false);
 
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+
+  const categoryId = Number(id);
+
+  const category = useMemo(() => {
+    if (!Number.isInteger(categoryId)) {
+      return undefined;
+    }
+
+    return getCategoryById(categoryId);
+  }, [categoryId]);
+
+  if (
+    !Number.isInteger(categoryId) ||
+    !category
+  ) {
+    return (
+      <Navigate
+        to="/categories"
+        replace
+      />
+    );
+  }
+
+  const initialValues: CategoryFormData = {
+    name: category.name,
+    description:
+      category.description,
+    color: category.color,
+    active: category.active,
+  };
+
   async function handleSubmit(
-    values: UserFormData
+    values: CategoryFormData
   ): Promise<void> {
     if (saving) {
       return;
     }
 
-    setErrorMessage("");
     setSaving(true);
+    setErrorMessage("");
 
     try {
-      await createUser({
-        ...values,
-        createdAt: new Date().toISOString(),
-      });
+      const updated =
+        await updateCategory(
+          category.id,
+          values
+        );
+
+      if (!updated) {
+        throw new Error(
+          "Categoria não encontrada."
+        );
+      }
 
       showSnackbar(
-        "Usuário cadastrado com sucesso.",
+        "Categoria atualizada com sucesso.",
         {
           severity: "success",
         }
       );
 
-      navigate("/users");
-    } catch (error) {
-      console.error(
-        "Não foi possível cadastrar o usuário.",
-        error
+      navigate(
+        `/categories/${category.id}`
       );
+    } catch (error) {
+      console.error(error);
 
       const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível cadastrar o usuário. Tente novamente.";
+          : "Não foi possível atualizar a categoria.";
 
       setErrorMessage(message);
 
@@ -93,14 +137,16 @@ function CreateUserPage() {
       return;
     }
 
-    navigate("/users");
+    navigate(
+      `/categories/${category.id}`
+    );
   }
 
   return (
-    <MainLayout title="Novo Usuário">
+    <MainLayout title="Editar Categoria">
       <PageHeader
-        title="Novo Usuário"
-        subtitle="Cadastre um novo usuário no sistema."
+        title="Editar Categoria"
+        subtitle={`Atualize as informações de "${category.name}".`}
       />
 
       <Box
@@ -114,7 +160,7 @@ function CreateUserPage() {
           disabled={saving}
           onClick={handleBack}
         >
-          Voltar para usuários
+          Voltar aos detalhes
         </Button>
       </Box>
 
@@ -131,7 +177,7 @@ function CreateUserPage() {
           fontWeight={700}
           mb={0.5}
         >
-          Informações do usuário
+          Informações da categoria
         </Typography>
 
         <Typography
@@ -139,8 +185,7 @@ function CreateUserPage() {
           color="text.secondary"
           mb={3}
         >
-          Preencha os dados abaixo para realizar o
-          cadastro.
+          Atualize os dados da categoria.
         </Typography>
 
         {errorMessage && (
@@ -155,13 +200,14 @@ function CreateUserPage() {
           </Alert>
         )}
 
-        <UserForm
-          isEdit={false}
+        <CategoryForm
+          isEdit
+          initialValues={initialValues}
           onSubmit={handleSubmit}
           submitLabel={
             saving
-              ? "Cadastrando..."
-              : "Cadastrar usuário"
+              ? "Salvando..."
+              : "Salvar alterações"
           }
         />
       </Paper>
@@ -169,4 +215,4 @@ function CreateUserPage() {
   );
 }
 
-export default CreateUserPage;
+export default EditCategoryPage;

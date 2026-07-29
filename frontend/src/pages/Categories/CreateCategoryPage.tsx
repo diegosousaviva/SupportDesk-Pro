@@ -1,4 +1,6 @@
-import { useState } from "react";
+import {
+  useState,
+} from "react";
 
 import {
   useNavigate,
@@ -14,69 +16,66 @@ import {
 
 import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
-import UserForm from "../../components/forms/UserForm";
+import CategoryForm from "../../components/forms/CategoryForm";
 
 import type {
-  UserFormData,
-} from "../../components/forms/UserForm";
+  CategoryFormData,
+} from "../../components/forms/CategoryForm";
 
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
 
 import {
-  createUser,
-} from "../../services/userService";
+  createCategory,
+} from "../../services/categoryService";
 
-function CreateUserPage() {
+function CreateCategoryPage() {
   const navigate = useNavigate();
 
   const { showSnackbar } = useSnackbar();
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
 
   const [
     saving,
     setSaving,
   ] = useState(false);
 
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+
   async function handleSubmit(
-    values: UserFormData
+    values: CategoryFormData
   ): Promise<void> {
     if (saving) {
       return;
     }
 
-    setErrorMessage("");
     setSaving(true);
+    setErrorMessage("");
 
     try {
-      await createUser({
-        ...values,
-        createdAt: new Date().toISOString(),
-      });
+      const category =
+        await createCategory(values);
 
       showSnackbar(
-        "Usuário cadastrado com sucesso.",
+        "Categoria criada com sucesso.",
         {
           severity: "success",
         }
       );
 
-      navigate("/users");
-    } catch (error) {
-      console.error(
-        "Não foi possível cadastrar o usuário.",
-        error
+      navigate(
+        `/categories/${category.id}`
       );
+    } catch (error) {
+      console.error(error);
 
       const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível cadastrar o usuário. Tente novamente.";
+          : "Não foi possível cadastrar a categoria.";
 
       setErrorMessage(message);
 
@@ -93,14 +92,14 @@ function CreateUserPage() {
       return;
     }
 
-    navigate("/users");
+    navigate("/categories");
   }
 
   return (
-    <MainLayout title="Novo Usuário">
+    <MainLayout title="Nova Categoria">
       <PageHeader
-        title="Novo Usuário"
-        subtitle="Cadastre um novo usuário no sistema."
+        title="Nova Categoria"
+        subtitle="Cadastre uma nova categoria de chamados."
       />
 
       <Box
@@ -114,7 +113,7 @@ function CreateUserPage() {
           disabled={saving}
           onClick={handleBack}
         >
-          Voltar para usuários
+          Voltar para categorias
         </Button>
       </Box>
 
@@ -131,7 +130,7 @@ function CreateUserPage() {
           fontWeight={700}
           mb={0.5}
         >
-          Informações do usuário
+          Informações da categoria
         </Typography>
 
         <Typography
@@ -139,8 +138,7 @@ function CreateUserPage() {
           color="text.secondary"
           mb={3}
         >
-          Preencha os dados abaixo para realizar o
-          cadastro.
+          Preencha os dados abaixo para criar uma nova categoria.
         </Typography>
 
         {errorMessage && (
@@ -155,13 +153,12 @@ function CreateUserPage() {
           </Alert>
         )}
 
-        <UserForm
-          isEdit={false}
+        <CategoryForm
           onSubmit={handleSubmit}
           submitLabel={
             saving
-              ? "Cadastrando..."
-              : "Cadastrar usuário"
+              ? "Salvando..."
+              : "Cadastrar Categoria"
           }
         />
       </Paper>
@@ -169,4 +166,4 @@ function CreateUserPage() {
   );
 }
 
-export default CreateUserPage;
+export default CreateCategoryPage;

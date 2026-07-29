@@ -1,4 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  useMemo,
+  useState,
+} from "react";
+
 import ReactDOM from "react-dom/client";
 
 import {
@@ -6,14 +10,23 @@ import {
   ThemeProvider,
 } from "@mui/material";
 
-import type { PaletteMode } from "@mui/material";
+import type {
+  PaletteMode,
+} from "@mui/material";
 
 import App from "./App";
 
 import { createAppTheme } from "./theme/theme";
 
 import ColorModeContext from "./contexts/ColorModeContext";
-import { AuthProvider } from "./contexts/AuthContext";
+
+import {
+  AuthProvider,
+} from "./contexts/AuthContext";
+
+import {
+  SnackbarProvider,
+} from "./contexts/SnackbarContext";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -44,6 +57,7 @@ function Root() {
   const colorMode = useMemo(
     () => ({
       mode,
+
       toggleColorMode: () => {
         setMode((currentMode) => {
           const newMode =
@@ -75,9 +89,11 @@ function Root() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
 
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <SnackbarProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </SnackbarProvider>
       </ThemeProvider>
     </ColorModeContext.Provider>
   );

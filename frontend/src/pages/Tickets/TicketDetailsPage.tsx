@@ -1,6 +1,7 @@
 import {
   Alert,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,7 +34,9 @@ import TicketInfoCard from "../../components/tickets/TicketInfoCard";
 import TicketTimeline from "../../components/tickets/TicketTimeline";
 
 import { useAuth } from "../../contexts/AuthContext";
+
 import { usePermissions } from "../../hooks/usePermissions";
+import { useSnackbar } from "../../hooks/useSnackbar";
 
 import {
   deleteTicket,
@@ -50,16 +53,31 @@ export default function TicketDetailsPage() {
 
   const { user } = useAuth();
   const { can } = usePermissions();
+  const { showSnackbar } = useSnackbar();
 
   const [
     deleteDialogOpen,
     setDeleteDialogOpen,
   ] = useState(false);
 
+  const [
+    isDeleting,
+    setIsDeleting,
+  ] = useState(false);
+
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState("");
+
   const ticketId = Number(id);
   const ticket = getTicketById(ticketId);
 
   function handleBack(): void {
+    if (isDeleting) {
+      return;
+    }
+
     navigate("/tickets");
   }
 
@@ -137,7 +155,10 @@ export default function TicketDetailsPage() {
   }
 
   function handleEdit(): void {
-    if (!mayEditTicket) {
+    if (
+      !mayEditTicket ||
+      isDeleting
+    ) {
       return;
     }
 
@@ -147,29 +168,78 @@ export default function TicketDetailsPage() {
   }
 
   function handleOpenDeleteDialog(): void {
-    if (!mayDeleteTicket) {
+    if (
+      !mayDeleteTicket ||
+      isDeleting
+    ) {
       return;
     }
 
+    setDeleteError("");
     setDeleteDialogOpen(true);
   }
 
   function handleCloseDeleteDialog(): void {
+    if (isDeleting) {
+      return;
+    }
+
+    setDeleteError("");
     setDeleteDialogOpen(false);
   }
 
   function handleDelete(): void {
-    if (!mayDeleteTicket) {
+    if (
+      !mayDeleteTicket ||
+      isDeleting
+    ) {
       setDeleteDialogOpen(false);
       return;
     }
 
-    const deleted = deleteTicket(
-      currentTicketId
-    );
+    setDeleteError("");
+    setIsDeleting(true);
 
-    if (deleted) {
+    try {
+      const deleted = deleteTicket(
+        currentTicketId
+      );
+
+      if (!deleted) {
+        throw new Error(
+          "O serviço não confirmou a exclusão do chamado."
+        );
+      }
+
+      setDeleteDialogOpen(false);
+
+      showSnackbar(
+        "Chamado excluído com sucesso.",
+        {
+          severity: "success",
+        }
+      );
+
       navigate("/tickets");
+    } catch (error) {
+      console.error(
+        "Não foi possível excluir o chamado.",
+        error
+      );
+
+      const failureMessage =
+        "Não foi possível excluir o chamado. Tente novamente.";
+
+      setDeleteError(failureMessage);
+
+      showSnackbar(
+        "Não foi possível excluir o chamado.",
+        {
+          severity: "error",
+        }
+      );
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -208,12 +278,12 @@ export default function TicketDetailsPage() {
         <TicketActions
           onBack={handleBack}
           onEdit={
-            mayEditTicket
+            mayEditTicket && !isDeleting
               ? handleEdit
               : undefined
           }
           onDelete={
-            mayDeleteTicket
+            mayDeleteTicket && !isDeleting
               ? handleOpenDeleteDialog
               : undefined
           }
@@ -225,20 +295,41 @@ export default function TicketDetailsPage() {
           deleteDialogOpen &&
           mayDeleteTicket
         }
-        onClose={handleCloseDeleteDialog}
+        onClose={
+          isDeleting
+            ? undefined
+            : handleCloseDeleteDialog
+        }
         fullWidth
         maxWidth="xs"
+        disableEscapeKeyDown={isDeleting}
       >
         <DialogTitle>
           Excluir chamado
         </DialogTitle>
 
         <DialogContent>
-          <DialogContentText>
-            Tem certeza de que deseja excluir o
-            chamado #{currentTicketId}? Esta ação
-            não poderá ser desfeita.
-          </DialogContentText>
+          <Stack spacing={2}>
+            <DialogContentText>
+              Tem certeza de que deseja excluir o
+              chamado #{currentTicketId}? Esta ação
+              não poderá ser desfeita.
+            </DialogContentText>
+
+            {deleteError && (
+              <Alert
+                severity="error"
+                onClose={
+                  isDeleting
+                    ? undefined
+                    : () =>
+                        setDeleteError("")
+                }
+              >
+                {deleteError}
+              </Alert>
+            )}
+          </Stack>
         </DialogContent>
 
         <DialogActions>
@@ -246,6 +337,7 @@ export default function TicketDetailsPage() {
             onClick={
               handleCloseDeleteDialog
             }
+            disabled={isDeleting}
           >
             Cancelar
           </Button>
@@ -254,8 +346,21 @@ export default function TicketDetailsPage() {
             color="error"
             variant="contained"
             onClick={handleDelete}
+            disabled={isDeleting}
+            startIcon={
+              isDeleting
+                ? (
+                    <CircularProgress
+                      size={18}
+                      color="inherit"
+                    />
+                  )
+                : undefined
+            }
           >
-            Excluir
+            {isDeleting
+              ? "Excluindo..."
+              : "Excluir"}
           </Button>
         </DialogActions>
       </Dialog>

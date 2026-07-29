@@ -25,10 +25,8 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EmailIcon from "@mui/icons-material/Email";
-import PhoneIcon from "@mui/icons-material/Phone";
-import BusinessIcon from "@mui/icons-material/Business";
-import BadgeIcon from "@mui/icons-material/Badge";
+import LabelIcon from "@mui/icons-material/Label";
+import DescriptionIcon from "@mui/icons-material/Description";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
 import {
@@ -48,20 +46,9 @@ import {
 } from "../../hooks/useSnackbar";
 
 import {
-  deleteUser,
-  getUserById,
-} from "../../services/userService";
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) =>
-      part.charAt(0).toUpperCase()
-    )
-    .join("");
-}
+  deleteCategory,
+  getCategoryById,
+} from "../../services/categoryService";
 
 function formatDate(date: string): string {
   const parsedDate = new Date(date);
@@ -79,7 +66,7 @@ function formatDate(date: string): string {
   ).format(parsedDate);
 }
 
-function UserDetailsPage() {
+function CategoryDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -101,61 +88,59 @@ function UserDetailsPage() {
     setDeleting,
   ] = useState(false);
 
-  const userId = Number(id);
+  const categoryId = Number(id);
 
-  const user = useMemo(() => {
-    if (!Number.isInteger(userId)) {
+  const category = useMemo(() => {
+    if (!Number.isInteger(categoryId)) {
       return undefined;
     }
 
-    return getUserById(userId);
-  }, [userId]);
+    return getCategoryById(categoryId);
+  }, [categoryId]);
 
   const canEdit = can(
-    Permissions.users.edit
+    Permissions.categories.edit
   );
 
   const canDelete = can(
-    Permissions.users.delete
+    Permissions.categories.delete
   );
 
-  if (!Number.isInteger(userId) || !user) {
+  if (
+    !Number.isInteger(categoryId) ||
+    !category
+  ) {
     return (
       <Navigate
-        to="/users"
+        to="/categories"
         replace
       />
     );
   }
 
-  const currentUserId = user.id;
+  const currentCategoryId =
+    category.id;
 
   function handleBack(): void {
     if (deleting) {
       return;
     }
 
-    navigate("/users");
+    navigate("/categories");
   }
 
   function handleEdit(): void {
-    if (
-      !canEdit ||
-      deleting
-    ) {
+    if (!canEdit || deleting) {
       return;
     }
 
     navigate(
-      `/users/${currentUserId}/edit`
+      `/categories/${currentCategoryId}/edit`
     );
   }
 
   function handleOpenDeleteDialog(): void {
-    if (
-      !canDelete ||
-      deleting
-    ) {
+    if (!canDelete || deleting) {
       return;
     }
 
@@ -173,10 +158,7 @@ function UserDetailsPage() {
   }
 
   function handleDelete(): void {
-    if (
-      !canDelete ||
-      deleting
-    ) {
+    if (!canDelete || deleting) {
       return;
     }
 
@@ -184,45 +166,42 @@ function UserDetailsPage() {
     setErrorMessage("");
 
     try {
-      const deleted = deleteUser(
-        currentUserId
+      const deleted = deleteCategory(
+        currentCategoryId
       );
 
       if (!deleted) {
         throw new Error(
-          "O serviço não confirmou a exclusão do usuário."
+          "Não foi possível localizar a categoria para exclusão."
         );
       }
 
       setDeleteDialogOpen(false);
 
       showSnackbar(
-        "Usuário excluído com sucesso.",
+        "Categoria excluída com sucesso.",
         {
           severity: "success",
         }
       );
 
-      navigate("/users");
+      navigate("/categories");
     } catch (error) {
       console.error(
-        "Não foi possível excluir o usuário.",
+        "Não foi possível excluir a categoria.",
         error
       );
 
       const message =
         error instanceof Error
           ? error.message
-          : "Ocorreu um erro ao excluir o usuário.";
+          : "Ocorreu um erro ao excluir a categoria.";
 
       setErrorMessage(message);
 
-      showSnackbar(
-        "Não foi possível excluir o usuário.",
-        {
-          severity: "error",
-        }
-      );
+      showSnackbar(message, {
+        severity: "error",
+      });
 
       setDeleteDialogOpen(false);
     } finally {
@@ -231,10 +210,10 @@ function UserDetailsPage() {
   }
 
   return (
-    <MainLayout title="Detalhes do Usuário">
+    <MainLayout title="Detalhes da Categoria">
       <PageHeader
-        title="Detalhes do Usuário"
-        subtitle="Consulte as informações cadastradas."
+        title="Detalhes da Categoria"
+        subtitle="Consulte as informações da categoria."
       />
 
       <Box
@@ -242,10 +221,10 @@ function UserDetailsPage() {
           mt: 3,
           mb: 2,
           display: "flex",
-          gap: 2,
-          flexWrap: "wrap",
           justifyContent:
             "space-between",
+          flexWrap: "wrap",
+          gap: 2,
         }}
       >
         <Button
@@ -253,10 +232,10 @@ function UserDetailsPage() {
           startIcon={
             <ArrowBackIcon />
           }
-          onClick={handleBack}
           disabled={deleting}
+          onClick={handleBack}
         >
-          Voltar para usuários
+          Voltar para categorias
         </Button>
 
         {(canEdit || canDelete) && (
@@ -277,8 +256,8 @@ function UserDetailsPage() {
               <Button
                 variant="outlined"
                 startIcon={<EditIcon />}
-                onClick={handleEdit}
                 disabled={deleting}
+                onClick={handleEdit}
               >
                 Editar
               </Button>
@@ -289,10 +268,10 @@ function UserDetailsPage() {
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
+                disabled={deleting}
                 onClick={
                   handleOpenDeleteDialog
                 }
-                disabled={deleting}
               >
                 Excluir
               </Button>
@@ -334,22 +313,21 @@ function UserDetailsPage() {
         >
           <Avatar
             sx={{
+              bgcolor: category.color,
               width: 88,
               height: 88,
-              fontSize: "1.75rem",
-              fontWeight: 700,
-              bgcolor: "primary.main",
+              fontSize: 34,
             }}
           >
-            {getInitials(user.name)}
+            <LabelIcon fontSize="large" />
           </Avatar>
 
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               variant="h5"
-              fontWeight={800}
+              fontWeight={700}
             >
-              {user.name}
+              {category.name}
             </Typography>
 
             <Typography
@@ -357,7 +335,7 @@ function UserDetailsPage() {
               color="text.secondary"
               mt={0.5}
             >
-              Usuário #{currentUserId}
+              Categoria #{currentCategoryId}
             </Typography>
 
             <Stack
@@ -368,24 +346,30 @@ function UserDetailsPage() {
               useFlexGap
             >
               <Chip
-                label={user.role}
+                label={
+                  category.active
+                    ? "Ativa"
+                    : "Inativa"
+                }
                 color={
-                  user.role ===
-                  "Administrador"
-                    ? "error"
-                    : user.role ===
-                        "Técnico"
-                      ? "primary"
-                      : "default"
+                  category.active
+                    ? "success"
+                    : "default"
                 }
               />
 
               <Chip
-                label={user.status}
-                color={
-                  user.status === "Ativo"
-                    ? "success"
-                    : "default"
+                label={category.color}
+                variant="outlined"
+                avatar={
+                  <Avatar
+                    sx={{
+                      bgcolor:
+                        category.color,
+                    }}
+                  >
+                    {" "}
+                  </Avatar>
                 }
               />
             </Stack>
@@ -395,121 +379,36 @@ function UserDetailsPage() {
         <Divider sx={{ my: 3 }} />
 
         <Grid container spacing={3}>
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-          >
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="flex-start"
-            >
-              <EmailIcon color="primary" />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  E-mail
-                </Typography>
-
-                <Typography fontWeight={600}>
-                  {user.email}
-                </Typography>
-              </Box>
-            </Stack>
-          </Grid>
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-          >
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="flex-start"
-            >
-              <PhoneIcon color="primary" />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Telefone
-                </Typography>
-
-                <Typography fontWeight={600}>
-                  {user.phone ||
-                    "Não informado"}
-                </Typography>
-              </Box>
-            </Stack>
-          </Grid>
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-          >
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="flex-start"
-            >
-              <BusinessIcon color="primary" />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Departamento
-                </Typography>
-
-                <Typography fontWeight={600}>
-                  {user.department ||
-                    "Não informado"}
-                </Typography>
-              </Box>
-            </Stack>
-          </Grid>
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-          >
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="flex-start"
-            >
-              <BadgeIcon color="primary" />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Perfil de acesso
-                </Typography>
-
-                <Typography fontWeight={600}>
-                  {user.role}
-                </Typography>
-              </Box>
-            </Stack>
-          </Grid>
-
           <Grid size={{ xs: 12 }}>
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="flex-start"
+            >
+              <DescriptionIcon color="primary" />
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Descrição
+                </Typography>
+
+                <Typography fontWeight={600}>
+                  {category.description ||
+                    "Não informada"}
+                </Typography>
+              </Box>
+            </Stack>
+          </Grid>
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+          >
             <Stack
               direction="row"
               spacing={2}
@@ -522,12 +421,42 @@ function UserDetailsPage() {
                   variant="caption"
                   color="text.secondary"
                 >
-                  Cadastrado em
+                  Criada em
                 </Typography>
 
                 <Typography fontWeight={600}>
                   {formatDate(
-                    user.createdAt
+                    category.createdAt
+                  )}
+                </Typography>
+              </Box>
+            </Stack>
+          </Grid>
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+          >
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="flex-start"
+            >
+              <CalendarMonthIcon color="primary" />
+
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Última atualização
+                </Typography>
+
+                <Typography fontWeight={600}>
+                  {formatDate(
+                    category.updatedAt
                   )}
                 </Typography>
               </Box>
@@ -541,9 +470,9 @@ function UserDetailsPage() {
           deleteDialogOpen &&
           canDelete
         }
-        title="Excluir usuário"
-        message={`Deseja realmente excluir o usuário ${user.name}? Esta ação não poderá ser desfeita.`}
-        confirmLabel="Excluir usuário"
+        title="Excluir categoria"
+        message={`Deseja realmente excluir a categoria "${category.name}"? Esta ação não poderá ser desfeita.`}
+        confirmLabel="Excluir categoria"
         confirmColor="error"
         loading={deleting}
         onConfirm={handleDelete}
@@ -555,4 +484,4 @@ function UserDetailsPage() {
   );
 }
 
-export default UserDetailsPage;
+export default CategoryDetailsPage;

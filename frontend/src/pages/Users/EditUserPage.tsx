@@ -21,7 +21,13 @@ import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
 import UserForm from "../../components/forms/UserForm";
 
-import type { UserFormData } from "../../components/forms/UserForm";
+import type {
+  UserFormData,
+} from "../../components/forms/UserForm";
+
+import {
+  useSnackbar,
+} from "../../hooks/useSnackbar";
 
 import {
   getUserById,
@@ -32,10 +38,17 @@ function EditUserPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
-  const [saving, setSaving] =
-    useState(false);
+  const { showSnackbar } = useSnackbar();
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
 
   const userId = Number(id);
 
@@ -63,37 +76,61 @@ function EditUserPage() {
 
   async function handleSubmit(
     values: UserFormData
-  ) {
-    try {
-      setErrorMessage("");
-      setSaving(true);
+  ): Promise<void> {
+    if (saving) {
+      return;
+    }
 
+    setErrorMessage("");
+    setSaving(true);
+
+    try {
       const updatedUser = await updateUser(
         user.id,
         values
       );
 
       if (!updatedUser) {
-        setErrorMessage(
+        throw new Error(
           "Não foi possível localizar o usuário para atualização."
         );
-
-        return;
       }
+
+      showSnackbar(
+        "Usuário atualizado com sucesso.",
+        {
+          severity: "success",
+        }
+      );
 
       navigate(`/users/${user.id}`);
     } catch (error) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-        return;
-      }
-
-      setErrorMessage(
-        "Não foi possível atualizar o usuário. Tente novamente."
+      console.error(
+        "Não foi possível atualizar o usuário.",
+        error
       );
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar o usuário. Tente novamente.";
+
+      setErrorMessage(message);
+
+      showSnackbar(message, {
+        severity: "error",
+      });
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleBack(): void {
+    if (saving) {
+      return;
+    }
+
+    navigate(`/users/${user.id}`);
   }
 
   return (
@@ -112,9 +149,9 @@ function EditUserPage() {
         <Button
           variant="outlined"
           disabled={saving}
-          onClick={() => navigate("/users")}
+          onClick={handleBack}
         >
-          Voltar para usuários
+          Voltar aos detalhes
         </Button>
       </Box>
 
@@ -147,6 +184,9 @@ function EditUserPage() {
           <Alert
             severity="error"
             sx={{ mb: 3 }}
+            onClose={() =>
+              setErrorMessage("")
+            }
           >
             {errorMessage}
           </Alert>

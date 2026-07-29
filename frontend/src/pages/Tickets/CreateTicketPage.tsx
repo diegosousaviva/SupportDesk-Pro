@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -20,17 +21,29 @@ import SaveIcon from "@mui/icons-material/Save";
 
 import MainLayout from "../../components/layout/MainLayout";
 
-import { createTicket } from "../../services/ticketService";
-import { getUsers } from "../../services/userService";
+import { useSnackbar } from "../../hooks/useSnackbar";
 
-import type { Ticket } from "../../types/Ticket";
+import {
+  createTicket,
+} from "../../services/ticketService";
+
+import {
+  getUsers,
+} from "../../services/userService";
+
+import type {
+  Ticket,
+} from "../../types/Ticket";
 
 type TicketPriority = Ticket["priority"];
 
-const UNASSIGNED_TECHNICIAN_VALUE = "unassigned";
+const UNASSIGNED_TECHNICIAN_VALUE =
+  "unassigned";
 
 function CreateTicketPage() {
   const navigate = useNavigate();
+
+  const { showSnackbar } = useSnackbar();
 
   const technicians = getUsers().filter(
     (user) =>
@@ -39,7 +52,9 @@ function CreateTicketPage() {
   );
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
+
+  const [category, setCategory] =
+    useState("");
 
   const [priority, setPriority] =
     useState<TicketPriority | "">("");
@@ -47,11 +62,21 @@ function CreateTicketPage() {
   const [
     assignedTechnicianId,
     setAssignedTechnicianId,
-  ] = useState(UNASSIGNED_TECHNICIAN_VALUE);
+  ] = useState(
+    UNASSIGNED_TECHNICIAN_VALUE
+  );
 
-  const [equipment, setEquipment] = useState("");
-  const [description, setDescription] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [equipment, setEquipment] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
+
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
 
   function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -70,29 +95,70 @@ function CreateTicketPage() {
         "Preencha todos os campos obrigatórios."
       );
 
+      showSnackbar(
+        "Preencha todos os campos obrigatórios.",
+        {
+          severity: "warning",
+        }
+      );
+
       return;
     }
 
-    createTicket({
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      priority,
-      status: "Aberto",
-      assignedTechnicianId:
-        assignedTechnicianId ===
-        UNASSIGNED_TECHNICIAN_VALUE
-          ? null
-          : Number(assignedTechnicianId),
-    });
+    try {
+      setIsSubmitting(true);
 
-    navigate("/tickets");
+      createTicket({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        priority,
+        status: "Aberto",
+        assignedTechnicianId:
+          assignedTechnicianId ===
+          UNASSIGNED_TECHNICIAN_VALUE
+            ? null
+            : Number(
+                assignedTechnicianId
+              ),
+      });
+
+      showSnackbar(
+        "Chamado criado com sucesso.",
+        {
+          severity: "success",
+        }
+      );
+
+      navigate("/tickets");
+    } catch (error) {
+      console.error(
+        "Não foi possível criar o chamado.",
+        error
+      );
+
+      setErrorMessage(
+        "Não foi possível criar o chamado. Tente novamente."
+      );
+
+      showSnackbar(
+        "Não foi possível criar o chamado.",
+        {
+          severity: "error",
+        }
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <MainLayout title="Abrir chamado">
       <Box sx={{ maxWidth: 900 }}>
-        <Typography variant="h4" sx={{ mb: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{ mb: 1 }}
+        >
           Abrir novo chamado
         </Typography>
 
@@ -100,12 +166,18 @@ function CreateTicketPage() {
           color="text.secondary"
           sx={{ mb: 3 }}
         >
-          Preencha as informações abaixo para registrar uma
-          nova solicitação.
+          Preencha as informações abaixo para
+          registrar uma nova solicitação.
         </Typography>
 
         {errorMessage && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert
+            severity="error"
+            sx={{ mb: 3 }}
+            onClose={() =>
+              setErrorMessage("")
+            }
+          >
             {errorMessage}
           </Alert>
         )}
@@ -128,13 +200,20 @@ function CreateTicketPage() {
                 placeholder="Exemplo: Impressora não está funcionando"
                 value={title}
                 onChange={(event) =>
-                  setTitle(event.target.value)
+                  setTitle(
+                    event.target.value
+                  )
                 }
                 required
                 fullWidth
+                disabled={isSubmitting}
               />
 
-              <FormControl fullWidth required>
+              <FormControl
+                fullWidth
+                required
+                disabled={isSubmitting}
+              >
                 <InputLabel id="category-label">
                   Categoria
                 </InputLabel>
@@ -144,7 +223,9 @@ function CreateTicketPage() {
                   label="Categoria"
                   value={category}
                   onChange={(event) =>
-                    setCategory(event.target.value)
+                    setCategory(
+                      event.target.value
+                    )
                   }
                 >
                   <MenuItem value="Hardware">
@@ -169,7 +250,11 @@ function CreateTicketPage() {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth required>
+              <FormControl
+                fullWidth
+                required
+                disabled={isSubmitting}
+              >
                 <InputLabel id="priority-label">
                   Prioridade
                 </InputLabel>
@@ -180,7 +265,8 @@ function CreateTicketPage() {
                   value={priority}
                   onChange={(event) =>
                     setPriority(
-                      event.target.value as TicketPriority
+                      event.target
+                        .value as TicketPriority
                     )
                   }
                 >
@@ -202,7 +288,10 @@ function CreateTicketPage() {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth>
+              <FormControl
+                fullWidth
+                disabled={isSubmitting}
+              >
                 <InputLabel id="technician-label">
                   Técnico responsável
                 </InputLabel>
@@ -210,7 +299,9 @@ function CreateTicketPage() {
                 <Select
                   labelId="technician-label"
                   label="Técnico responsável"
-                  value={assignedTechnicianId}
+                  value={
+                    assignedTechnicianId
+                  }
                   onChange={(event) =>
                     setAssignedTechnicianId(
                       event.target.value
@@ -218,27 +309,33 @@ function CreateTicketPage() {
                   }
                 >
                   <MenuItem
-                    value={UNASSIGNED_TECHNICIAN_VALUE}
+                    value={
+                      UNASSIGNED_TECHNICIAN_VALUE
+                    }
                   >
                     Não atribuído
                   </MenuItem>
 
-                  {technicians.map((technician) => (
-                    <MenuItem
-                      key={technician.id}
-                      value={String(technician.id)}
-                    >
-                      {technician.name}
-                    </MenuItem>
-                  ))}
+                  {technicians.map(
+                    (technician) => (
+                      <MenuItem
+                        key={technician.id}
+                        value={String(
+                          technician.id
+                        )}
+                      >
+                        {technician.name}
+                      </MenuItem>
+                    )
+                  )}
                 </Select>
               </FormControl>
 
               {technicians.length === 0 && (
                 <Alert severity="info">
-                  Não há técnicos ativos cadastrados. O
-                  chamado será criado sem técnico
-                  responsável.
+                  Não há técnicos ativos
+                  cadastrados. O chamado será
+                  criado sem técnico responsável.
                 </Alert>
               )}
 
@@ -247,9 +344,12 @@ function CreateTicketPage() {
                 placeholder="Exemplo: Notebook Dell patrimônio 1025"
                 value={equipment}
                 onChange={(event) =>
-                  setEquipment(event.target.value)
+                  setEquipment(
+                    event.target.value
+                  )
                 }
                 fullWidth
+                disabled={isSubmitting}
               />
 
               <TextField
@@ -257,18 +357,22 @@ function CreateTicketPage() {
                 placeholder="Descreva o problema com o máximo de detalhes possível"
                 value={description}
                 onChange={(event) =>
-                  setDescription(event.target.value)
+                  setDescription(
+                    event.target.value
+                  )
                 }
                 multiline
                 rows={6}
                 required
                 fullWidth
+                disabled={isSubmitting}
               />
 
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent: "flex-end",
+                  justifyContent:
+                    "flex-end",
                 }}
               >
                 <Button
@@ -276,8 +380,12 @@ function CreateTicketPage() {
                   variant="contained"
                   size="large"
                   startIcon={<SaveIcon />}
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
                 >
-                  Salvar chamado
+                  {isSubmitting
+                    ? "Salvando..."
+                    : "Salvar chamado"}
                 </Button>
               </Box>
             </Stack>

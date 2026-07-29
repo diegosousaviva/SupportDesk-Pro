@@ -38,7 +38,10 @@ function MainLayout({
 
   function handleToggleSidebar() {
     if (isMobile) {
-      setMobileSidebarOpen((currentValue) => !currentValue);
+      setMobileSidebarOpen(
+        (currentValue) => !currentValue
+      );
+
       return;
     }
 
@@ -58,8 +61,9 @@ function MainLayout({
   return (
     <Box
       sx={{
-        display: "flex",
+        width: "100%",
         minHeight: "100vh",
+        backgroundColor: "background.default",
       }}
     >
       <Header
@@ -76,32 +80,52 @@ function MainLayout({
       <Box
         component="main"
         sx={{
-          flexGrow: 1,
-          minWidth: 0,
-          minHeight: "100vh",
           width: {
             xs: "100%",
             md: `calc(100% - ${currentDrawerWidth}px)`,
           },
-          backgroundColor: "background.default",
-          p: {
-            xs: 2,
-            sm: 3,
+
+          ml: {
+            xs: 0,
+            md: `${currentDrawerWidth}px`,
           },
+
+          minWidth: 0,
+          minHeight: "100vh",
+          boxSizing: "border-box",
+          overflowX: "hidden",
+
+          backgroundColor: "background.default",
+
           transition: theme.transitions.create(
-            ["width", "margin", "background-color"],
+            ["width", "margin-left"],
             {
               easing:
                 theme.transitions.easing.sharp,
+
               duration:
-                theme.transitions.duration.enteringScreen,
+                theme.transitions.duration
+                  .enteringScreen,
             }
           ),
         }}
       >
         <Toolbar />
 
-        {children}
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            boxSizing: "border-box",
+
+            p: {
+              xs: 2,
+              sm: 3,
+            },
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );

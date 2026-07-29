@@ -8,6 +8,8 @@ import {
 
 import { LineChart } from "@mui/x-charts/LineChart";
 
+import useChartWidth from "../../hooks/useChartWidth";
+
 interface MonthlyChartItem {
   [key: string]: string | number;
   month: string;
@@ -23,6 +25,13 @@ function MonthlyChart({
 }: MonthlyChartProps) {
   const theme = useTheme();
 
+  const {
+    containerRef,
+    chartWidth,
+  } = useChartWidth();
+
+  const chartHeight = 340;
+
   const totalTickets = data.reduce(
     (total, item) => total + item.quantity,
     0
@@ -32,12 +41,24 @@ function MonthlyChart({
     <Paper
       sx={{
         p: 3,
+        width: "100%",
+        minWidth: 0,
         height: "100%",
         overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
-      <Stack spacing={0.5} sx={{ mb: 2 }}>
-        <Typography variant="h6" fontWeight={700}>
+      <Stack
+        spacing={0.5}
+        sx={{
+          mb: 2,
+          minWidth: 0,
+        }}
+      >
+        <Typography
+          variant="h6"
+          fontWeight={700}
+        >
           Evolução dos chamados
         </Typography>
 
@@ -52,62 +73,74 @@ function MonthlyChart({
 
       {totalTickets > 0 ? (
         <Box
+          ref={containerRef}
           sx={{
             width: "100%",
-            height: 340,
+            minWidth: 0,
+            height: chartHeight,
+            overflow: "hidden",
           }}
         >
-          <LineChart
-            dataset={data}
-            xAxis={[
-              {
-                scaleType: "point",
-                dataKey: "month",
-                tickLabelStyle: {
-                  fill: theme.palette.text.secondary,
-                  fontSize: 12,
+          {chartWidth > 320 && (
+            <LineChart
+              width={chartWidth}
+              height={chartHeight}
+              dataset={data}
+              xAxis={[
+                {
+                  scaleType: "point",
+                  dataKey: "month",
+                  tickLabelStyle: {
+                    fill:
+                      theme.palette.text.secondary,
+                    fontSize: 12,
+                  },
                 },
-              },
-            ]}
-            yAxis={[
-              {
-                min: 0,
-                tickMinStep: 1,
-                tickLabelStyle: {
-                  fill: theme.palette.text.secondary,
+              ]}
+              yAxis={[
+                {
+                  min: 0,
+                  tickMinStep: 1,
+                  tickLabelStyle: {
+                    fill:
+                      theme.palette.text.secondary,
+                  },
                 },
-              },
-            ]}
-            series={[
-              {
-                dataKey: "quantity",
-                label: "Chamados criados",
-                color: theme.palette.primary.main,
-                area: true,
-                showMark: true,
-                curve: "monotoneX",
-                valueFormatter: (value) =>
-                  `${value ?? 0} chamado${
-                    value === 1 ? "" : "s"
-                  }`,
-              },
-            ]}
-            grid={{
-              horizontal: true,
-              vertical: true,
-            }}
-            margin={{
-              top: 30,
-              right: 30,
-              bottom: 40,
-              left: 30,
-            }}
-          />
+              ]}
+              series={[
+                {
+                  dataKey: "quantity",
+                  label: "Chamados criados",
+                  color:
+                    theme.palette.primary.main,
+                  area: true,
+                  showMark: true,
+                  curve: "monotoneX",
+                  valueFormatter: (value) =>
+                    `${value ?? 0} chamado${
+                      value === 1 ? "" : "s"
+                    }`,
+                },
+              ]}
+              grid={{
+                horizontal: true,
+                vertical: true,
+              }}
+              margin={{
+                top: 30,
+                right: 30,
+                bottom: 50,
+                left: 50,
+              }}
+            />
+          )}
         </Box>
       ) : (
         <Box
           sx={{
-            height: 340,
+            width: "100%",
+            minWidth: 0,
+            height: chartHeight,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

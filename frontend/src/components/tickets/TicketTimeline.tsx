@@ -2,10 +2,13 @@ import {
   AddCommentOutlined,
   AssignmentOutlined,
   CategoryOutlined,
-  DeleteOutline,
+  CloseOutlined,
   DescriptionOutlined,
+  EditOutlined,
   FlagOutlined,
+  LockOpenOutlined,
   PersonOutline,
+  SaveOutlined,
   TaskAltOutlined,
   TitleOutlined,
 } from "@mui/icons-material";
@@ -14,46 +17,58 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Divider,
-  IconButton,
-  Paper,
   Stack,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 
-import { useState } from "react";
+import {
+  useState,
+} from "react";
 
 import {
-  createTicketComment,
-  deleteTicketComment,
-  getCommentsByTicketId,
+  getTicketComments,
+  updateTicketComment,
 } from "../../services/ticketCommentService";
 
-import { getTicketHistory } from "../../services/ticketHistoryService";
+import {
+  getTicketHistory,
+} from "../../services/ticketHistoryService";
 
-import type { TicketComment } from "../../types/TicketComment";
+import type {
+  TicketComment,
+} from "../../types/TicketComment";
+
 import type {
   TicketHistoryEntry,
   TicketHistoryEventType,
 } from "../../types/TicketHistory";
 
+import AddTicketComment from "./AddTicketComment";
 import TimelineItem from "./TimelineItem";
 
 interface TicketTimelineProps {
   ticketId: number;
+  onAddComment?: (
+    message: string
+  ) => void;
+  isAddingComment?: boolean;
+  commentError?: string;
+  onClearCommentError?: () => void;
 }
 
 type TimelineEntry =
   | {
       id: string;
       type: "comment";
+      commentId: number;
       title: string;
       description: string;
       createdAt: string;
+      updatedAt?: string;
       authorName: string;
-      commentId: number;
     }
   | {
       id: string;
@@ -61,11 +76,13 @@ type TimelineEntry =
       title: string;
       description: string;
       createdAt: string;
-      eventType: TicketHistoryEventType;
+      eventType:
+        TicketHistoryEventType;
     };
 
 function getHistoryTitle(
-  eventType: TicketHistoryEventType
+  eventType:
+    TicketHistoryEventType
 ): string {
   switch (eventType) {
     case "ticket_created":
@@ -88,33 +105,96 @@ function getHistoryTitle(
 
     case "technician_changed":
       return "Técnico responsável alterado";
+
+    case "comment_added":
+      return "Comentário adicionado";
+
+    case "ticket_closed":
+      return "Chamado encerrado";
+
+    case "ticket_reopened":
+      return "Chamado reaberto";
+
+    default:
+      return "Atividade registrada";
   }
 }
 
 function getHistoryIcon(
-  eventType: TicketHistoryEventType
+  eventType:
+    TicketHistoryEventType
 ) {
   switch (eventType) {
     case "ticket_created":
-      return <AssignmentOutlined fontSize="small" />;
+      return (
+        <AssignmentOutlined
+          fontSize="small"
+        />
+      );
 
     case "title_changed":
-      return <TitleOutlined fontSize="small" />;
+      return (
+        <TitleOutlined
+          fontSize="small"
+        />
+      );
 
     case "description_changed":
-      return <DescriptionOutlined fontSize="small" />;
+      return (
+        <DescriptionOutlined
+          fontSize="small"
+        />
+      );
 
     case "category_changed":
-      return <CategoryOutlined fontSize="small" />;
+      return (
+        <CategoryOutlined
+          fontSize="small"
+        />
+      );
 
     case "priority_changed":
-      return <FlagOutlined fontSize="small" />;
+      return (
+        <FlagOutlined
+          fontSize="small"
+        />
+      );
 
     case "status_changed":
-      return <TaskAltOutlined fontSize="small" />;
+    case "ticket_closed":
+      return (
+        <TaskAltOutlined
+          fontSize="small"
+        />
+      );
 
     case "technician_changed":
-      return <PersonOutline fontSize="small" />;
+      return (
+        <PersonOutline
+          fontSize="small"
+        />
+      );
+
+    case "comment_added":
+      return (
+        <AddCommentOutlined
+          fontSize="small"
+        />
+      );
+
+    case "ticket_reopened":
+      return (
+        <LockOpenOutlined
+          fontSize="small"
+        />
+      );
+
+    default:
+      return (
+        <AssignmentOutlined
+          fontSize="small"
+        />
+      );
   }
 }
 
@@ -122,97 +202,198 @@ function buildTimelineEntries(
   comments: TicketComment[],
   history: TicketHistoryEntry[]
 ): TimelineEntry[] {
-  const commentEntries: TimelineEntry[] = comments.map(
-    (comment) => ({
-      id: `comment-${comment.id}`,
-      type: "comment",
-      title: "Comentário adicionado",
-      description: comment.message,
-      createdAt: comment.createdAt,
-      authorName: comment.authorName,
-      commentId: comment.id,
-    })
-  );
+  const commentEntries:
+    TimelineEntry[] =
+      comments.map(
+        (comment) => ({
+          id: `comment-${comment.id}`,
+          type: "comment",
+          commentId: comment.id,
+          title: "Comentário",
+          description:
+            comment.message,
+          createdAt:
+            comment.createdAt,
+          updatedAt:
+            comment.updatedAt,
+          authorName:
+            comment.authorName,
+        })
+      );
 
-  const historyEntries: TimelineEntry[] = history.map(
-    (entry) => ({
-      id: `history-${entry.id}`,
-      type: "history",
-      title: getHistoryTitle(entry.eventType),
-      description: entry.description,
-      createdAt: entry.createdAt,
-      eventType: entry.eventType,
-    })
-  );
+  const historyEntries:
+    TimelineEntry[] =
+      history
+        .filter(
+          (entry) =>
+            entry.eventType !==
+            "comment_added"
+        )
+        .map((entry) => ({
+          id: `history-${entry.id}`,
+          type: "history",
+          title: getHistoryTitle(
+            entry.eventType
+          ),
+          description:
+            entry.description,
+          createdAt:
+            entry.createdAt,
+          eventType:
+            entry.eventType,
+        }));
 
-  return [...commentEntries, ...historyEntries].sort(
-    (firstEntry, secondEntry) =>
-      new Date(secondEntry.createdAt).getTime() -
-      new Date(firstEntry.createdAt).getTime()
+  return [
+    ...commentEntries,
+    ...historyEntries,
+  ].sort(
+    (
+      firstEntry,
+      secondEntry
+    ) =>
+      new Date(
+        secondEntry.createdAt
+      ).getTime() -
+      new Date(
+        firstEntry.createdAt
+      ).getTime()
   );
 }
 
 export default function TicketTimeline({
   ticketId,
+  onAddComment,
+  isAddingComment = false,
+  commentError = "",
+  onClearCommentError,
 }: TicketTimelineProps) {
-  const [comments, setComments] = useState<TicketComment[]>(
-    () => getCommentsByTicketId(ticketId)
+  const [
+    refreshKey,
+    setRefreshKey,
+  ] = useState(0);
+
+  const [
+    editingCommentId,
+    setEditingCommentId,
+  ] = useState<number | null>(
+    null
   );
 
-  const [history] = useState<TicketHistoryEntry[]>(
-    () => getTicketHistory(ticketId)
-  );
+  const [
+    editedMessage,
+    setEditedMessage,
+  ] = useState("");
 
-  const [authorName, setAuthorName] = useState("");
-  const [message, setMessage] = useState("");
+  const [
+    editingError,
+    setEditingError,
+  ] = useState("");
 
-  const [validationError, setValidationError] =
-    useState<string | null>(null);
+  const [
+    isSaving,
+    setIsSaving,
+  ] = useState(false);
 
-  const timelineEntries = buildTimelineEntries(
-    comments,
-    history
-  );
+  /*
+   * Força uma nova leitura do LocalStorage
+   * depois da edição de um comentário.
+   */
+  void refreshKey;
 
-  function refreshComments(): void {
-    setComments(getCommentsByTicketId(ticketId));
-  }
+  const comments =
+    getTicketComments(ticketId);
 
-  function handleSubmit(): void {
-    const normalizedAuthorName = authorName.trim();
-    const normalizedMessage = message.trim();
+  const history =
+    getTicketHistory(ticketId);
 
-    if (!normalizedAuthorName) {
-      setValidationError(
-        "Informe o nome do autor do comentário."
-      );
+  const timelineEntries =
+    buildTimelineEntries(
+      comments,
+      history
+    );
+
+  function startEditing(
+    entry: Extract<
+      TimelineEntry,
+      { type: "comment" }
+    >
+  ): void {
+    if (isSaving) {
       return;
     }
+
+    setEditingCommentId(
+      entry.commentId
+    );
+
+    setEditedMessage(
+      entry.description
+    );
+
+    setEditingError("");
+  }
+
+  function cancelEditing(): void {
+    if (isSaving) {
+      return;
+    }
+
+    setEditingCommentId(null);
+    setEditedMessage("");
+    setEditingError("");
+  }
+
+  function saveEditing(): void {
+    if (
+      editingCommentId === null ||
+      isSaving
+    ) {
+      return;
+    }
+
+    const normalizedMessage =
+      editedMessage.trim();
 
     if (!normalizedMessage) {
-      setValidationError(
-        "Escreva uma mensagem antes de enviar."
+      setEditingError(
+        "Digite um comentário."
       );
+
       return;
     }
 
-    createTicketComment({
-      ticketId,
-      authorName: normalizedAuthorName,
-      message: normalizedMessage,
-    });
+    setEditingError("");
+    setIsSaving(true);
 
-    setMessage("");
-    setValidationError(null);
+    try {
+      updateTicketComment(
+        editingCommentId,
+        normalizedMessage
+      );
 
-    refreshComments();
-  }
+      setRefreshKey(
+        (currentValue) =>
+          currentValue + 1
+      );
 
-  function handleDelete(commentId: number): void {
-    const deleted = deleteTicketComment(commentId);
+      setEditingCommentId(null);
+      setEditedMessage("");
+    } catch (error) {
+      console.error(
+        "Não foi possível editar o comentário.",
+        error
+      );
 
-    if (deleted) {
-      refreshComments();
+      const failureMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível editar o comentário.";
+
+      setEditingError(
+        failureMessage
+      );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -231,141 +412,245 @@ export default function TicketTimeline({
           color="text.secondary"
           sx={{ mt: 0.5 }}
         >
-          Acompanhe comentários e alterações realizadas
+          Acompanhe os comentários e
+          as alterações realizadas
           neste chamado.
         </Typography>
       </Box>
 
-      <Paper
-        variant="outlined"
-        sx={{
-          p: {
-            xs: 2,
-            md: 3,
-          },
-        }}
-      >
-        <Stack spacing={2}>
-          <Typography
-            variant="subtitle1"
-            sx={{ fontWeight: 700 }}
-          >
-            Adicionar comentário
-          </Typography>
-
-          {validationError && (
-            <Alert
-              severity="warning"
-              onClose={() =>
-                setValidationError(null)
-              }
-            >
-              {validationError}
-            </Alert>
-          )}
-
-          <TextField
-            label="Nome do autor"
-            value={authorName}
-            onChange={(event) =>
-              setAuthorName(event.target.value)
-            }
-            fullWidth
-            size="small"
-            slotProps={{
-              htmlInput: {
-                maxLength: 80,
-              },
-            }}
-          />
-
-          <TextField
-            label="Comentário"
-            value={message}
-            onChange={(event) =>
-              setMessage(event.target.value)
-            }
-            fullWidth
-            multiline
-            minRows={4}
-            helperText={`${message.length}/2000 caracteres`}
-            slotProps={{
-              htmlInput: {
-                maxLength: 2000,
-              },
-            }}
-          />
-
-          <Stack
-            direction="row"
-            justifyContent="flex-end"
-          >
-            <Button
-              variant="contained"
-              startIcon={<AddCommentOutlined />}
-              onClick={handleSubmit}
-            >
-              Enviar comentário
-            </Button>
-          </Stack>
-        </Stack>
-      </Paper>
-
       <Divider />
 
-      {timelineEntries.length === 0 ? (
+      {timelineEntries.length ===
+      0 ? (
         <Alert severity="info">
-          Este chamado ainda não possui atividades.
+          Este chamado ainda não
+          possui atividades.
         </Alert>
       ) : (
         <Stack spacing={0}>
-          {timelineEntries.map((entry, index) => {
-            const isLast =
-              index === timelineEntries.length - 1;
+          {timelineEntries.map(
+            (entry, index) => {
+              const isLast =
+                index ===
+                timelineEntries.length -
+                  1;
 
-            if (entry.type === "comment") {
+              if (
+                entry.type ===
+                "comment"
+              ) {
+                const isEditing =
+                  editingCommentId ===
+                  entry.commentId;
+
+                return (
+                  <TimelineItem
+                    key={entry.id}
+                    title={entry.title}
+                    createdAt={
+                      entry.createdAt
+                    }
+                    updatedAt={
+                      entry.updatedAt
+                    }
+                    authorName={
+                      entry.authorName
+                    }
+                    icon={
+                      <AddCommentOutlined
+                        fontSize="small"
+                      />
+                    }
+                    isLast={isLast}
+                    action={
+                      isEditing ? (
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                        >
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={
+                              isSaving ? (
+                                <CircularProgress
+                                  size={15}
+                                  color="inherit"
+                                />
+                              ) : (
+                                <SaveOutlined />
+                              )
+                            }
+                            onClick={
+                              saveEditing
+                            }
+                            disabled={
+                              isSaving
+                            }
+                          >
+                            Salvar
+                          </Button>
+
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={
+                              <CloseOutlined />
+                            }
+                            onClick={
+                              cancelEditing
+                            }
+                            disabled={
+                              isSaving
+                            }
+                          >
+                            Cancelar
+                          </Button>
+                        </Stack>
+                      ) : (
+                        <Button
+                          size="small"
+                          startIcon={
+                            <EditOutlined />
+                          }
+                          onClick={() =>
+                            startEditing(
+                              entry
+                            )
+                          }
+                          disabled={
+                            isSaving
+                          }
+                        >
+                          Editar
+                        </Button>
+                      )
+                    }
+                    description={
+                      isEditing ? (
+                        <Stack
+                          spacing={1}
+                        >
+                          {editingError && (
+                            <Alert
+                              severity="error"
+                              onClose={() =>
+                                setEditingError(
+                                  ""
+                                )
+                              }
+                            >
+                              {
+                                editingError
+                              }
+                            </Alert>
+                          )}
+
+                          <TextField
+                            label="Editar comentário"
+                            multiline
+                            minRows={3}
+                            fullWidth
+                            value={
+                              editedMessage
+                            }
+                            disabled={
+                              isSaving
+                            }
+                            onChange={(
+                              event
+                            ) => {
+                              setEditedMessage(
+                                event
+                                  .target
+                                  .value
+                              );
+
+                              if (
+                                editingError
+                              ) {
+                                setEditingError(
+                                  ""
+                                );
+                              }
+                            }}
+                            helperText={`${editedMessage.length}/2000 caracteres`}
+                            slotProps={{
+                              htmlInput:
+                                {
+                                  maxLength:
+                                    2000,
+                                },
+                            }}
+                          />
+                        </Stack>
+                      ) : (
+                        entry.description
+                      )
+                    }
+                  />
+                );
+              }
+
               return (
                 <TimelineItem
                   key={entry.id}
                   title={entry.title}
-                  description={entry.description}
-                  createdAt={entry.createdAt}
-                  authorName={entry.authorName}
-                  icon={
-                    <AddCommentOutlined fontSize="small" />
+                  description={
+                    entry.description
                   }
+                  createdAt={
+                    entry.createdAt
+                  }
+                  icon={getHistoryIcon(
+                    entry.eventType
+                  )}
                   isLast={isLast}
-                  action={
-                    <Tooltip title="Excluir comentário">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label={`Excluir comentário de ${entry.authorName}`}
-                        onClick={() =>
-                          handleDelete(entry.commentId)
-                        }
-                      >
-                        <DeleteOutline fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  }
                 />
               );
             }
-
-            return (
-              <TimelineItem
-                key={entry.id}
-                title={entry.title}
-                description={entry.description}
-                createdAt={entry.createdAt}
-                icon={getHistoryIcon(entry.eventType)}
-                isLast={isLast}
-              />
-            );
-          })}
+          )}
         </Stack>
       )}
+
+      <Divider />
+
+      <Box>
+        <Typography
+          component="h3"
+          variant="subtitle1"
+          fontWeight={700}
+          sx={{ mb: 2 }}
+        >
+          Adicionar comentário
+        </Typography>
+
+        {commentError && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            onClose={
+              onClearCommentError
+            }
+          >
+            {commentError}
+          </Alert>
+        )}
+
+        {onAddComment ? (
+          <AddTicketComment
+            onSubmit={onAddComment}
+            disabled={
+              isAddingComment
+            }
+          />
+        ) : (
+          <Alert severity="warning">
+            Entre no sistema para
+            adicionar comentários.
+          </Alert>
+        )}
+      </Box>
     </Stack>
   );
 }

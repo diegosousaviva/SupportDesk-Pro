@@ -1,10 +1,11 @@
 import type { TicketComment } from "../types/TicketComment";
 
-const STORAGE_KEY = "supportdesk-pro-ticket-comments";
+const STORAGE_KEY =
+  "supportdesk-pro-ticket-comments";
 
 export type CreateTicketCommentData = Omit<
   TicketComment,
-  "id" | "createdAt"
+  "id" | "createdAt" | "updatedAt"
 >;
 
 function saveCommentsToStorage(
@@ -25,13 +26,15 @@ function saveCommentsToStorage(
 
 function loadCommentsFromStorage(): TicketComment[] {
   try {
-    const storedComments = localStorage.getItem(STORAGE_KEY);
+    const storedComments =
+      localStorage.getItem(STORAGE_KEY);
 
     if (!storedComments) {
       return [];
     }
 
-    const parsedData: unknown = JSON.parse(storedComments);
+    const parsedData: unknown =
+      JSON.parse(storedComments);
 
     if (!Array.isArray(parsedData)) {
       return [];
@@ -43,6 +46,7 @@ function loadCommentsFromStorage(): TicketComment[] {
         comment !== null &&
         typeof comment.id === "number" &&
         typeof comment.ticketId === "number" &&
+        typeof comment.authorId === "number" &&
         typeof comment.authorName === "string" &&
         typeof comment.message === "string" &&
         typeof comment.createdAt === "string"
@@ -64,11 +68,18 @@ export function findCommentsByTicketId(
   ticketId: number
 ): TicketComment[] {
   return comments
-    .filter((comment) => comment.ticketId === ticketId)
+    .filter(
+      (comment) =>
+        comment.ticketId === ticketId
+    )
     .sort(
       (firstComment, secondComment) =>
-        new Date(firstComment.createdAt).getTime() -
-        new Date(secondComment.createdAt).getTime()
+        new Date(
+          firstComment.createdAt
+        ).getTime() -
+        new Date(
+          secondComment.createdAt
+        ).getTime()
     );
 }
 
@@ -77,7 +88,10 @@ export function createTicketCommentRepository(
 ): TicketComment {
   const highestId = comments.reduce(
     (currentHighestId, comment) =>
-      Math.max(currentHighestId, comment.id),
+      Math.max(
+        currentHighestId,
+        comment.id
+      ),
     0
   );
 
@@ -87,11 +101,45 @@ export function createTicketCommentRepository(
     createdAt: new Date().toISOString(),
   };
 
-  comments = [...comments, newComment];
+  comments = [
+    ...comments,
+    newComment,
+  ];
 
   saveCommentsToStorage(comments);
 
   return newComment;
+}
+
+export function updateTicketCommentRepository(
+  id: number,
+  message: string
+): TicketComment | null {
+  let updatedComment: TicketComment | null =
+    null;
+
+  comments = comments.map((comment) => {
+    if (comment.id !== id) {
+      return comment;
+    }
+
+    updatedComment = {
+      ...comment,
+      message,
+      updatedAt:
+        new Date().toISOString(),
+    };
+
+    return updatedComment;
+  });
+
+  if (!updatedComment) {
+    return null;
+  }
+
+  saveCommentsToStorage(comments);
+
+  return updatedComment;
 }
 
 export function deleteTicketCommentById(
@@ -112,4 +160,15 @@ export function deleteTicketCommentById(
   saveCommentsToStorage(comments);
 
   return true;
+}
+
+export function deleteCommentsByTicketId(
+  ticketId: number
+): void {
+  comments = comments.filter(
+    (comment) =>
+      comment.ticketId !== ticketId
+  );
+
+  saveCommentsToStorage(comments);
 }

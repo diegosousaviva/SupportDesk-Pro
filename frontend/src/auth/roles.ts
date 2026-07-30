@@ -29,6 +29,11 @@ const ADMINISTRATOR_PERMISSIONS =
     Permissions.tickets.close,
     Permissions.tickets.comment,
 
+    Permissions.categories.view,
+    Permissions.categories.create,
+    Permissions.categories.edit,
+    Permissions.categories.delete,
+
     Permissions.reports.view,
 
     Permissions.settings.view,

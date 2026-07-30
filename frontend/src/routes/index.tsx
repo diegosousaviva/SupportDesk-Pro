@@ -9,15 +9,17 @@ import ProtectedRoute from "../auth/ProtectedRoute";
 import PublicRoute from "../auth/PublicRoute";
 
 import { buildProtectedRoutes } from "./buildProtectedRoutes";
+import { categoryRoutes } from "./CategoryRoutes";
 import { dashboardRoutes } from "./DashboardRoutes";
 import { publicRoutes } from "./PublicRoutes";
 import { ticketRoutes } from "./TicketRoutes";
 import { userRoutes } from "./UserRoutes";
 
 const ForbiddenPage = lazy(
-  () => import(
-    "../pages/Forbidden/ForbiddenPage"
-  )
+  () =>
+    import(
+      "../pages/Forbidden/ForbiddenPage"
+    )
 );
 
 function AppRoutes() {
@@ -26,6 +28,7 @@ function AppRoutes() {
       ...dashboardRoutes,
       ...ticketRoutes,
       ...userRoutes,
+      ...categoryRoutes,
     ]);
 
   return useRoutes([

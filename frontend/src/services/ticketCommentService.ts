@@ -2,16 +2,17 @@ import type { TicketComment } from "../types/TicketComment";
 
 import {
   createTicketCommentRepository,
-  deleteTicketCommentById,
+  deleteCommentsByTicketId,
   findCommentsByTicketId,
+  updateTicketCommentRepository,
 } from "../repositories/ticketCommentRepository";
 
 export type CreateTicketCommentData = Omit<
   TicketComment,
-  "id" | "createdAt"
+  "id" | "createdAt" | "updatedAt"
 >;
 
-export function getCommentsByTicketId(
+export function getTicketComments(
   ticketId: number
 ): TicketComment[] {
   return findCommentsByTicketId(ticketId);
@@ -20,11 +21,49 @@ export function getCommentsByTicketId(
 export function createTicketComment(
   commentData: CreateTicketCommentData
 ): TicketComment {
-  return createTicketCommentRepository(commentData);
+  const message = commentData.message.trim();
+
+  if (!message) {
+    throw new Error(
+      "Informe um comentário."
+    );
+  }
+
+  return createTicketCommentRepository({
+    ...commentData,
+    message,
+  });
 }
 
-export function deleteTicketComment(
-  id: number
-): boolean {
-  return deleteTicketCommentById(id);
+export function updateTicketComment(
+  id: number,
+  message: string
+): TicketComment {
+  const normalizedMessage = message.trim();
+
+  if (!normalizedMessage) {
+    throw new Error(
+      "Informe um comentário."
+    );
+  }
+
+  const updatedComment =
+    updateTicketCommentRepository(
+      id,
+      normalizedMessage
+    );
+
+  if (!updatedComment) {
+    throw new Error(
+      "Comentário não encontrado."
+    );
+  }
+
+  return updatedComment;
+}
+
+export function deleteTicketComments(
+  ticketId: number
+): void {
+  deleteCommentsByTicketId(ticketId);
 }

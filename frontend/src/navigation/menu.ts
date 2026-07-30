@@ -1,4 +1,5 @@
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import CategoryIcon from "@mui/icons-material/Category";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
@@ -50,6 +51,16 @@ export const navigationSections:
           permission:
             Permissions.users.view,
         },
+
+        {
+          id: "categories",
+          label: "Categorias",
+          path: "/categories",
+          icon: CategoryIcon,
+          permission:
+            Permissions.categories.view,
+        },
+
         {
           id: "reports",
           label: "Relatórios",

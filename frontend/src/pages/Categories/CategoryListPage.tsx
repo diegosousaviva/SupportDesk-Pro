@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -18,6 +19,7 @@ import AddIcon from "@mui/icons-material/Add";
 
 import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 import CategoryStatistics from "../../components/categories/CategoryStatistics";
 import CategoryTable from "../../components/categories/CategoryTable";
 
@@ -26,36 +28,135 @@ import {
 } from "../../hooks/usePermissions";
 
 import {
+  useSnackbar,
+} from "../../hooks/useSnackbar";
+
+import {
   Permissions,
 } from "../../auth/permissions";
 
 import {
+  deleteCategory,
   getCategories,
 } from "../../services/categoryService";
+
+import type {
+  Category,
+} from "../../types/Category";
 
 function CategoryListPage() {
   const navigate = useNavigate();
 
   const { can } = usePermissions();
 
+  const {
+    showSuccess,
+    showError,
+  } = useSnackbar();
+
   const [search, setSearch] =
     useState("");
 
-  const categories = useMemo(() => {
-    const value = search
-      .trim()
-      .toLowerCase();
+  const [categories, setCategories] =
+    useState<Category[]>([]);
 
-    return getCategories().filter(
-      (category) =>
-        category.name
-          .toLowerCase()
-          .includes(value) ||
-        category.description
-          .toLowerCase()
-          .includes(value)
-    );
-  }, [search]);
+  const [
+    selectedCategoryId,
+    setSelectedCategoryId,
+  ] = useState<number | null>(null);
+
+  const [
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+  ] = useState(false);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  useEffect(() => {
+    setCategories(getCategories());
+  }, []);
+
+  const filteredCategories =
+    useMemo(() => {
+      const value = search
+        .trim()
+        .toLowerCase();
+
+      return categories.filter(
+        (category) =>
+          category.name
+            .toLowerCase()
+            .includes(value) ||
+          category.description
+            .toLowerCase()
+            .includes(value)
+      );
+    }, [categories, search]);
+
+  function handleDeleteClick(
+    id: number
+  ) {
+    setSelectedCategoryId(id);
+    setDeleteDialogOpen(true);
+  }
+
+  function handleCancelDelete() {
+    if (deleting) {
+      return;
+    }
+
+    setDeleteDialogOpen(false);
+    setSelectedCategoryId(null);
+  }
+
+  async function handleConfirmDelete() {
+    if (selectedCategoryId === null) {
+      return;
+    }
+
+    const categoryId =
+      selectedCategoryId;
+
+    try {
+      setDeleting(true);
+
+      await Promise.resolve(
+        deleteCategory(categoryId)
+      );
+
+      setCategories(
+        (currentCategories) =>
+          currentCategories.filter(
+            (category) =>
+              category.id !== categoryId
+          )
+      );
+
+      setDeleteDialogOpen(false);
+      setSelectedCategoryId(null);
+
+      showSuccess(
+        "Categoria excluída com sucesso."
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao excluir categoria:",
+        error
+      );
+
+      setDeleteDialogOpen(false);
+      setSelectedCategoryId(null);
+
+      showError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir a categoria."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <MainLayout title="Categorias">
@@ -65,7 +166,7 @@ function CategoryListPage() {
       />
 
       <CategoryStatistics
-        categories={categories}
+        categories={filteredCategories}
       />
 
       <Paper
@@ -113,20 +214,36 @@ function CategoryListPage() {
       </Paper>
 
       <CategoryTable
-        categories={categories}
+        categories={
+          filteredCategories
+        }
         onView={(id) =>
-          navigate(`/categories/${id}`)
+          navigate(
+            `/categories/${id}`
+          )
         }
         onEdit={(id) =>
           navigate(
             `/categories/${id}/edit`
           )
         }
-        onDelete={(id) =>
-          console.log(
-            "Excluir categoria:",
-            id
-          )
+        onDelete={
+          handleDeleteClick
+        }
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Excluir categoria"
+        message="Deseja realmente excluir esta categoria?"
+        confirmLabel="Excluir"
+        confirmColor="error"
+        loading={deleting}
+        onCancel={
+          handleCancelDelete
+        }
+        onConfirm={
+          handleConfirmDelete
         }
       />
     </MainLayout>

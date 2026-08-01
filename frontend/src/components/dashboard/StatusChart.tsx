@@ -6,9 +6,9 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { BarChart } from "@mui/x-charts/BarChart";
-
-import useChartWidth from "../../hooks/useChartWidth";
+import {
+  BarChart,
+} from "@mui/x-charts/BarChart";
 
 interface StatusChartProps {
   openTickets: number;
@@ -22,11 +22,6 @@ function StatusChart({
   resolvedTickets,
 }: StatusChartProps) {
   const theme = useTheme();
-
-  const {
-    containerRef,
-    chartWidth,
-  } = useChartWidth();
 
   const chartHeight = 320;
 
@@ -46,7 +41,10 @@ function StatusChart({
         boxSizing: "border-box",
       }}
     >
-      <Stack spacing={0.5} sx={{ mb: 2 }}>
+      <Stack
+        spacing={0.5}
+        sx={{ mb: 2 }}
+      >
         <Typography
           variant="h6"
           fontWeight={700}
@@ -58,88 +56,88 @@ function StatusChart({
           variant="body2"
           color="text.secondary"
         >
-          Distribuição atual dos chamados cadastrados.
+          Distribuição dos chamados no período
+          selecionado.
         </Typography>
       </Stack>
 
       {hasTickets ? (
         <Box
-          ref={containerRef}
           sx={{
             width: "100%",
             minWidth: 0,
             height: chartHeight,
-            overflow: "hidden",
           }}
         >
-          {chartWidth > 320 && (
-            <BarChart
-              width={chartWidth}
-              height={chartHeight}
-              dataset={[
-                {
-                  status: "Abertos",
-                  quantidade: openTickets,
+          <BarChart
+            height={chartHeight}
+            dataset={[
+              {
+                status: "Abertos",
+                quantidade: openTickets,
+              },
+              {
+                status: "Em andamento",
+                quantidade:
+                  inProgressTickets,
+              },
+              {
+                status: "Resolvidos",
+                quantidade:
+                  resolvedTickets,
+              },
+            ]}
+            xAxis={[
+              {
+                scaleType: "band",
+                dataKey: "status",
+                tickLabelStyle: {
+                  fill:
+                    theme.palette.text
+                      .secondary,
+                  fontSize: 12,
                 },
-                {
-                  status: "Em andamento",
-                  quantidade:
-                    inProgressTickets,
+              },
+            ]}
+            yAxis={[
+              {
+                min: 0,
+                tickMinStep: 1,
+                tickLabelStyle: {
+                  fill:
+                    theme.palette.text
+                      .secondary,
                 },
-                {
-                  status: "Resolvidos",
-                  quantidade:
-                    resolvedTickets,
-                },
-              ]}
-              xAxis={[
-                {
-                  scaleType: "band",
-                  dataKey: "status",
-                  tickLabelStyle: {
-                    fill:
-                      theme.palette.text
-                        .secondary,
-                    fontSize: 12,
-                  },
-                },
-              ]}
-              yAxis={[
-                {
-                  min: 0,
-                  tickMinStep: 1,
-                  tickLabelStyle: {
-                    fill:
-                      theme.palette.text
-                        .secondary,
-                  },
-                },
-              ]}
-              series={[
-                {
-                  dataKey: "quantidade",
-                  label: "Chamados",
-                  color:
-                    theme.palette.primary.main,
-                  valueFormatter: (value) =>
-                    `${value ?? 0} chamado${
-                      value === 1 ? "" : "s"
-                    }`,
-                },
-              ]}
-              grid={{
-                horizontal: true,
-              }}
-              borderRadius={8}
-              margin={{
-                top: 30,
-                right: 20,
-                bottom: 50,
-                left: 50,
-              }}
-              hideLegend
-            />
-          )}
+              },
+            ]}
+            series={[
+              {
+                dataKey: "quantidade",
+                label: "Chamados",
+                color:
+                  theme.palette.primary.main,
+                valueFormatter: (
+                  value
+                ) =>
+                  `${value ?? 0} chamado${
+                    value === 1
+                      ? ""
+                      : "s"
+                  }`,
+              },
+            ]}
+            grid={{
+              horizontal: true,
+            }}
+            borderRadius={8}
+            margin={{
+              top: 30,
+              right: 20,
+              bottom: 50,
+              left: 50,
+            }}
+            hideLegend
+          />
         </Box>
       ) : (
         <Box
@@ -151,7 +149,9 @@ function StatusChart({
             textAlign: "center",
           }}
         >
-          <Typography color="text.secondary">
+          <Typography
+            color="text.secondary"
+          >
             Ainda não existem chamados para exibir.
           </Typography>
         </Box>

@@ -6,9 +6,9 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { BarChart } from "@mui/x-charts/BarChart";
-
-import useChartWidth from "../../hooks/useChartWidth";
+import {
+  BarChart,
+} from "@mui/x-charts/BarChart";
 
 interface CategoryChartItem {
   [key: string]: string | number;
@@ -24,11 +24,6 @@ function CategoryChart({
   data,
 }: CategoryChartProps) {
   const theme = useTheme();
-
-  const {
-    containerRef,
-    chartWidth,
-  } = useChartWidth();
 
   const chartHeight = Math.max(
     320,
@@ -65,71 +60,73 @@ function CategoryChart({
           color="text.secondary"
         >
           Categorias que concentram mais solicitações de
-          suporte.
+          suporte no período selecionado.
         </Typography>
       </Stack>
 
       {data.length > 0 ? (
         <Box
-          ref={containerRef}
           sx={{
             width: "100%",
             minWidth: 0,
             height: chartHeight,
-            overflow: "hidden",
           }}
         >
-          {chartWidth > 320 && (
-            <BarChart
-              width={chartWidth}
-              height={chartHeight}
-              dataset={data}
-              xAxis={[
-                {
-                  scaleType: "band",
-                  dataKey: "category",
-                  tickLabelStyle: {
-                    fill:
-                      theme.palette.text.secondary,
-                    fontSize: 12,
-                  },
+          <BarChart
+            height={chartHeight}
+            dataset={data}
+            xAxis={[
+              {
+                scaleType: "band",
+                dataKey: "category",
+                tickLabelStyle: {
+                  fill:
+                    theme.palette.text
+                      .secondary,
+                  fontSize: 12,
                 },
-              ]}
-              yAxis={[
-                {
-                  min: 0,
-                  tickMinStep: 1,
-                  tickLabelStyle: {
-                    fill:
-                      theme.palette.text.secondary,
-                  },
+              },
+            ]}
+            yAxis={[
+              {
+                min: 0,
+                tickMinStep: 1,
+                tickLabelStyle: {
+                  fill:
+                    theme.palette.text
+                      .secondary,
                 },
-              ]}
-              series={[
-                {
-                  dataKey: "quantity",
-                  label: "Chamados",
-                  color:
-                    theme.palette.secondary.main,
-                  valueFormatter: (value) =>
-                    `${value ?? 0} chamado${
-                      value === 1 ? "" : "s"
-                    }`,
-                },
-              ]}
-              grid={{
-                horizontal: true,
-              }}
-              borderRadius={8}
-              margin={{
-                top: 30,
-                right: 20,
-                bottom: 50,
-                left: 50,
-              }}
-              hideLegend
-            />
-          )}
+              },
+            ]}
+            series={[
+              {
+                dataKey: "quantity",
+                label: "Chamados",
+                color:
+                  theme.palette.secondary
+                    .main,
+                valueFormatter: (
+                  value
+                ) =>
+                  `${value ?? 0} chamado${
+                    value === 1
+                      ? ""
+                      : "s"
+                  }`,
+              },
+            ]}
+            grid={{
+              horizontal: true,
+            }}
+            borderRadius={8}
+            margin={{
+              top: 30,
+              right: 20,
+              bottom: 50,
+              left: 50,
+            }}
+            hideLegend
+          />
         </Box>
       ) : (
         <Box
@@ -143,7 +140,9 @@ function CategoryChart({
             textAlign: "center",
           }}
         >
-          <Typography color="text.secondary">
+          <Typography
+            color="text.secondary"
+          >
             Ainda não existem categorias para exibir.
           </Typography>
         </Box>

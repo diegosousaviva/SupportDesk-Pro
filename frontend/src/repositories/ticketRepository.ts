@@ -4,7 +4,8 @@ import type {
   TicketStatus,
 } from "../types/Ticket";
 
-const STORAGE_KEY = "supportdesk-pro-tickets";
+const STORAGE_KEY =
+  "supportdesk-pro-tickets";
 
 type CreateTicketData = Omit<
   Ticket,
@@ -18,9 +19,11 @@ type StoredTicket = Partial<Ticket> & {
   category?: unknown;
   priority?: unknown;
   status?: unknown;
+  requesterUserId?: unknown;
   assignedTechnicianId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
+  closedAt?: unknown;
 };
 
 const initialTickets: Ticket[] = [
@@ -32,9 +35,13 @@ const initialTickets: Ticket[] = [
     category: "Hardware",
     priority: "Alta",
     status: "Aberto",
+    requesterUserId: 3,
     assignedTechnicianId: null,
-    createdAt: "2026-01-10T09:00:00.000Z",
-    updatedAt: "2026-01-10T09:00:00.000Z",
+    createdAt:
+      "2026-05-10T09:00:00.000Z",
+    updatedAt:
+      "2026-05-10T09:00:00.000Z",
+    closedAt: null,
   },
   {
     id: 1024,
@@ -44,9 +51,13 @@ const initialTickets: Ticket[] = [
     category: "Software",
     priority: "Média",
     status: "Em andamento",
-    assignedTechnicianId: null,
-    createdAt: "2026-01-11T10:30:00.000Z",
-    updatedAt: "2026-01-11T11:15:00.000Z",
+    requesterUserId: 3,
+    assignedTechnicianId: 2,
+    createdAt:
+      "2026-06-11T10:30:00.000Z",
+    updatedAt:
+      "2026-06-11T11:15:00.000Z",
+    closedAt: null,
   },
   {
     id: 1025,
@@ -56,9 +67,14 @@ const initialTickets: Ticket[] = [
     category: "Rede",
     priority: "Baixa",
     status: "Resolvido",
-    assignedTechnicianId: null,
-    createdAt: "2026-01-12T08:45:00.000Z",
-    updatedAt: "2026-01-12T14:20:00.000Z",
+    requesterUserId: 3,
+    assignedTechnicianId: 2,
+    createdAt:
+      "2026-07-12T08:45:00.000Z",
+    updatedAt:
+      "2026-07-12T14:20:00.000Z",
+    closedAt:
+      "2026-07-12T14:20:00.000Z",
   },
 ];
 
@@ -83,11 +99,30 @@ function isTicketStatus(
   );
 }
 
-function isValidDateString(value: unknown): value is string {
+function isValidDateString(
+  value: unknown
+): value is string {
   return (
     typeof value === "string" &&
-    !Number.isNaN(Date.parse(value))
+    !Number.isNaN(
+      Date.parse(value)
+    )
   );
+}
+
+function normalizeUserId(
+  value: unknown,
+  defaultValue: number
+): number {
+  if (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value > 0
+  ) {
+    return value;
+  }
+
+  return defaultValue;
 }
 
 function normalizeTechnicianId(
@@ -104,57 +139,114 @@ function normalizeTechnicianId(
   return null;
 }
 
-function migrateStoredTicket(
-  storedTicket: StoredTicket
-): Ticket | null {
+function normalizeClosedAt(
+  value: unknown,
+  status: TicketStatus,
+  updatedAt: string
+): string | null {
   if (
-    typeof storedTicket.id !== "number" ||
-    !Number.isInteger(storedTicket.id) ||
-    typeof storedTicket.title !== "string" ||
-    typeof storedTicket.category !== "string" ||
-    !isTicketPriority(storedTicket.priority) ||
-    !isTicketStatus(storedTicket.status)
+    status !== "Resolvido"
   ) {
     return null;
   }
 
-  const migrationDate = new Date().toISOString();
+  if (
+    isValidDateString(value)
+  ) {
+    return value;
+  }
 
-  const createdAt = isValidDateString(
-    storedTicket.createdAt
-  )
-    ? storedTicket.createdAt
-    : migrationDate;
+  return updatedAt;
+}
 
-  const updatedAt = isValidDateString(
-    storedTicket.updatedAt
-  )
-    ? storedTicket.updatedAt
-    : createdAt;
+function migrateStoredTicket(
+  storedTicket: StoredTicket
+): Ticket | null {
+  if (
+    typeof storedTicket.id !==
+      "number" ||
+    !Number.isInteger(
+      storedTicket.id
+    ) ||
+    typeof storedTicket.title !==
+      "string" ||
+    typeof storedTicket.category !==
+      "string" ||
+    !isTicketPriority(
+      storedTicket.priority
+    ) ||
+    !isTicketStatus(
+      storedTicket.status
+    )
+  ) {
+    return null;
+  }
+
+  const migrationDate =
+    new Date().toISOString();
+
+  const createdAt =
+    isValidDateString(
+      storedTicket.createdAt
+    )
+      ? storedTicket.createdAt
+      : migrationDate;
+
+  const updatedAt =
+    isValidDateString(
+      storedTicket.updatedAt
+    )
+      ? storedTicket.updatedAt
+      : createdAt;
+
+  const requesterUserId =
+    normalizeUserId(
+      storedTicket.requesterUserId,
+      3
+    );
+
+  const closedAt =
+    normalizeClosedAt(
+      storedTicket.closedAt,
+      storedTicket.status,
+      updatedAt
+    );
 
   return {
     id: storedTicket.id,
-    title: storedTicket.title,
+    title:
+      storedTicket.title.trim(),
     description:
-      typeof storedTicket.description === "string"
+      typeof storedTicket.description ===
+      "string"
         ? storedTicket.description
         : "",
-    category: storedTicket.category,
-    priority: storedTicket.priority,
-    status: storedTicket.status,
-    assignedTechnicianId: normalizeTechnicianId(
-      storedTicket.assignedTechnicianId
-    ),
+    category:
+      storedTicket.category.trim(),
+    priority:
+      storedTicket.priority,
+    status:
+      storedTicket.status,
+    requesterUserId,
+    assignedTechnicianId:
+      normalizeTechnicianId(
+        storedTicket.assignedTechnicianId
+      ),
     createdAt,
     updatedAt,
+    closedAt,
   };
 }
 
-function saveTicketsToStorage(ticketsToSave: Ticket[]): void {
+function saveTicketsToStorage(
+  ticketsToSave: Ticket[]
+): void {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(ticketsToSave)
+      JSON.stringify(
+        ticketsToSave
+      )
     );
   } catch (error) {
     console.error(
@@ -166,37 +258,69 @@ function saveTicketsToStorage(ticketsToSave: Ticket[]): void {
 
 function loadTicketsFromStorage(): Ticket[] {
   try {
-    const storedTickets = localStorage.getItem(STORAGE_KEY);
-
-    if (!storedTickets) {
-      saveTicketsToStorage(initialTickets);
-
-      return [...initialTickets];
-    }
-
-    const parsedData: unknown = JSON.parse(storedTickets);
-
-    if (!Array.isArray(parsedData)) {
-      saveTicketsToStorage(initialTickets);
-
-      return [...initialTickets];
-    }
-
-    const migratedTickets = parsedData
-      .map((storedTicket) =>
-        migrateStoredTicket(storedTicket as StoredTicket)
-      )
-      .filter(
-        (ticket): ticket is Ticket => ticket !== null
+    const storedTickets =
+      localStorage.getItem(
+        STORAGE_KEY
       );
 
-    if (migratedTickets.length === 0) {
-      saveTicketsToStorage(initialTickets);
+    if (!storedTickets) {
+      saveTicketsToStorage(
+        initialTickets
+      );
 
-      return [...initialTickets];
+      return [
+        ...initialTickets,
+      ];
     }
 
-    saveTicketsToStorage(migratedTickets);
+    const parsedData: unknown =
+      JSON.parse(storedTickets);
+
+    if (
+      !Array.isArray(
+        parsedData
+      )
+    ) {
+      saveTicketsToStorage(
+        initialTickets
+      );
+
+      return [
+        ...initialTickets,
+      ];
+    }
+
+    const migratedTickets =
+      parsedData
+        .map(
+          (storedTicket) =>
+            migrateStoredTicket(
+              storedTicket as StoredTicket
+            )
+        )
+        .filter(
+          (
+            ticket
+          ): ticket is Ticket =>
+            ticket !== null
+        );
+
+    if (
+      migratedTickets.length ===
+      0
+    ) {
+      saveTicketsToStorage(
+        initialTickets
+      );
+
+      return [
+        ...initialTickets,
+      ];
+    }
+
+    saveTicketsToStorage(
+      migratedTickets
+    );
 
     return migratedTickets;
   } catch (error) {
@@ -205,45 +329,74 @@ function loadTicketsFromStorage(): Ticket[] {
       error
     );
 
-    saveTicketsToStorage(initialTickets);
+    saveTicketsToStorage(
+      initialTickets
+    );
 
-    return [...initialTickets];
+    return [
+      ...initialTickets,
+    ];
   }
 }
 
-let tickets: Ticket[] = loadTicketsFromStorage();
+let tickets: Ticket[] =
+  loadTicketsFromStorage();
 
 export function findAllTickets(): Ticket[] {
-  return [...tickets];
+  return [
+    ...tickets,
+  ];
 }
 
 export function findTicketById(
   id: number
 ): Ticket | undefined {
-  return tickets.find((ticket) => ticket.id === id);
+  return tickets.find(
+    (ticket) =>
+      ticket.id === id
+  );
 }
 
 export function createTicketRepository(
   ticketData: CreateTicketData
 ): Ticket {
-  const highestId = tickets.reduce(
-    (currentHighestId, ticket) =>
-      Math.max(currentHighestId, ticket.id),
-    0
-  );
+  const highestId =
+    tickets.reduce(
+      (
+        currentHighestId,
+        ticket
+      ) =>
+        Math.max(
+          currentHighestId,
+          ticket.id
+        ),
+      0
+    );
 
-  const currentDate = new Date().toISOString();
+  const currentDate =
+    new Date().toISOString();
 
   const newTicket: Ticket = {
     ...ticketData,
     id: highestId + 1,
     createdAt: currentDate,
     updatedAt: currentDate,
+    closedAt:
+      ticketData.status ===
+      "Resolvido"
+        ? ticketData.closedAt ??
+          currentDate
+        : null,
   };
 
-  tickets = [...tickets, newTicket];
+  tickets = [
+    ...tickets,
+    newTicket,
+  ];
 
-  saveTicketsToStorage(tickets);
+  saveTicketsToStorage(
+    tickets
+  );
 
   return newTicket;
 }
@@ -251,46 +404,100 @@ export function createTicketRepository(
 export function updateTicketById(
   id: number,
   updatedData: Partial<
-    Omit<Ticket, "id" | "createdAt" | "updatedAt">
+    Omit<
+      Ticket,
+      "id" |
+        "createdAt" |
+        "updatedAt"
+    >
   >
 ): Ticket | undefined {
-  const currentTicket = tickets.find(
-    (ticket) => ticket.id === id
-  );
+  const currentTicket =
+    tickets.find(
+      (ticket) =>
+        ticket.id === id
+    );
 
   if (!currentTicket) {
     return undefined;
+  }
+
+  const currentDate =
+    new Date().toISOString();
+
+  const newStatus =
+    updatedData.status ??
+    currentTicket.status;
+
+  let closedAt =
+    updatedData.closedAt ??
+    currentTicket.closedAt;
+
+  if (
+    newStatus === "Resolvido" &&
+    currentTicket.status !==
+      "Resolvido" &&
+    updatedData.closedAt ===
+      undefined
+  ) {
+    closedAt =
+      currentDate;
+  }
+
+  if (
+    newStatus !==
+    "Resolvido"
+  ) {
+    closedAt = null;
   }
 
   const updatedTicket: Ticket = {
     ...currentTicket,
     ...updatedData,
     id: currentTicket.id,
-    createdAt: currentTicket.createdAt,
-    updatedAt: new Date().toISOString(),
+    createdAt:
+      currentTicket.createdAt,
+    updatedAt:
+      currentDate,
+    closedAt,
   };
 
-  tickets = tickets.map((ticket) =>
-    ticket.id === id ? updatedTicket : ticket
+  tickets = tickets.map(
+    (ticket) =>
+      ticket.id === id
+        ? updatedTicket
+        : ticket
   );
 
-  saveTicketsToStorage(tickets);
+  saveTicketsToStorage(
+    tickets
+  );
 
   return updatedTicket;
 }
 
-export function deleteTicketById(id: number): boolean {
-  const ticketExists = tickets.some(
-    (ticket) => ticket.id === id
-  );
+export function deleteTicketById(
+  id: number
+): boolean {
+  const ticketExists =
+    tickets.some(
+      (ticket) =>
+        ticket.id === id
+    );
 
   if (!ticketExists) {
     return false;
   }
 
-  tickets = tickets.filter((ticket) => ticket.id !== id);
+  tickets =
+    tickets.filter(
+      (ticket) =>
+        ticket.id !== id
+    );
 
-  saveTicketsToStorage(tickets);
+  saveTicketsToStorage(
+    tickets
+  );
 
   return true;
 }

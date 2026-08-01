@@ -1,16 +1,12 @@
-import {
-  TablePagination,
-} from "@mui/material";
-
 import type {
   ChangeEvent,
 } from "react";
 
+import DataTablePagination from "../common/DataTablePagination";
+
 interface TicketPaginationProps {
   count: number;
-
   page: number;
-
   rowsPerPage: number;
 
   onPageChange: (
@@ -19,7 +15,10 @@ interface TicketPaginationProps {
   ) => void;
 
   onRowsPerPageChange: (
-    event: ChangeEvent<HTMLInputElement>
+    event: ChangeEvent<
+      HTMLInputElement |
+      HTMLTextAreaElement
+    >
   ) => void;
 }
 
@@ -30,37 +29,16 @@ export default function TicketPagination({
   onPageChange,
   onRowsPerPageChange,
 }: TicketPaginationProps) {
-  if (count === 0) {
-    return null;
-  }
-
   return (
-    <TablePagination
-      component="div"
+    <DataTablePagination
       count={count}
       page={page}
       rowsPerPage={rowsPerPage}
+      label="Chamados por página:"
       onPageChange={onPageChange}
       onRowsPerPageChange={
         onRowsPerPageChange
       }
-      rowsPerPageOptions={[
-        5,
-        10,
-        25,
-      ]}
-      labelRowsPerPage="Chamados por página:"
-      labelDisplayedRows={({
-        from,
-        to,
-        count: totalCount,
-      }) =>
-        `${from}–${to} de ${totalCount}`
-      }
-      sx={{
-        borderTop: 1,
-        borderColor: "divider",
-      }}
     />
   );
 }

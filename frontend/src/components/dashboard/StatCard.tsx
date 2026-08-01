@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import type {
+  ReactNode,
+} from "react";
 
 import {
   Box,
@@ -9,6 +11,7 @@ import {
 interface StatCardProps {
   title: string;
   value: number;
+  suffix?: string;
   color?: string;
   icon?: ReactNode;
 }
@@ -16,6 +19,7 @@ interface StatCardProps {
 export default function StatCard({
   title,
   value,
+  suffix = "",
   color = "#1976d2",
   icon,
 }: StatCardProps) {
@@ -61,6 +65,7 @@ export default function StatCard({
             sx={{ mt: 1 }}
           >
             {value}
+            {suffix}
           </Typography>
         </Box>
 

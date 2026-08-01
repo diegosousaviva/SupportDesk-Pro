@@ -6,9 +6,9 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { PieChart } from "@mui/x-charts/PieChart";
-
-import useChartWidth from "../../hooks/useChartWidth";
+import {
+  PieChart,
+} from "@mui/x-charts/PieChart";
 
 interface PriorityChartProps {
   criticalTickets: number;
@@ -24,11 +24,6 @@ function PriorityChart({
   lowPriorityTickets,
 }: PriorityChartProps) {
   const theme = useTheme();
-
-  const {
-    containerRef,
-    chartWidth,
-  } = useChartWidth();
 
   const chartHeight = 320;
 
@@ -63,7 +58,10 @@ function PriorityChart({
       label: "Baixa",
       color: theme.palette.success.main,
     },
-  ].filter((item) => item.value > 0);
+  ].filter(
+    (item) =>
+      item.value > 0
+  );
 
   return (
     <Paper
@@ -76,7 +74,10 @@ function PriorityChart({
         boxSizing: "border-box",
       }}
     >
-      <Stack spacing={0.5} sx={{ mb: 2 }}>
+      <Stack
+        spacing={0.5}
+        sx={{ mb: 2 }}
+      >
         <Typography
           variant="h6"
           fontWeight={700}
@@ -89,68 +90,69 @@ function PriorityChart({
           color="text.secondary"
         >
           Distribuição dos chamados por nível de
-          prioridade.
+          prioridade no período selecionado.
         </Typography>
       </Stack>
 
       {totalTickets > 0 ? (
         <Box
-          ref={containerRef}
           sx={{
             width: "100%",
             minWidth: 0,
             height: chartHeight,
-            overflow: "hidden",
           }}
         >
-          {chartWidth > 320 && (
-            <PieChart
-              width={chartWidth}
-              height={chartHeight}
-              series={[
-                {
-                  data: chartData,
-                  innerRadius: 65,
-                  outerRadius: 100,
-                  paddingAngle: 3,
-                  cornerRadius: 5,
-                  startAngle: -90,
-                  endAngle: 270,
-                  valueFormatter: (item) => {
-                    const percentage =
-                      Math.round(
-                        (item.value /
-                          totalTickets) *
-                          100
-                      );
+          <PieChart
+            height={chartHeight}
+            series={[
+              {
+                data: chartData,
+                innerRadius: 65,
+                outerRadius: 100,
+                paddingAngle: 3,
+                cornerRadius: 5,
+                startAngle: -90,
+                endAngle: 270,
+                valueFormatter: (
+                  item
+                ) => {
+                  const percentage =
+                    Math.round(
+                      (
+                        item.value /
+                        totalTickets
+                      ) * 100
+                    );
 
-                    return `${
-                      item.value
-                    } chamado${
-                      item.value === 1
-                        ? ""
-                        : "s"
-                    } (${percentage}%)`;
-                  },
+                  return `${
+                    item.value
+                  } chamado${
+                    item.value === 1
+                      ? ""
+                      : "s"
+                  } (${percentage}%)`;
                 },
-              ]}
-              margin={{
-                top: 20,
-                right: 20,
-                bottom: 55,
-                left: 20,
-              }}
-              slotProps={{
-                legend: {
-                  direction: "horizontal",
-                  position: {
-                    vertical: "bottom",
-                    horizontal: "center",
-                  },
+              },
+            ]}
+            margin={{
+              top: 20,
+              right: 20,
+              bottom: 55,
+              left: 20,
+            }}
+            slotProps={{
+              legend: {
+                direction:
+                  "horizontal",
+                position: {
+                  vertical:
+                    "bottom",
+                  horizontal:
+                    "center",
                 },
-              }}
-            />
-          )}
+              },
+            }}
+          />
         </Box>
       ) : (
         <Box
@@ -162,7 +164,9 @@ function PriorityChart({
             textAlign: "center",
           }}
         >
-          <Typography color="text.secondary">
+          <Typography
+            color="text.secondary"
+          >
             Ainda não existem prioridades para exibir.
           </Typography>
         </Box>

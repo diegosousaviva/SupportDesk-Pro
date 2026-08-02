@@ -1,4 +1,6 @@
-import { lazy } from "react";
+import {
+  lazy,
+} from "react";
 
 import {
   Navigate,
@@ -8,12 +10,37 @@ import {
 import ProtectedRoute from "../auth/ProtectedRoute";
 import PublicRoute from "../auth/PublicRoute";
 
-import { buildProtectedRoutes } from "./buildProtectedRoutes";
-import { categoryRoutes } from "./CategoryRoutes";
-import { dashboardRoutes } from "./DashboardRoutes";
-import { publicRoutes } from "./PublicRoutes";
-import { ticketRoutes } from "./TicketRoutes";
-import { userRoutes } from "./UserRoutes";
+import {
+  buildProtectedRoutes,
+} from "./buildProtectedRoutes";
+
+import {
+  categoryRoutes,
+} from "./CategoryRoutes";
+
+import {
+  dashboardRoutes,
+} from "./DashboardRoutes";
+
+import {
+  publicRoutes,
+} from "./PublicRoutes";
+
+import {
+  reportRoutes,
+} from "./ReportRoutes";
+
+import {
+  settingsRoutes,
+} from "./SettingsRoutes";
+
+import {
+  ticketRoutes,
+} from "./TicketRoutes";
+
+import {
+  userRoutes,
+} from "./UserRoutes";
 
 const ForbiddenPage = lazy(
   () =>
@@ -29,6 +56,8 @@ function AppRoutes() {
       ...ticketRoutes,
       ...userRoutes,
       ...categoryRoutes,
+      ...reportRoutes,
+      ...settingsRoutes,
     ]);
 
   return useRoutes([

@@ -1,4 +1,5 @@
 import React, {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -16,9 +17,15 @@ import type {
 
 import App from "./App";
 
-import { createAppTheme } from "./theme/theme";
+import {
+  createAppTheme,
+} from "./theme/theme";
 
 import ColorModeContext from "./contexts/ColorModeContext";
+
+import type {
+  ColorModePreference,
+} from "./contexts/ColorModeContext";
 
 import {
   AuthProvider,
@@ -36,45 +43,99 @@ import "@fontsource/roboto/700.css";
 const COLOR_MODE_STORAGE_KEY =
   "supportdesk-pro-color-mode";
 
+function getSystemMode(): PaletteMode {
+  return window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  ).matches
+    ? "dark"
+    : "light";
+}
+
+function loadColorModePreference(): ColorModePreference {
+  const savedPreference = localStorage.getItem(
+    COLOR_MODE_STORAGE_KEY
+  );
+
+  if (
+    savedPreference === "light" ||
+    savedPreference === "dark" ||
+    savedPreference === "system"
+  ) {
+    return savedPreference;
+  }
+
+  return "light";
+}
+
 function Root() {
-  const [mode, setMode] =
-    useState<PaletteMode>(() => {
-      const savedMode =
-        localStorage.getItem(
-          COLOR_MODE_STORAGE_KEY
-        );
+  const [preference, setPreference] =
+    useState<ColorModePreference>(
+      loadColorModePreference
+    );
 
-      if (
-        savedMode === "light" ||
-        savedMode === "dark"
-      ) {
-        return savedMode;
-      }
+  const [systemMode, setSystemMode] =
+    useState<PaletteMode>(getSystemMode);
 
-      return "light";
-    });
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    );
+
+    function handleSystemThemeChange(
+      event: MediaQueryListEvent
+    ): void {
+      setSystemMode(
+        event.matches ? "dark" : "light"
+      );
+    }
+
+    mediaQuery.addEventListener(
+      "change",
+      handleSystemThemeChange
+    );
+
+    return () => {
+      mediaQuery.removeEventListener(
+        "change",
+        handleSystemThemeChange
+      );
+    };
+  }, []);
+
+  const mode: PaletteMode =
+    preference === "system"
+      ? systemMode
+      : preference;
 
   const colorMode = useMemo(
     () => ({
       mode,
+      preference,
+
+      setColorMode: (
+        newPreference: ColorModePreference
+      ) => {
+        setPreference(newPreference);
+
+        localStorage.setItem(
+          COLOR_MODE_STORAGE_KEY,
+          newPreference
+        );
+      },
 
       toggleColorMode: () => {
-        setMode((currentMode) => {
-          const newMode =
-            currentMode === "light"
-              ? "dark"
-              : "light";
+        const newPreference: ColorModePreference =
+          mode === "light" ? "dark" : "light";
 
-          localStorage.setItem(
-            COLOR_MODE_STORAGE_KEY,
-            newMode
-          );
+        setPreference(newPreference);
 
-          return newMode;
-        });
+        localStorage.setItem(
+          COLOR_MODE_STORAGE_KEY,
+          newPreference
+        );
       },
     }),
-    [mode]
+    [mode, preference]
   );
 
   const theme = useMemo(
@@ -83,9 +144,7 @@ function Root() {
   );
 
   return (
-    <ColorModeContext.Provider
-      value={colorMode}
-    >
+    <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
 

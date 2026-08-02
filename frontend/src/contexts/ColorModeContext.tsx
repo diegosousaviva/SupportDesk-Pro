@@ -1,7 +1,23 @@
-import { createContext, useContext } from "react";
+import {
+  createContext,
+  useContext,
+} from "react";
+
+import type {
+  PaletteMode,
+} from "@mui/material";
+
+export type ColorModePreference =
+  | "light"
+  | "dark"
+  | "system";
 
 interface ColorModeContextData {
-  mode: "light" | "dark";
+  mode: PaletteMode;
+  preference: ColorModePreference;
+  setColorMode: (
+    preference: ColorModePreference
+  ) => void;
   toggleColorMode: () => void;
 }
 

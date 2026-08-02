@@ -68,7 +68,7 @@ export const navigationSections:
           icon: AssessmentIcon,
           permission:
             Permissions.reports.view,
-          disabled: true,
+          
         },
         {
           id: "settings",
@@ -77,7 +77,7 @@ export const navigationSections:
           icon: SettingsIcon,
           permission:
             Permissions.settings.view,
-          disabled: true,
+          
         },
       ],
     },

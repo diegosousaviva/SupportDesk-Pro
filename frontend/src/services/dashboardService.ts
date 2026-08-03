@@ -4,12 +4,17 @@ import type {
 
 import type {
   Ticket,
-  TicketPriority,
 } from "../types/Ticket";
 
 import type {
   User,
 } from "../types/User";
+
+import {
+  calculateSlaSummary,
+  calculateTicketSla,
+  SLA_TARGET_HOURS,
+} from "./slaService";
 
 export interface CategoryChartItem {
   [key: string]: string | number;
@@ -43,13 +48,13 @@ export type SlaHealth =
   | "Crítico";
 
 export interface DashboardSlaMetrics {
-  targetHoursByPriority: Record<
-    TicketPriority,
-    number
-  >;
+  targetHoursByPriority: typeof SLA_TARGET_HOURS;
   evaluatedTickets: number;
   withinSlaTickets: number;
-  outsideSlaTickets: number;
+  warningTickets: number;
+  expiredTickets: number;
+  completedWithinSlaTickets: number;
+  completedExpiredTickets: number;
   slaCompliance: number;
   slaViolation: number;
   averageResolutionHours: number;
@@ -96,16 +101,6 @@ interface CreateDashboardDataParams {
   users: User[];
   period: DashboardPeriod;
 }
-
-const SLA_TARGET_HOURS: Record<
-  TicketPriority,
-  number
-> = {
-  Crítica: 4,
-  Alta: 8,
-  Média: 24,
-  Baixa: 48,
-};
 
 function startOfDay(date: Date): Date {
   const normalizedDate = new Date(date);
@@ -312,84 +307,118 @@ function calculateSlaHealth(
 function calculateSlaMetrics(
   tickets: Ticket[]
 ): DashboardSlaMetrics {
-  const evaluatedTickets = tickets
-    .map((ticket) => {
-      const resolutionHours =
-        getResolutionDurationHours(ticket);
-
-      if (resolutionHours === null) {
-        return null;
-      }
-
-      const targetHours =
-        SLA_TARGET_HOURS[ticket.priority];
-
-      return {
-        resolutionHours,
-        targetHours,
-        withinSla: resolutionHours <= targetHours,
-      };
-    })
-    .filter(
-      (
-        item
-      ): item is {
-        resolutionHours: number;
-        targetHours: number;
-        withinSla: boolean;
-      } => item !== null
+  const slaSummary =
+    calculateSlaSummary(
+      tickets
     );
 
-  const evaluatedCount = evaluatedTickets.length;
-  const withinSlaTickets = evaluatedTickets.filter(
-    (item) => item.withinSla
-  ).length;
-  const outsideSlaTickets =
-    evaluatedCount - withinSlaTickets;
-  const slaCompliance =
-    evaluatedCount === 0
-      ? 0
-      : Math.round(
-          (withinSlaTickets / evaluatedCount) * 100
+  const completedDurations =
+    tickets
+      .filter(
+        (ticket) =>
+          ticket.status ===
+          "Resolvido"
+      )
+      .map((ticket) => {
+        const sla =
+          calculateTicketSla(
+            ticket
+          );
+
+        return (
+          sla.elapsedMilliseconds /
+          (1000 * 60 * 60)
         );
-  const slaViolation =
-    evaluatedCount === 0 ? 0 : 100 - slaCompliance;
-  const durations = evaluatedTickets.map(
-    (item) => item.resolutionHours
-  );
+      })
+      .filter(
+        (duration) =>
+          Number.isFinite(
+            duration
+          ) &&
+          duration >= 0
+      );
+
   const averageResolutionHours =
-    durations.length === 0
+    completedDurations.length === 0
       ? 0
       : roundToOneDecimal(
-          durations.reduce(
-            (total, duration) => total + duration,
+          completedDurations.reduce(
+            (
+              total,
+              duration
+            ) =>
+              total +
+              duration,
             0
-          ) / durations.length
+          ) /
+            completedDurations.length
         );
+
   const fastestResolutionHours =
-    durations.length === 0
+    completedDurations.length === 0
       ? 0
-      : roundToOneDecimal(Math.min(...durations));
+      : roundToOneDecimal(
+          Math.min(
+            ...completedDurations
+          )
+        );
+
   const slowestResolutionHours =
-    durations.length === 0
+    completedDurations.length === 0
       ? 0
-      : roundToOneDecimal(Math.max(...durations));
+      : roundToOneDecimal(
+          Math.max(
+            ...completedDurations
+          )
+        );
+
+  const slaViolation =
+    slaSummary.completedTickets === 0
+      ? 0
+      : 100 -
+        slaSummary.compliancePercentage;
 
   return {
     targetHoursByPriority: {
       ...SLA_TARGET_HOURS,
     },
-    evaluatedTickets: evaluatedCount,
-    withinSlaTickets,
-    outsideSlaTickets,
-    slaCompliance,
+
+    evaluatedTickets:
+      slaSummary.completedTickets,
+
+    withinSlaTickets:
+      slaSummary.withinSlaTickets,
+
+    warningTickets:
+      slaSummary.warningTickets,
+
+    expiredTickets:
+      slaSummary.expiredTickets,
+
+    completedWithinSlaTickets:
+      slaSummary.completedWithinSlaTickets,
+
+    completedExpiredTickets:
+      slaSummary.completedExpiredTickets,
+
+    slaCompliance:
+      slaSummary.compliancePercentage,
+
     slaViolation,
+
     averageResolutionHours,
+
     fastestResolutionHours,
+
     slowestResolutionHours,
-    health: calculateSlaHealth(slaCompliance),
+
+    health:
+      calculateSlaHealth(
+        slaSummary.compliancePercentage
+      ),
   };
 }
+
 
 function createCategoryChartData(
   tickets: Ticket[]

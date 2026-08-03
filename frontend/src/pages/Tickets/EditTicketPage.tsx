@@ -22,6 +22,10 @@ import {
 
 import MainLayout from "../../components/layout/MainLayout";
 
+import {
+  useNotifications,
+} from "../../contexts/NotificationContext";
+
 import { useSnackbar } from "../../hooks/useSnackbar";
 
 import {
@@ -48,6 +52,11 @@ export default function EditTicketPage() {
   const { id } = useParams();
 
   const { showSnackbar } = useSnackbar();
+
+  const {
+    addNotification,
+    removeSlaNotificationsByTicket,
+  } = useNotifications();
 
   const ticketId = Number(id);
   const ticket = getTicketById(ticketId);
@@ -147,6 +156,25 @@ export default function EditTicketPage() {
     navigate(ticketDetailsPath);
   }
 
+  function getTechnicianName(
+    technicianId: number | null
+  ): string {
+    if (technicianId === null) {
+      return "Não atribuído";
+    }
+
+    const technician =
+      getUsers().find(
+        (user) =>
+          user.id === technicianId
+      );
+
+    return (
+      technician?.name ??
+      `Técnico não encontrado (#${technicianId})`
+    );
+  }
+
   function handleSave(): void {
     const normalizedTitle = title.trim();
 
@@ -192,6 +220,12 @@ export default function EditTicketPage() {
     try {
       setIsSaving(true);
 
+      const previousStatus =
+        ticket.status;
+
+      const previousTechnicianId =
+        ticket.assignedTechnicianId;
+
       const updatedTicket = updateTicket(
         currentTicketId,
         {
@@ -208,6 +242,122 @@ export default function EditTicketPage() {
         throw new Error(
           "O serviço não retornou o chamado atualizado."
         );
+      }
+
+      const statusChanged =
+        previousStatus !==
+        updatedTicket.status;
+
+      const technicianChanged =
+        previousTechnicianId !==
+        updatedTicket.assignedTechnicianId;
+
+      if (
+        statusChanged &&
+        (
+          updatedTicket.status ===
+            "Resolvido" ||
+          previousStatus ===
+            "Resolvido"
+        )
+      ) {
+        removeSlaNotificationsByTicket(
+          updatedTicket.id
+        );
+      }
+
+      if (statusChanged) {
+        addNotification({
+          title:
+            updatedTicket.status ===
+            "Resolvido"
+              ? "Chamado resolvido"
+              : previousStatus ===
+                "Resolvido"
+                ? "Chamado reaberto"
+                : "Status do chamado atualizado",
+
+          message:
+            updatedTicket.status ===
+            "Resolvido"
+              ? `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi resolvido. Os alertas de SLA pendentes foram removidos.`
+              : previousStatus ===
+                "Resolvido"
+                ? `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi reaberto. O monitor de SLA voltará a acompanhar este chamado.`
+                : `O chamado #${updatedTicket.id} teve o status alterado de "${previousStatus}" para "${updatedTicket.status}".`,
+
+          type:
+            updatedTicket.status ===
+            "Resolvido"
+              ? "ticket_resolved"
+              : "status_changed",
+
+          severity:
+            updatedTicket.status ===
+            "Resolvido"
+              ? "success"
+              : previousStatus ===
+                "Resolvido"
+                ? "warning"
+                : "info",
+
+          read: false,
+
+          ticketId:
+            updatedTicket.id,
+
+          userId:
+            updatedTicket.assignedTechnicianId,
+        });
+      }
+
+      if (technicianChanged) {
+        const previousTechnicianName =
+          getTechnicianName(
+            previousTechnicianId
+          );
+
+        const newTechnicianName =
+          getTechnicianName(
+            updatedTicket.assignedTechnicianId
+          );
+
+        addNotification({
+          title:
+            updatedTicket.assignedTechnicianId ===
+            null
+              ? "Chamado sem responsável"
+              : previousTechnicianId ===
+                null
+                ? "Chamado atribuído"
+                : "Técnico responsável alterado",
+
+          message:
+            updatedTicket.assignedTechnicianId ===
+            null
+              ? `O chamado #${updatedTicket.id} deixou de estar atribuído a ${previousTechnicianName}.`
+              : previousTechnicianId ===
+                null
+                ? `O chamado #${updatedTicket.id} foi atribuído ao técnico ${newTechnicianName}.`
+                : `O chamado #${updatedTicket.id} foi transferido de ${previousTechnicianName} para ${newTechnicianName}.`,
+
+          type:
+            "ticket_assigned",
+
+          severity:
+            updatedTicket.assignedTechnicianId ===
+            null
+              ? "warning"
+              : "info",
+
+          read: false,
+
+          ticketId:
+            updatedTicket.id,
+
+          userId:
+            updatedTicket.assignedTechnicianId,
+        });
       }
 
       showSnackbar(

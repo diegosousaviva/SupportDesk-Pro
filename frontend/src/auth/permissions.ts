@@ -40,6 +40,22 @@ export const Permissions = {
     view: "settings.view",
     edit: "settings.edit",
   },
+
+stores: {
+  view: "stores.view",
+  create: "stores.create",
+  edit: "stores.edit",
+  delete: "stores.delete",
+},
+
+inventory: {
+  view: "inventory.view",
+  create: "inventory.create",
+  edit: "inventory.edit",
+  delete: "inventory.delete",
+},
+
+
 } as const;
 
 type PermissionGroup =

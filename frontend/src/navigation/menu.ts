@@ -2,8 +2,10 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import CategoryIcon from "@mui/icons-material/Category";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
+import StoreIcon from "@mui/icons-material/Store";
 
 import {
   Permissions,
@@ -27,6 +29,7 @@ export const navigationSections:
           permission:
             Permissions.dashboard.view,
         },
+
         {
           id: "tickets",
           label: "Chamados",
@@ -35,6 +38,15 @@ export const navigationSections:
           permission:
             Permissions.tickets.view,
           badge: "openTickets",
+        },
+
+        {
+          id: "inventory",
+          label: "Inventário",
+          path: "/inventory",
+          icon: Inventory2Icon,
+          permission:
+            Permissions.inventory.view,
         },
       ],
     },
@@ -62,14 +74,23 @@ export const navigationSections:
         },
 
         {
+          id: "stores",
+          label: "Lojas",
+          path: "/stores",
+          icon: StoreIcon,
+          permission:
+            Permissions.stores.view,
+        },
+
+        {
           id: "reports",
           label: "Relatórios",
           path: "/reports",
           icon: AssessmentIcon,
           permission:
             Permissions.reports.view,
-          
         },
+
         {
           id: "settings",
           label: "Configurações",
@@ -77,7 +98,6 @@ export const navigationSections:
           icon: SettingsIcon,
           permission:
             Permissions.settings.view,
-          
         },
       ],
     },

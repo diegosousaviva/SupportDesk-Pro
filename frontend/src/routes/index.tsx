@@ -35,12 +35,20 @@ import {
 } from "./SettingsRoutes";
 
 import {
+  storeRoutes,
+} from "./StoreRoutes";
+
+import {
   ticketRoutes,
 } from "./TicketRoutes";
 
 import {
   userRoutes,
 } from "./UserRoutes";
+
+import {
+  inventoryRoutes,
+} from "./InventoryRoutes";
 
 const ForbiddenPage = lazy(
   () =>
@@ -56,8 +64,10 @@ function AppRoutes() {
       ...ticketRoutes,
       ...userRoutes,
       ...categoryRoutes,
+      ...storeRoutes,
       ...reportRoutes,
       ...settingsRoutes,
+      ...inventoryRoutes,
     ]);
 
   return useRoutes([

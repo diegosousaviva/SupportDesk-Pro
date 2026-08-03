@@ -4,17 +4,24 @@ import {
   ErrorOutlineOutlined,
   FlashOnOutlined,
   TimerOutlined,
+  WarningAmberOutlined,
 } from "@mui/icons-material";
 
 import {
   Box,
   Divider,
+  Grid,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
 
 interface SlaSummaryProps {
+  withinSlaTickets: number;
+  warningTickets: number;
+  expiredTickets: number;
+  completedWithinSlaTickets: number;
+  completedExpiredTickets: number;
   slaCompliance: number;
   slaViolation: number;
   averageResolutionHours: number;
@@ -61,6 +68,11 @@ function Item({
 }
 
 function SlaSummary({
+  withinSlaTickets,
+  warningTickets,
+  expiredTickets,
+  completedWithinSlaTickets,
+  completedExpiredTickets,
   slaCompliance,
   slaViolation,
   averageResolutionHours,
@@ -86,58 +98,138 @@ function SlaSummary({
         color="text.secondary"
         sx={{ mb: 3 }}
       >
-        Desempenho do atendimento no período.
+        Situação atual dos chamados e desempenho dos
+        atendimentos concluídos.
       </Typography>
 
-      <Stack spacing={2}>
-        <Item
-          icon={
-            <CheckCircleOutlined color="success" />
-          }
-          label="Dentro do SLA"
-          value={`${slaCompliance}%`}
-        />
+      <Grid
+        container
+        spacing={3}
+      >
+        <Grid
+          size={{
+            xs: 12,
+            md: 6,
+          }}
+        >
+          <Stack spacing={2}>
+            <Item
+              icon={
+                <CheckCircleOutlined color="success" />
+              }
+              label="Ativos dentro do SLA"
+              value={String(
+                withinSlaTickets
+              )}
+            />
 
-        <Divider />
+            <Divider />
 
-        <Item
-          icon={
-            <ErrorOutlineOutlined color="error" />
-          }
-          label="Fora do SLA"
-          value={`${slaViolation}%`}
-        />
+            <Item
+              icon={
+                <WarningAmberOutlined color="warning" />
+              }
+              label="Próximos do vencimento"
+              value={String(
+                warningTickets
+              )}
+            />
 
-        <Divider />
+            <Divider />
 
-        <Item
-          icon={
-            <AccessTimeOutlined color="primary" />
-          }
-          label="Tempo médio"
-          value={`${averageResolutionHours} h`}
-        />
+            <Item
+              icon={
+                <ErrorOutlineOutlined color="error" />
+              }
+              label="SLA vencido"
+              value={String(
+                expiredTickets
+              )}
+            />
 
-        <Divider />
+            <Divider />
 
-        <Item
-          icon={
-            <FlashOnOutlined color="warning" />
-          }
-          label="Melhor tempo"
-          value={`${fastestResolutionHours} h`}
-        />
+            <Item
+              icon={
+                <CheckCircleOutlined color="success" />
+              }
+              label="Resolvidos dentro do SLA"
+              value={String(
+                completedWithinSlaTickets
+              )}
+            />
 
-        <Divider />
+            <Divider />
 
-        <Item
-          icon={
-            <TimerOutlined color="secondary" />
-          }
-          label="Maior tempo"
-          value={`${slowestResolutionHours} h`}
-        />
-      </Stack>
+            <Item
+              icon={
+                <ErrorOutlineOutlined color="error" />
+              }
+              label="Resolvidos fora do SLA"
+              value={String(
+                completedExpiredTickets
+              )}
+            />
+          </Stack>
+        </Grid>
+
+        <Grid
+          size={{
+            xs: 12,
+            md: 6,
+          }}
+        >
+          <Stack spacing={2}>
+            <Item
+              icon={
+                <CheckCircleOutlined color="success" />
+              }
+              label="Conformidade"
+              value={`${slaCompliance}%`}
+            />
+
+            <Divider />
+
+            <Item
+              icon={
+                <ErrorOutlineOutlined color="error" />
+              }
+              label="Violação"
+              value={`${slaViolation}%`}
+            />
+
+            <Divider />
+
+            <Item
+              icon={
+                <AccessTimeOutlined color="primary" />
+              }
+              label="Tempo médio"
+              value={`${averageResolutionHours} h`}
+            />
+
+            <Divider />
+
+            <Item
+              icon={
+                <FlashOnOutlined color="warning" />
+              }
+              label="Melhor tempo"
+              value={`${fastestResolutionHours} h`}
+            />
+
+            <Divider />
+
+            <Item
+              icon={
+                <TimerOutlined color="secondary" />
+              }
+              label="Maior tempo"
+              value={`${slowestResolutionHours} h`}
+            />
+          </Stack>
+        </Grid>
+      </Grid>
     </Paper>
   );
 }

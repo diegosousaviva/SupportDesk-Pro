@@ -160,52 +160,44 @@ function DashboardPage() {
           </Grid>
         </Grid>
 
-        <Grid
-          container
-          spacing={3}
-        >
-          <Grid
-            size={{
-              xs: 12,
-            }}
-          >
-            <TechnicianRanking
-              ranking={
-                technicianRanking
-              }
-            />
-          </Grid>
-        </Grid>
+        <TechnicianRanking
+          ranking={
+            technicianRanking
+          }
+        />
 
-        <Grid
-          container
-          spacing={3}
-        >
-          <Grid
-            size={{
-              xs: 12,
-              lg: 6,
-            }}
-          >
-            <SlaSummary
-              slaCompliance={
-                slaMetrics.slaCompliance
-              }
-              slaViolation={
-                slaMetrics.slaViolation
-              }
-              averageResolutionHours={
-                slaMetrics.averageResolutionHours
-              }
-              fastestResolutionHours={
-                slaMetrics.fastestResolutionHours
-              }
-              slowestResolutionHours={
-                slaMetrics.slowestResolutionHours
-              }
-            />
-          </Grid>
-        </Grid>
+        <SlaSummary
+          withinSlaTickets={
+            slaMetrics.withinSlaTickets
+          }
+          warningTickets={
+            slaMetrics.warningTickets
+          }
+          expiredTickets={
+            slaMetrics.expiredTickets
+          }
+          completedWithinSlaTickets={
+            slaMetrics.completedWithinSlaTickets
+          }
+          completedExpiredTickets={
+            slaMetrics.completedExpiredTickets
+          }
+          slaCompliance={
+            slaMetrics.slaCompliance
+          }
+          slaViolation={
+            slaMetrics.slaViolation
+          }
+          averageResolutionHours={
+            slaMetrics.averageResolutionHours
+          }
+          fastestResolutionHours={
+            slaMetrics.fastestResolutionHours
+          }
+          slowestResolutionHours={
+            slaMetrics.slowestResolutionHours
+          }
+        />
       </Stack>
     </MainLayout>
   );

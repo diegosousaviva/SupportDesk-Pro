@@ -9,6 +9,7 @@ import {
   DialogTitle,
   Paper,
   Stack,
+  Typography,
 } from "@mui/material";
 
 import {
@@ -31,6 +32,7 @@ import {
 } from "../../auth/ticketAuthorization";
 
 import MainLayout from "../../components/layout/MainLayout";
+import SlaProgress from "../../components/sla/SlaProgress";
 import TicketActions from "../../components/tickets/TicketActions";
 import TicketDescriptionCard from "../../components/tickets/TicketDescriptionCard";
 import TicketHeader from "../../components/tickets/TicketHeader";
@@ -62,6 +64,10 @@ import {
   deleteTicket,
   getTicketById,
 } from "../../services/ticketService";
+
+import {
+  calculateTicketSla,
+} from "../../services/slaService";
 
 import {
   getUserById,
@@ -210,6 +216,11 @@ export default function TicketDetailsPage() {
         ? assignedTechnician.name
         : `Técnico não encontrado (#${ticket.assignedTechnicianId})`;
   }
+
+  const sla =
+    calculateTicketSla(
+      ticket
+    );
 
   function handleEdit(): void {
     if (
@@ -382,6 +393,50 @@ export default function TicketDetailsPage() {
         <TicketHeader
           ticket={ticket}
         />
+
+        <Paper
+          variant="outlined"
+          sx={{
+            p: {
+              xs: 2.5,
+              md: 3,
+            },
+          }}
+        >
+          <Stack spacing={2}>
+            <Stack
+              direction={{
+                xs: "column",
+                sm: "row",
+              }}
+              justifyContent="space-between"
+              alignItems={{
+                xs: "flex-start",
+                sm: "center",
+              }}
+              spacing={1}
+            >
+              <Typography
+                variant="h6"
+                fontWeight={700}
+              >
+                SLA do chamado
+              </Typography>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Meta de {sla.targetHours}h para prioridade{" "}
+                {ticket.priority}
+              </Typography>
+            </Stack>
+
+            <SlaProgress
+              ticket={ticket}
+            />
+          </Stack>
+        </Paper>
 
         <TicketDescriptionCard
           description={

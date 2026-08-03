@@ -1,8 +1,16 @@
-import { Suspense } from "react";
+import {
+  Suspense,
+} from "react";
 
-import { BrowserRouter } from "react-router-dom";
+import {
+  BrowserRouter,
+} from "react-router-dom";
 
 import AppRoutes from "./routes";
+
+import {
+  useSlaMonitor,
+} from "./hooks/useSlaMonitor";
 
 function PageLoading() {
   return (
@@ -21,14 +29,24 @@ function PageLoading() {
   );
 }
 
+function AppContent() {
+  useSlaMonitor();
+
+  return (
+    <Suspense
+      fallback={
+        <PageLoading />
+      }
+    >
+      <AppRoutes />
+    </Suspense>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <Suspense
-        fallback={<PageLoading />}
-      >
-        <AppRoutes />
-      </Suspense>
+      <AppContent />
     </BrowserRouter>
   );
 }

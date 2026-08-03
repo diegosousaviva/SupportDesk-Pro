@@ -32,6 +32,10 @@ import {
 } from "./contexts/AuthContext";
 
 import {
+  NotificationProvider,
+} from "./contexts/NotificationContext";
+
+import {
   SnackbarProvider,
 } from "./contexts/SnackbarContext";
 
@@ -51,10 +55,12 @@ function getSystemMode(): PaletteMode {
     : "light";
 }
 
-function loadColorModePreference(): ColorModePreference {
-  const savedPreference = localStorage.getItem(
-    COLOR_MODE_STORAGE_KEY
-  );
+function loadColorModePreference():
+  ColorModePreference {
+  const savedPreference =
+    localStorage.getItem(
+      COLOR_MODE_STORAGE_KEY
+    );
 
   if (
     savedPreference === "light" ||
@@ -68,24 +74,33 @@ function loadColorModePreference(): ColorModePreference {
 }
 
 function Root() {
-  const [preference, setPreference] =
-    useState<ColorModePreference>(
-      loadColorModePreference
-    );
+  const [
+    preference,
+    setPreference,
+  ] = useState<ColorModePreference>(
+    loadColorModePreference
+  );
 
-  const [systemMode, setSystemMode] =
-    useState<PaletteMode>(getSystemMode);
+  const [
+    systemMode,
+    setSystemMode,
+  ] = useState<PaletteMode>(
+    getSystemMode
+  );
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    );
+    const mediaQuery =
+      window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
 
     function handleSystemThemeChange(
       event: MediaQueryListEvent
     ): void {
       setSystemMode(
-        event.matches ? "dark" : "light"
+        event.matches
+          ? "dark"
+          : "light"
       );
     }
 
@@ -107,50 +122,70 @@ function Root() {
       ? systemMode
       : preference;
 
-  const colorMode = useMemo(
-    () => ({
-      mode,
-      preference,
+  const colorMode =
+    useMemo(
+      () => ({
+        mode,
+        preference,
 
-      setColorMode: (
-        newPreference: ColorModePreference
-      ) => {
-        setPreference(newPreference);
+        setColorMode: (
+          newPreference:
+            ColorModePreference
+        ) => {
+          setPreference(
+            newPreference
+          );
 
-        localStorage.setItem(
-          COLOR_MODE_STORAGE_KEY,
-          newPreference
-        );
-      },
+          localStorage.setItem(
+            COLOR_MODE_STORAGE_KEY,
+            newPreference
+          );
+        },
 
-      toggleColorMode: () => {
-        const newPreference: ColorModePreference =
-          mode === "light" ? "dark" : "light";
+        toggleColorMode: () => {
+          const newPreference:
+            ColorModePreference =
+              mode === "light"
+                ? "dark"
+                : "light";
 
-        setPreference(newPreference);
+          setPreference(
+            newPreference
+          );
 
-        localStorage.setItem(
-          COLOR_MODE_STORAGE_KEY,
-          newPreference
-        );
-      },
-    }),
-    [mode, preference]
-  );
+          localStorage.setItem(
+            COLOR_MODE_STORAGE_KEY,
+            newPreference
+          );
+        },
+      }),
+      [
+        mode,
+        preference,
+      ]
+    );
 
-  const theme = useMemo(
-    () => createAppTheme(mode),
-    [mode]
-  );
+  const theme =
+    useMemo(
+      () =>
+        createAppTheme(
+          mode
+        ),
+      [mode]
+    );
 
   return (
-    <ColorModeContext.Provider value={colorMode}>
+    <ColorModeContext.Provider
+      value={colorMode}
+    >
       <ThemeProvider theme={theme}>
         <CssBaseline />
 
         <SnackbarProvider>
           <AuthProvider>
-            <App />
+            <NotificationProvider>
+              <App />
+            </NotificationProvider>
           </AuthProvider>
         </SnackbarProvider>
       </ThemeProvider>
@@ -159,7 +194,9 @@ function Root() {
 }
 
 ReactDOM.createRoot(
-  document.getElementById("root")!
+  document.getElementById(
+    "root"
+  )!
 ).render(
   <React.StrictMode>
     <Root />

@@ -34,10 +34,22 @@ const ADMINISTRATOR_PERMISSIONS =
     Permissions.categories.edit,
     Permissions.categories.delete,
 
+
+    Permissions.stores.view,
+    Permissions.stores.create,
+    Permissions.stores.edit,
+    Permissions.stores.delete,
+
     Permissions.reports.view,
 
     Permissions.settings.view,
     Permissions.settings.edit,
+
+    Permissions.inventory.view,
+    Permissions.inventory.create,
+    Permissions.inventory.edit,
+    Permissions.inventory.delete,
+
   ] as const satisfies readonly Permission[];
 
 const TECHNICIAN_PERMISSIONS =
@@ -49,6 +61,10 @@ const TECHNICIAN_PERMISSIONS =
     Permissions.tickets.updateStatus,
     Permissions.tickets.close,
     Permissions.tickets.comment,
+    Permissions.stores.view,
+    Permissions.inventory.view,
+    Permissions.inventory.edit,
+    
 
     Permissions.reports.view,
   ] as const satisfies readonly Permission[];

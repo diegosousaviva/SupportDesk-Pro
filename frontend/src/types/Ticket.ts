@@ -26,6 +26,12 @@ export interface Ticket {
 
   assignedTechnicianId: number | null;
 
+  /**
+   * Equipamento vinculado ao chamado.
+   * null = chamado não está relacionado a nenhum equipamento.
+   */
+  inventoryItemId: number | null;
+
   createdAt: string;
 
   updatedAt: string;

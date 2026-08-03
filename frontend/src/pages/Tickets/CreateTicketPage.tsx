@@ -8,6 +8,7 @@ import type {
 
 import {
   useNavigate,
+  useSearchParams,
 } from "react-router-dom";
 
 import {
@@ -15,6 +16,7 @@ import {
   Box,
   Button,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Paper,
@@ -41,6 +43,22 @@ import {
 } from "../../hooks/useSnackbar";
 
 import {
+  addInventoryHistoryEvent,
+} from "../../services/inventoryHistoryService";
+
+import {
+  getInventoryItems,
+} from "../../services/inventoryService";
+
+import {
+  getStoreById,
+} from "../../services/storeService";
+
+import {
+  createTicketHistoryEntry,
+} from "../../services/ticketHistoryService";
+
+import {
   createTicket,
 } from "../../services/ticketService";
 
@@ -58,9 +76,16 @@ type TicketPriority =
 const UNASSIGNED_TECHNICIAN_VALUE =
   "unassigned";
 
+const NO_EQUIPMENT_VALUE =
+  "none";
+
 function CreateTicketPage() {
   const navigate =
     useNavigate();
+
+  const [
+    searchParams,
+  ] = useSearchParams();
 
   const {
     user,
@@ -74,14 +99,34 @@ function CreateTicketPage() {
     showSnackbar,
   } = useSnackbar();
 
-  const technicians =
-    getUsers().filter(
-      (currentUser) =>
-        currentUser.role ===
-          "Técnico" &&
-        currentUser.status ===
-          "Ativo"
-    );
+  const [
+    technicians,
+  ] = useState(() =>
+    getUsers()
+      .filter(
+        (currentUser) =>
+          currentUser.role ===
+            "Técnico" &&
+          currentUser.status ===
+            "Ativo"
+      )
+      .sort(
+        (
+          firstTechnician,
+          secondTechnician
+        ) =>
+          firstTechnician.name.localeCompare(
+            secondTechnician.name,
+            "pt-BR"
+          )
+      )
+  );
+
+  const [
+    inventoryItems,
+  ] = useState(() =>
+    getInventoryItems()
+  );
 
   const [
     title,
@@ -109,9 +154,47 @@ function CreateTicketPage() {
   );
 
   const [
-    equipment,
-    setEquipment,
-  ] = useState("");
+    selectedInventoryItemId,
+    setSelectedInventoryItemId,
+  ] = useState(() => {
+    const inventoryItemIdParameter =
+      searchParams.get(
+        "inventoryItemId"
+      );
+
+    if (
+      !inventoryItemIdParameter
+    ) {
+      return NO_EQUIPMENT_VALUE;
+    }
+
+    const inventoryItemId =
+      Number(
+        inventoryItemIdParameter
+      );
+
+    if (
+      !Number.isInteger(
+        inventoryItemId
+      ) ||
+      inventoryItemId <= 0
+    ) {
+      return NO_EQUIPMENT_VALUE;
+    }
+
+    const equipmentExists =
+      inventoryItems.some(
+        (inventoryItem) =>
+          inventoryItem.id ===
+          inventoryItemId
+      );
+
+    return equipmentExists
+      ? String(
+          inventoryItemId
+        )
+      : NO_EQUIPMENT_VALUE;
+  });
 
   const [
     description,
@@ -147,6 +230,73 @@ function CreateTicketPage() {
     }
 
     return "info";
+  }
+
+  function getInventoryItemLabel(
+    inventoryItemId: number
+  ): string {
+    const inventoryItem =
+      inventoryItems.find(
+        (currentItem) =>
+          currentItem.id ===
+          inventoryItemId
+      );
+
+    if (!inventoryItem) {
+      return `Equipamento #${inventoryItemId}`;
+    }
+
+    return `${inventoryItem.tag} — ${inventoryItem.description}`;
+  }
+
+  function registerEquipmentHistory(
+    ticketId: number,
+    ticketTitle: string,
+    inventoryItemId: number
+  ): void {
+    const inventoryItem =
+      inventoryItems.find(
+        (currentItem) =>
+          currentItem.id ===
+          inventoryItemId
+      );
+
+    if (!inventoryItem) {
+      return;
+    }
+
+    try {
+      createTicketHistoryEntry({
+        ticketId,
+
+        eventType:
+          "equipment_linked",
+
+        description:
+          `O equipamento ${inventoryItem.tag} — ${inventoryItem.description} foi vinculado ao chamado.`,
+      });
+
+      addInventoryHistoryEvent({
+        inventoryItemId,
+
+        type:
+          "Chamado criado",
+
+        title:
+          `Chamado #${ticketId} criado`,
+
+        description:
+          `O chamado #${ticketId} — ${ticketTitle} foi criado e vinculado a este equipamento.`,
+
+        performedByUserId:
+          user?.id ?? null,
+      });
+    } catch (historyError) {
+      console.error(
+        "O chamado foi criado, mas não foi possível registrar todo o histórico da vinculação.",
+        historyError
+      );
+    }
   }
 
   function handleSubmit(
@@ -190,10 +340,61 @@ function CreateTicketPage() {
               assignedTechnicianId
             );
 
-      const completeDescription =
-        equipment.trim()
-          ? `${description.trim()}\n\nEquipamento: ${equipment.trim()}`
-          : description.trim();
+      const inventoryItemId =
+        selectedInventoryItemId ===
+        NO_EQUIPMENT_VALUE
+          ? null
+          : Number(
+              selectedInventoryItemId
+            );
+
+      if (
+        selectedTechnicianId !==
+          null &&
+        (
+          !Number.isInteger(
+            selectedTechnicianId
+          ) ||
+          selectedTechnicianId <= 0
+        )
+      ) {
+        throw new Error(
+          "Selecione um técnico válido."
+        );
+      }
+
+      if (
+        inventoryItemId !==
+          null &&
+        (
+          !Number.isInteger(
+            inventoryItemId
+          ) ||
+          inventoryItemId <= 0
+        )
+      ) {
+        throw new Error(
+          "Selecione um equipamento válido."
+        );
+      }
+
+      if (
+        inventoryItemId !==
+        null
+      ) {
+        const equipmentExists =
+          inventoryItems.some(
+            (inventoryItem) =>
+              inventoryItem.id ===
+              inventoryItemId
+          );
+
+        if (!equipmentExists) {
+          throw new Error(
+            "O equipamento selecionado não foi encontrado."
+          );
+        }
+      }
 
       const createdTicket =
         createTicket({
@@ -201,7 +402,7 @@ function CreateTicketPage() {
             title.trim(),
 
           description:
-            completeDescription,
+            description.trim(),
 
           category,
 
@@ -216,9 +417,22 @@ function CreateTicketPage() {
           assignedTechnicianId:
             selectedTechnicianId,
 
+          inventoryItemId,
+
           closedAt:
             null,
         });
+
+      if (
+        inventoryItemId !==
+        null
+      ) {
+        registerEquipmentHistory(
+          createdTicket.id,
+          createdTicket.title,
+          inventoryItemId
+        );
+      }
 
       addNotification({
         title:
@@ -249,7 +463,9 @@ function CreateTicketPage() {
       ) {
         const technician =
           technicians.find(
-            (currentTechnician) =>
+            (
+              currentTechnician
+            ) =>
               currentTechnician.id ===
               selectedTechnicianId
           );
@@ -281,6 +497,36 @@ function CreateTicketPage() {
         });
       }
 
+      if (
+        inventoryItemId !==
+        null
+      ) {
+        addNotification({
+          title:
+            "Equipamento vinculado",
+
+          message:
+            `O equipamento ${getInventoryItemLabel(
+              inventoryItemId
+            )} foi vinculado ao chamado #${createdTicket.id}.`,
+
+          type:
+            "ticket_created",
+
+          severity:
+            "info",
+
+          read:
+            false,
+
+          ticketId:
+            createdTicket.id,
+
+          userId:
+            user?.id ?? null,
+        });
+      }
+
       showSnackbar(
         "Chamado criado com sucesso.",
         {
@@ -290,7 +536,7 @@ function CreateTicketPage() {
       );
 
       navigate(
-        "/tickets"
+        `/tickets/${createdTicket.id}`
       );
     } catch (error) {
       console.error(
@@ -298,12 +544,17 @@ function CreateTicketPage() {
         error
       );
 
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar o chamado. Tente novamente.";
+
       setErrorMessage(
-        "Não foi possível criar o chamado. Tente novamente."
+        message
       );
 
       showSnackbar(
-        "Não foi possível criar o chamado.",
+        message,
         {
           severity:
             "error",
@@ -316,6 +567,18 @@ function CreateTicketPage() {
     }
   }
 
+  const selectedInventoryItem =
+    selectedInventoryItemId ===
+    NO_EQUIPMENT_VALUE
+      ? undefined
+      : inventoryItems.find(
+          (inventoryItem) =>
+            inventoryItem.id ===
+            Number(
+              selectedInventoryItemId
+            )
+        );
+
   return (
     <MainLayout title="Abrir chamado">
       <Box
@@ -325,6 +588,7 @@ function CreateTicketPage() {
       >
         <Typography
           variant="h4"
+          component="h1"
           sx={{
             mb: 1,
           }}
@@ -341,6 +605,22 @@ function CreateTicketPage() {
           Preencha as informações abaixo para registrar
           uma nova solicitação.
         </Typography>
+
+        {selectedInventoryItem && (
+          <Alert
+            severity="info"
+            sx={{
+              mb: 3,
+            }}
+          >
+            Este chamado será criado para o equipamento{" "}
+            <strong>
+              {selectedInventoryItem.tag} —{" "}
+              {selectedInventoryItem.description}
+            </strong>
+            .
+          </Alert>
+        )}
 
         {errorMessage && (
           <Alert
@@ -535,21 +815,152 @@ function CreateTicketPage() {
                 </Alert>
               )}
 
-              <TextField
-                label="Equipamento"
-                placeholder="Exemplo: Notebook Dell patrimônio 1025"
-                value={equipment}
-                onChange={(event) =>
-                  setEquipment(
-                    event.target
-                      .value
-                  )
-                }
+              <FormControl
                 fullWidth
                 disabled={
-                  isSubmitting
+                  isSubmitting ||
+                  inventoryItems.length ===
+                    0
                 }
-              />
+              >
+                <InputLabel id="inventory-item-label">
+                  Equipamento
+                </InputLabel>
+
+                <Select
+                  labelId="inventory-item-label"
+                  label="Equipamento"
+                  value={
+                    selectedInventoryItemId
+                  }
+                  onChange={(event) =>
+                    setSelectedInventoryItemId(
+                      event.target
+                        .value
+                    )
+                  }
+                  renderValue={(
+                    selectedValue
+                  ) => {
+                    if (
+                      selectedValue ===
+                      NO_EQUIPMENT_VALUE
+                    ) {
+                      return "Nenhum equipamento";
+                    }
+
+                    return getInventoryItemLabel(
+                      Number(
+                        selectedValue
+                      )
+                    );
+                  }}
+                >
+                  <MenuItem
+                    value={
+                      NO_EQUIPMENT_VALUE
+                    }
+                  >
+                    <Stack>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                      >
+                        Nenhum equipamento
+                      </Typography>
+
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        Criar chamado sem vínculo com o
+                        inventário
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+
+                  {inventoryItems.map(
+                    (
+                      inventoryItem
+                    ) => {
+                      const store =
+                        getStoreById(
+                          inventoryItem.storeId
+                        );
+
+                      return (
+                        <MenuItem
+                          key={
+                            inventoryItem.id
+                          }
+                          value={String(
+                            inventoryItem.id
+                          )}
+                        >
+                          <Stack
+                            spacing={0.25}
+                            sx={{
+                              py: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                            >
+                              {
+                                inventoryItem.description
+                              }
+                            </Typography>
+
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Etiqueta:{" "}
+                              {
+                                inventoryItem.tag
+                              }
+                              {" • "}
+                              {store
+                                ? `${store.code} — ${store.name}`
+                                : "Loja não encontrada"}
+                            </Typography>
+
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Situação:{" "}
+                              {
+                                inventoryItem.status
+                              }
+                              {" • "}
+                              Estado:{" "}
+                              {
+                                inventoryItem.condition
+                              }
+                            </Typography>
+                          </Stack>
+                        </MenuItem>
+                      );
+                    }
+                  )}
+                </Select>
+
+                <FormHelperText>
+                  Opcional. Selecione o equipamento relacionado
+                  ao chamado.
+                </FormHelperText>
+              </FormControl>
+
+              {inventoryItems.length ===
+                0 && (
+                <Alert severity="info">
+                  Não há equipamentos cadastrados no inventário.
+                  O chamado será criado sem equipamento
+                  vinculado.
+                </Alert>
+              )}
 
               <TextField
                 label="Descrição"

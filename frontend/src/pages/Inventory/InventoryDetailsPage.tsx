@@ -4,16 +4,21 @@ import {
   Button,
   Chip,
   Divider,
-  Paper,
   Stack,
   Typography,
 } from "@mui/material";
 
 import {
+  AddOutlined,
   ArrowBack,
   BusinessOutlined,
   CalendarMonthOutlined,
+  ConfirmationNumberOutlined,
   EditOutlined,
+  InfoOutlined,
+  Inventory2Outlined,
+  NotesOutlined,
+  OpenInNewOutlined,
   PersonOutline,
   PrintOutlined,
 } from "@mui/icons-material";
@@ -27,9 +32,7 @@ import {
   Permissions,
 } from "../../auth/permissions";
 
-import {
-  Timeline,
-} from "../../components/timeline";
+import InfoCard from "../../components/common/InfoCard";
 
 import {
   inventoryTimelineFilters,
@@ -37,6 +40,10 @@ import {
 } from "../../components/inventory/inventoryHistoryTimelineMapper";
 
 import MainLayout from "../../components/layout/MainLayout";
+
+import {
+  Timeline,
+} from "../../components/timeline";
 
 import {
   usePermissions,
@@ -55,6 +62,10 @@ import {
 } from "../../services/storeService";
 
 import {
+  getTickets,
+} from "../../services/ticketService";
+
+import {
   getUserById,
 } from "../../services/userService";
 
@@ -62,6 +73,11 @@ import type {
   InventoryCondition,
   InventoryStatus,
 } from "../../types/InventoryItem";
+
+import type {
+  TicketPriority,
+  TicketStatus,
+} from "../../types/Ticket";
 
 type ChipColor =
   | "default"
@@ -96,6 +112,9 @@ function getStatusColor(
 
     case "Baixado":
       return "error";
+
+    default:
+      return "default";
   }
 }
 
@@ -120,6 +139,48 @@ function getConditionColor(
 
     case "Sucata":
       return "default";
+
+    default:
+      return "default";
+  }
+}
+
+function getTicketStatusColor(
+  status: TicketStatus
+): ChipColor {
+  switch (status) {
+    case "Aberto":
+      return "warning";
+
+    case "Em andamento":
+      return "info";
+
+    case "Resolvido":
+      return "success";
+
+    default:
+      return "default";
+  }
+}
+
+function getTicketPriorityColor(
+  priority: TicketPriority
+): ChipColor {
+  switch (priority) {
+    case "Crítica":
+      return "error";
+
+    case "Alta":
+      return "error";
+
+    case "Média":
+      return "warning";
+
+    case "Baixa":
+      return "success";
+
+    default:
+      return "default";
   }
 }
 
@@ -138,12 +199,11 @@ function formatDate(
     .split("-")
     .map(Number);
 
-  const date =
-    new Date(
-      year,
-      month - 1,
-      day
-    );
+  const date = new Date(
+    year,
+    month - 1,
+    day
+  );
 
   if (
     Number.isNaN(
@@ -154,6 +214,25 @@ function formatDate(
   }
 
   return date.toLocaleDateString(
+    "pt-BR"
+  );
+}
+
+function formatDateTime(
+  value: string
+): string {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "Data inválida";
+  }
+
+  return date.toLocaleString(
     "pt-BR"
   );
 }
@@ -227,15 +306,49 @@ function InventoryDetailsPage() {
           equipment.responsibleUserId
         );
 
+  const relatedTickets =
+    getTickets()
+      .filter(
+        (ticket) =>
+          ticket.inventoryItemId ===
+          equipment.id
+      )
+      .sort(
+        (
+          firstTicket,
+          secondTicket
+        ) =>
+          new Date(
+            secondTicket.createdAt
+          ).getTime() -
+          new Date(
+            firstTicket.createdAt
+          ).getTime()
+      );
+
   const historyEvents =
     getInventoryHistory(
       equipment.id
     );
 
-    const timelineEvents =
-  mapInventoryHistoryToTimeline(
-    historyEvents
-  );
+  const timelineEvents =
+    mapInventoryHistoryToTimeline(
+      historyEvents
+    );
+
+  function handleCreateTicket(): void {
+    navigate(
+      `/tickets/new?inventoryItemId=${equipment.id}`
+    );
+  }
+
+  function handleOpenTicket(
+    ticketId: number
+  ): void {
+    navigate(
+      `/tickets/${ticketId}`
+    );
+  }
 
   return (
     <MainLayout title="Equipamento">
@@ -303,22 +416,18 @@ function InventoryDetailsPage() {
             }}
           >
             <Chip
-              color={
-                getStatusColor(
-                  equipment.status
-                )
-              }
+              color={getStatusColor(
+                equipment.status
+              )}
               label={
                 equipment.status
               }
             />
 
             <Chip
-              color={
-                getConditionColor(
-                  equipment.condition
-                )
-              }
+              color={getConditionColor(
+                equipment.condition
+              )}
               label={`Estado: ${equipment.condition}`}
               variant="outlined"
             />
@@ -357,25 +466,13 @@ function InventoryDetailsPage() {
           </Stack>
         </Stack>
 
-        <Paper
-          variant="outlined"
-          sx={{
-            p: {
-              xs: 2.5,
-              md: 3,
-            },
-          }}
+        <InfoCard
+          title="Identificação"
+          icon={
+            <Inventory2Outlined color="primary" />
+          }
         >
-          <Stack spacing={2}>
-            <Typography
-              variant="h6"
-              fontWeight={700}
-            >
-              Identificação
-            </Typography>
-
-            <Divider />
-
+          <Stack spacing={3}>
             <Stack
               direction={{
                 xs: "column",
@@ -460,11 +557,9 @@ function InventoryDetailsPage() {
 
                 <Chip
                   size="small"
-                  color={
-                    getStatusColor(
-                      equipment.status
-                    )
-                  }
+                  color={getStatusColor(
+                    equipment.status
+                  )}
                   label={
                     equipment.status
                   }
@@ -484,11 +579,9 @@ function InventoryDetailsPage() {
 
                 <Chip
                   size="small"
-                  color={
-                    getConditionColor(
-                      equipment.condition
-                    )
-                  }
+                  color={getConditionColor(
+                    equipment.condition
+                  )}
                   label={
                     equipment.condition
                   }
@@ -500,178 +593,121 @@ function InventoryDetailsPage() {
               </Box>
             </Stack>
           </Stack>
-        </Paper>
+        </InfoCard>
 
-        <Paper
-          variant="outlined"
-          sx={{
-            p: {
-              xs: 2.5,
-              md: 3,
-            },
-          }}
+        <InfoCard
+          title="Informações do equipamento"
+          icon={
+            <InfoOutlined color="primary" />
+          }
         >
-          <Stack spacing={2}>
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            spacing={4}
+          >
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Fabricante
+              </Typography>
+
+              <Typography>
+                {equipment.manufacturer ||
+                  "Não informado"}
+              </Typography>
+            </Box>
+
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Modelo
+              </Typography>
+
+              <Typography>
+                {equipment.model ||
+                  "Não informado"}
+              </Typography>
+            </Box>
+
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Número de série
+              </Typography>
+
+              <Typography>
+                {equipment.serialNumber ||
+                  "Não informado"}
+              </Typography>
+            </Box>
+          </Stack>
+        </InfoCard>
+
+        <InfoCard
+          title="Localização"
+          icon={
+            <BusinessOutlined color="primary" />
+          }
+        >
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            spacing={4}
+          >
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Loja
+              </Typography>
+
+              <Typography
+                fontWeight={700}
+              >
+                {store
+                  ? `${store.code} — ${store.name}`
+                  : "Loja não encontrada"}
+              </Typography>
+            </Box>
+
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Localização interna
+              </Typography>
+
+              <Typography>
+                {equipment.location ||
+                  "Não informada"}
+              </Typography>
+            </Box>
+          </Stack>
+        </InfoCard>
+
+        <InfoCard
+          title="Responsável"
+          icon={
+            <PersonOutline color="primary" />
+          }
+        >
+          <Stack spacing={0.5}>
             <Typography
-              variant="h6"
               fontWeight={700}
             >
-              Informações do equipamento
-            </Typography>
-
-            <Divider />
-
-            <Stack
-              direction={{
-                xs: "column",
-                md: "row",
-              }}
-              spacing={4}
-            >
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Fabricante
-                </Typography>
-
-                <Typography>
-                  {equipment.manufacturer ||
-                    "Não informado"}
-                </Typography>
-              </Box>
-
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Modelo
-                </Typography>
-
-                <Typography>
-                  {equipment.model ||
-                    "Não informado"}
-                </Typography>
-              </Box>
-
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Número de série
-                </Typography>
-
-                <Typography>
-                  {equipment.serialNumber ||
-                    "Não informado"}
-                </Typography>
-              </Box>
-            </Stack>
-          </Stack>
-        </Paper>
-
-        <Paper
-          variant="outlined"
-          sx={{
-            p: {
-              xs: 2.5,
-              md: 3,
-            },
-          }}
-        >
-          <Stack spacing={2}>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-            >
-              <BusinessOutlined
-                color="primary"
-              />
-
-              <Typography
-                variant="h6"
-                fontWeight={700}
-              >
-                Localização
-              </Typography>
-            </Stack>
-
-            <Divider />
-
-            <Stack
-              direction={{
-                xs: "column",
-                md: "row",
-              }}
-              spacing={4}
-            >
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Loja
-                </Typography>
-
-                <Typography
-                  fontWeight={700}
-                >
-                  {store
-                    ? `${store.code} — ${store.name}`
-                    : "Loja não encontrada"}
-                </Typography>
-              </Box>
-
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Localização interna
-                </Typography>
-
-                <Typography>
-                  {equipment.location}
-                </Typography>
-              </Box>
-            </Stack>
-          </Stack>
-        </Paper>
-
-        <Paper
-          variant="outlined"
-          sx={{
-            p: {
-              xs: 2.5,
-              md: 3,
-            },
-          }}
-        >
-          <Stack spacing={2}>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-            >
-              <PersonOutline
-                color="primary"
-              />
-
-              <Typography
-                variant="h6"
-                fontWeight={700}
-              >
-                Responsável
-              </Typography>
-            </Stack>
-
-            <Divider />
-
-            <Typography>
               {responsible?.name ??
                 "Sem responsável"}
             </Typography>
@@ -685,113 +721,76 @@ function InventoryDetailsPage() {
               </Typography>
             )}
           </Stack>
-        </Paper>
+        </InfoCard>
 
-        <Paper
-          variant="outlined"
-          sx={{
-            p: {
-              xs: 2.5,
-              md: 3,
-            },
-          }}
+        <InfoCard
+          title="Aquisição e garantia"
+          icon={
+            <CalendarMonthOutlined color="primary" />
+          }
         >
-          <Stack spacing={2}>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-            >
-              <CalendarMonthOutlined
-                color="primary"
-              />
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            spacing={4}
+          >
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Valor do equipamento
+              </Typography>
 
               <Typography
-                variant="h6"
                 fontWeight={700}
               >
-                Aquisição e garantia
+                {formatCurrency(
+                  equipment.value
+                )}
               </Typography>
-            </Stack>
+            </Box>
 
-            <Divider />
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Data de aquisição
+              </Typography>
 
-            <Stack
-              direction={{
-                xs: "column",
-                md: "row",
-              }}
-              spacing={4}
-            >
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Valor do equipamento
-                </Typography>
+              <Typography>
+                {formatDate(
+                  equipment.acquisitionDate
+                )}
+              </Typography>
+            </Box>
 
-                <Typography
-                  fontWeight={700}
-                >
-                  {formatCurrency(
-                    equipment.value
-                  )}
-                </Typography>
-              </Box>
+            <Box flex={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Garantia até
+              </Typography>
 
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Data de aquisição
-                </Typography>
-
-                <Typography>
-                  {formatDate(
-                    equipment.acquisitionDate
-                  )}
-                </Typography>
-              </Box>
-
-              <Box flex={1}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Garantia até
-                </Typography>
-
-                <Typography>
-                  {formatDate(
-                    equipment.warrantyUntil
-                  )}
-                </Typography>
-              </Box>
-            </Stack>
+              <Typography>
+                {formatDate(
+                  equipment.warrantyUntil
+                )}
+              </Typography>
+            </Box>
           </Stack>
-        </Paper>
+        </InfoCard>
 
-        <Paper
-          variant="outlined"
-          sx={{
-            p: {
-              xs: 2.5,
-              md: 3,
-            },
-          }}
+        <InfoCard
+          title="Observações"
+          icon={
+            <NotesOutlined color="primary" />
+          }
         >
-          <Typography
-            variant="h6"
-            fontWeight={700}
-            sx={{
-              mb: 2,
-            }}
-          >
-            Observações
-          </Typography>
-
           <Typography
             color={
               equipment.notes
@@ -799,22 +798,166 @@ function InventoryDetailsPage() {
                 : "text.secondary"
             }
             sx={{
-              whiteSpace: "pre-wrap",
+              whiteSpace:
+                "pre-wrap",
             }}
           >
             {equipment.notes ||
               "Nenhuma observação cadastrada."}
           </Typography>
-        </Paper>
+        </InfoCard>
+
+        <InfoCard
+          title={`Chamados relacionados (${relatedTickets.length})`}
+          icon={
+            <ConfirmationNumberOutlined color="primary" />
+          }
+          actions={
+            can(
+              Permissions.tickets.create
+            ) ? (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={
+                  <AddOutlined />
+                }
+                onClick={
+                  handleCreateTicket
+                }
+              >
+                Novo chamado
+              </Button>
+            ) : undefined
+          }
+        >
+          {relatedTickets.length ===
+          0 ? (
+            <Alert severity="info">
+              Este equipamento ainda não possui chamados
+              relacionados.
+            </Alert>
+          ) : (
+            <Stack
+              divider={
+                <Divider flexItem />
+              }
+              spacing={0}
+            >
+              {relatedTickets.map(
+                (ticket) => (
+                  <Stack
+                    key={
+                      ticket.id
+                    }
+                    direction={{
+                      xs: "column",
+                      md: "row",
+                    }}
+                    spacing={2}
+                    justifyContent="space-between"
+                    alignItems={{
+                      xs: "flex-start",
+                      md: "center",
+                    }}
+                    sx={{
+                      py: 2,
+                      "&:first-of-type": {
+                        pt: 0,
+                      },
+                      "&:last-of-type": {
+                        pb: 0,
+                      },
+                    }}
+                  >
+                    <Stack spacing={1}>
+                      <Stack
+                        direction={{
+                          xs: "column",
+                          sm: "row",
+                        }}
+                        spacing={1}
+                        alignItems={{
+                          xs: "flex-start",
+                          sm: "center",
+                        }}
+                      >
+                        <Typography
+                          fontWeight={700}
+                        >
+                          #{ticket.id} —{" "}
+                          {ticket.title}
+                        </Typography>
+
+                        <Chip
+                          size="small"
+                          label={
+                            ticket.status
+                          }
+                          color={getTicketStatusColor(
+                            ticket.status
+                          )}
+                        />
+
+                        <Chip
+                          size="small"
+                          label={
+                            ticket.priority
+                          }
+                          color={getTicketPriorityColor(
+                            ticket.priority
+                          )}
+                          variant="outlined"
+                        />
+                      </Stack>
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Categoria:{" "}
+                        {ticket.category}
+                        {" • "}
+                        Criado em{" "}
+                        {formatDateTime(
+                          ticket.createdAt
+                        )}
+                      </Typography>
+                    </Stack>
+
+                    {can(
+                      Permissions.tickets.view
+                    ) && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={
+                          <OpenInNewOutlined />
+                        }
+                        onClick={() =>
+                          handleOpenTicket(
+                            ticket.id
+                          )
+                        }
+                      >
+                        Abrir chamado
+                      </Button>
+                    )}
+                  </Stack>
+                )
+              )}
+            </Stack>
+          )}
+        </InfoCard>
 
         <Timeline
-  title="Histórico do equipamento"
-  subtitle="Acompanhe todas as alterações realizadas neste ativo."
-  events={timelineEvents}
-  filterOptions={
-    inventoryTimelineFilters
-  }
-/>
+          title="Histórico do equipamento"
+          subtitle="Acompanhe todas as alterações realizadas neste ativo."
+          events={timelineEvents}
+          filterOptions={
+            inventoryTimelineFilters
+          }
+        />
 
         <Typography
           variant="caption"

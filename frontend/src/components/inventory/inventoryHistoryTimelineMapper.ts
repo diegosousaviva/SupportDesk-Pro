@@ -4,11 +4,14 @@ import {
   BuildOutlined,
   BusinessOutlined,
   EditOutlined,
+  LinkOffOutlined,
   LocalPrintshopOutlined,
   NoteAddOutlined,
   PersonOutline,
+  PostAddOutlined,
   SwapHorizOutlined,
   SyncAltOutlined,
+  UpdateOutlined,
 } from "@mui/icons-material";
 
 import {
@@ -50,14 +53,26 @@ function getEventIcon(
     case "Impressão de etiqueta":
       return LocalPrintshopOutlined;
 
+    case "Chamado criado":
+      return PostAddOutlined;
+
     case "Chamado vinculado":
       return AssignmentOutlined;
+
+    case "Chamado desvinculado":
+      return LinkOffOutlined;
+
+    case "Chamado atualizado":
+      return UpdateOutlined;
 
     case "Manutenção":
       return BuildOutlined;
 
     case "Observação":
       return NoteAddOutlined;
+
+    default:
+      return AssignmentOutlined;
   }
 }
 
@@ -86,13 +101,25 @@ function getEventColor(
     case "Impressão de etiqueta":
       return "info";
 
+    case "Chamado criado":
+      return "success";
+
     case "Chamado vinculado":
       return "primary";
+
+    case "Chamado desvinculado":
+      return "warning";
+
+    case "Chamado atualizado":
+      return "info";
 
     case "Manutenção":
       return "error";
 
     case "Observação":
+      return "default";
+
+    default:
       return "default";
   }
 }
@@ -107,7 +134,10 @@ function getEventCategory(
     case "Impressão de etiqueta":
       return "Impressões";
 
+    case "Chamado criado":
     case "Chamado vinculado":
+    case "Chamado desvinculado":
+    case "Chamado atualizado":
       return "Chamados";
 
     case "Manutenção":

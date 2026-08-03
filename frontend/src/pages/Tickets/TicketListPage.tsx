@@ -38,6 +38,7 @@ import {
 } from "../../hooks";
 
 import {
+  deleteTicket,
   getTickets,
 } from "../../services/ticketService";
 
@@ -46,9 +47,12 @@ import {
 } from "../../services/userService";
 
 export default function TicketListPage() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  const { can } = usePermissions();
+  const {
+    can,
+  } = usePermissions();
 
   const canCreate = can(
     Permissions.tickets.create
@@ -58,52 +62,74 @@ export default function TicketListPage() {
     Permissions.tickets.view
   );
 
-  const [tickets] = useState(() =>
+  const canEdit = can(
+    Permissions.tickets.edit
+  );
+
+  const canDelete = can(
+    Permissions.tickets.delete
+  );
+
+  const [
+    tickets,
+    setTickets,
+  ] = useState(() =>
     getTickets()
   );
 
-  const [users] = useState(() =>
+  const [
+    users,
+  ] = useState(() =>
     getUsers()
   );
 
-  const technicians = useMemo(() => {
-    return users
-      .filter(
-        (user) =>
-          user.role === "Técnico"
-      )
-      .sort(
-        (
-          firstUser,
-          secondUser
-        ) =>
-          firstUser.name.localeCompare(
-            secondUser.name,
-            "pt-BR"
-          )
-      );
-  }, [users]);
+  const technicians =
+    useMemo(() => {
+      return users
+        .filter(
+          (user) =>
+            user.role ===
+            "Técnico"
+        )
+        .sort(
+          (
+            firstUser,
+            secondUser
+          ) =>
+            firstUser.name.localeCompare(
+              secondUser.name,
+              "pt-BR"
+            )
+        );
+    }, [users]);
 
   const getTechnicianName =
     useCallback(
       (
-        technicianId: number | null
+        technicianId:
+          number | null
       ): string => {
-        if (technicianId === null) {
+        if (
+          technicianId ===
+          null
+        ) {
           return "Não atribuído";
         }
 
-        const technician = users.find(
-          (user) =>
-            user.id === technicianId
-        );
+        const technician =
+          users.find(
+            (user) =>
+              user.id ===
+              technicianId
+          );
 
         if (!technician) {
           return `Técnico não encontrado (#${technicianId})`;
         }
 
         if (
-          technician.status === "Inativo"
+          technician.status ===
+          "Inativo"
         ) {
           return `${technician.name} — Inativo`;
         }
@@ -132,7 +158,9 @@ export default function TicketListPage() {
     setTechnicianFilter,
 
     clearFilters,
-  } = useTicketFilters(tickets);
+  } = useTicketFilters(
+    tickets
+  );
 
   const {
     sortedTickets,
@@ -160,7 +188,9 @@ export default function TicketListPage() {
     openTickets,
     inProgressTickets,
     resolvedTickets,
-  } = useTicketStatistics(tickets);
+  } = useTicketStatistics(
+    tickets
+  );
 
   function handleViewTicket(
     ticketId: number
@@ -169,7 +199,66 @@ export default function TicketListPage() {
       return;
     }
 
-    navigate(`/tickets/${ticketId}`);
+    navigate(
+      `/tickets/${ticketId}`
+    );
+  }
+
+  function handleEditTicket(
+    ticketId: number
+  ): void {
+    if (!canEdit) {
+      return;
+    }
+
+    navigate(
+      `/tickets/${ticketId}/edit`
+    );
+  }
+
+  function handleDeleteTicket(
+    ticketId: number
+  ): void {
+    if (!canDelete) {
+      return;
+    }
+
+    const ticket =
+      tickets.find(
+        (currentTicket) =>
+          currentTicket.id ===
+          ticketId
+      );
+
+    if (!ticket) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Deseja realmente excluir o chamado #${ticket.id} — ${ticket.title}?`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const deleted =
+      deleteTicket(
+        ticketId
+      );
+
+    if (!deleted) {
+      window.alert(
+        "Não foi possível excluir o chamado."
+      );
+
+      return;
+    }
+
+    setTickets(
+      getTickets()
+    );
   }
 
   return (
@@ -194,8 +283,12 @@ export default function TicketListPage() {
         />
 
         <TicketStatistics
-          totalTickets={totalTickets}
-          openTickets={openTickets}
+          totalTickets={
+            totalTickets
+          }
+          openTickets={
+            openTickets
+          }
           inProgressTickets={
             inProgressTickets
           }
@@ -205,8 +298,12 @@ export default function TicketListPage() {
         />
 
         <TicketFilters
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
+          searchTerm={
+            searchTerm
+          }
+          statusFilter={
+            statusFilter
+          }
           priorityFilter={
             priorityFilter
           }
@@ -216,8 +313,12 @@ export default function TicketListPage() {
           technicianFilter={
             technicianFilter
           }
-          categories={categories}
-          technicians={technicians}
+          categories={
+            categories
+          }
+          technicians={
+            technicians
+          }
           filteredTicketsCount={
             filteredTickets.length
           }
@@ -246,7 +347,8 @@ export default function TicketListPage() {
 
         <Paper
           sx={{
-            overflow: "hidden",
+            overflow:
+              "hidden",
           }}
         >
           <Stack spacing={0}>
@@ -254,17 +356,31 @@ export default function TicketListPage() {
               tickets={
                 paginatedTickets
               }
-              sortField={sortField}
+              sortField={
+                sortField
+              }
               sortDirection={
                 sortDirection
               }
               getTechnicianName={
                 getTechnicianName
               }
-              onSort={handleSort}
+              onSort={
+                handleSort
+              }
               onView={
                 canView
                   ? handleViewTicket
+                  : undefined
+              }
+              onEdit={
+                canEdit
+                  ? handleEditTicket
+                  : undefined
+              }
+              onDelete={
+                canDelete
+                  ? handleDeleteTicket
                   : undefined
               }
             />
@@ -274,8 +390,12 @@ export default function TicketListPage() {
               hasActiveFilters && (
                 <Button
                   variant="text"
-                  startIcon={<Clear />}
-                  onClick={clearFilters}
+                  startIcon={
+                    <Clear />
+                  }
+                  onClick={
+                    clearFilters
+                  }
                   sx={{
                     alignSelf:
                       "center",
@@ -290,7 +410,9 @@ export default function TicketListPage() {
               count={
                 filteredTickets.length
               }
-              page={page}
+              page={
+                page
+              }
               rowsPerPage={
                 rowsPerPage
               }

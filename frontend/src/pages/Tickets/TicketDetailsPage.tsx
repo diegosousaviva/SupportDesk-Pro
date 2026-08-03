@@ -35,6 +35,7 @@ import MainLayout from "../../components/layout/MainLayout";
 import SlaProgress from "../../components/sla/SlaProgress";
 import TicketActions from "../../components/tickets/TicketActions";
 import TicketDescriptionCard from "../../components/tickets/TicketDescriptionCard";
+import TicketEquipmentCard from "../../components/tickets/TicketEquipmentCard";
 import TicketHeader from "../../components/tickets/TicketHeader";
 import TicketInfoCard from "../../components/tickets/TicketInfoCard";
 import TicketTimeline from "../../components/tickets/TicketTimeline";
@@ -74,13 +75,24 @@ import {
 } from "../../services/userService";
 
 export default function TicketDetailsPage() {
-  const navigate = useNavigate();
-  const { id } = useParams();
+  const navigate =
+    useNavigate();
 
-  const { user } = useAuth();
-  const { can } = usePermissions();
-  const { showSnackbar } =
-    useSnackbar();
+  const {
+    id,
+  } = useParams();
+
+  const {
+    user,
+  } = useAuth();
+
+  const {
+    can,
+  } = usePermissions();
+
+  const {
+    showSnackbar,
+  } = useSnackbar();
 
   const [
     deleteDialogOpen,
@@ -112,16 +124,22 @@ export default function TicketDetailsPage() {
     setRefreshKey,
   ] = useState(0);
 
-  const ticketId = Number(id);
+  const ticketId =
+    Number(id);
+
   const ticket =
-    getTicketById(ticketId);
+    getTicketById(
+      ticketId
+    );
 
   function handleBack(): void {
     if (isDeleting) {
       return;
     }
 
-    navigate("/tickets");
+    navigate(
+      "/tickets"
+    );
   }
 
   if (!ticket) {
@@ -132,12 +150,16 @@ export default function TicketDetailsPage() {
         </Alert>
 
         <Button
-          sx={{ mt: 2 }}
+          sx={{
+            mt: 2,
+          }}
           variant="outlined"
           startIcon={
             <ArrowBack />
           }
-          onClick={handleBack}
+          onClick={
+            handleBack
+          }
         >
           Voltar para chamados
         </Button>
@@ -169,17 +191,21 @@ export default function TicketDetailsPage() {
     return (
       <MainLayout title="Detalhes do Chamado">
         <Alert severity="warning">
-          Você não possui permissão
-          para visualizar este chamado.
+          Você não possui permissão para visualizar este
+          chamado.
         </Alert>
 
         <Button
-          sx={{ mt: 2 }}
+          sx={{
+            mt: 2,
+          }}
           variant="outlined"
           startIcon={
             <ArrowBack />
           }
-          onClick={handleBack}
+          onClick={
+            handleBack
+          }
         >
           Voltar para chamados
         </Button>
@@ -190,10 +216,6 @@ export default function TicketDetailsPage() {
   const currentTicketId =
     ticket.id;
 
-  /*
-   * Força uma nova renderização
-   * depois da criação de comentário.
-   */
   void refreshKey;
 
   const assignedTechnician =
@@ -273,16 +295,23 @@ export default function TicketDetailsPage() {
       createTicketComment({
         ticketId:
           currentTicketId,
-        authorId: user.id,
-        authorName: user.name,
+
+        authorId:
+          user.id,
+
+        authorName:
+          user.name,
+
         message,
       });
 
       createTicketHistoryEntry({
         ticketId:
           currentTicketId,
+
         eventType:
           "comment_added",
+
         description:
           `${user.name} adicionou um comentário.`,
       });
@@ -295,7 +324,8 @@ export default function TicketDetailsPage() {
       showSnackbar(
         "Comentário adicionado com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
     } catch (error) {
@@ -316,11 +346,14 @@ export default function TicketDetailsPage() {
       showSnackbar(
         "Não foi possível adicionar o comentário.",
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     } finally {
-      setIsAddingComment(false);
+      setIsAddingComment(
+        false
+      );
     }
   }
 
@@ -329,7 +362,9 @@ export default function TicketDetailsPage() {
       !mayDeleteTicket ||
       isDeleting
     ) {
-      setDeleteDialogOpen(false);
+      setDeleteDialogOpen(
+        false
+      );
 
       return;
     }
@@ -353,16 +388,21 @@ export default function TicketDetailsPage() {
         currentTicketId
       );
 
-      setDeleteDialogOpen(false);
+      setDeleteDialogOpen(
+        false
+      );
 
       showSnackbar(
         "Chamado excluído com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
 
-      navigate("/tickets");
+      navigate(
+        "/tickets"
+      );
     } catch (error) {
       console.error(
         "Não foi possível excluir o chamado.",
@@ -379,11 +419,14 @@ export default function TicketDetailsPage() {
       showSnackbar(
         "Não foi possível excluir o chamado.",
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(
+        false
+      );
     }
   }
 
@@ -391,7 +434,9 @@ export default function TicketDetailsPage() {
     <MainLayout title="Detalhes do Chamado">
       <Stack spacing={3}>
         <TicketHeader
-          ticket={ticket}
+          ticket={
+            ticket
+          }
         />
 
         <Paper
@@ -427,13 +472,17 @@ export default function TicketDetailsPage() {
                 variant="caption"
                 color="text.secondary"
               >
-                Meta de {sla.targetHours}h para prioridade{" "}
+                Meta de{" "}
+                {sla.targetHours}h para
+                prioridade{" "}
                 {ticket.priority}
               </Typography>
             </Stack>
 
             <SlaProgress
-              ticket={ticket}
+              ticket={
+                ticket
+              }
             />
           </Stack>
         </Paper>
@@ -441,6 +490,12 @@ export default function TicketDetailsPage() {
         <TicketDescriptionCard
           description={
             ticket.description
+          }
+        />
+
+        <TicketEquipmentCard
+          ticket={
+            ticket
           }
         />
 
@@ -469,7 +524,9 @@ export default function TicketDetailsPage() {
           }}
         >
           <TicketTimeline
-            key={refreshKey}
+            key={
+              refreshKey
+            }
             ticketId={
               currentTicketId
             }
@@ -485,13 +542,17 @@ export default function TicketDetailsPage() {
               commentError
             }
             onClearCommentError={() =>
-              setCommentError("")
+              setCommentError(
+                ""
+              )
             }
           />
         </Paper>
 
         <TicketActions
-          onBack={handleBack}
+          onBack={
+            handleBack
+          }
           onEdit={
             mayEditTicket &&
             !isDeleting
@@ -530,10 +591,8 @@ export default function TicketDetailsPage() {
         <DialogContent>
           <Stack spacing={2}>
             <DialogContentText>
-              Tem certeza de que deseja
-              excluir o chamado #
-              {currentTicketId}? Esta
-              ação não poderá ser
+              Tem certeza de que deseja excluir o chamado #
+              {currentTicketId}? Esta ação não poderá ser
               desfeita.
             </DialogContentText>
 
@@ -560,7 +619,9 @@ export default function TicketDetailsPage() {
             onClick={
               handleCloseDeleteDialog
             }
-            disabled={isDeleting}
+            disabled={
+              isDeleting
+            }
           >
             Cancelar
           </Button>
@@ -568,8 +629,12 @@ export default function TicketDetailsPage() {
           <Button
             color="error"
             variant="contained"
-            onClick={handleDelete}
-            disabled={isDeleting}
+            onClick={
+              handleDelete
+            }
+            disabled={
+              isDeleting
+            }
             startIcon={
               isDeleting ? (
                 <CircularProgress

@@ -6,7 +6,10 @@ export type InventoryHistoryEventType =
   | "Mudança de loja"
   | "Mudança de estado físico"
   | "Impressão de etiqueta"
+  | "Chamado criado"
   | "Chamado vinculado"
+  | "Chamado desvinculado"
+  | "Chamado atualizado"
   | "Manutenção"
   | "Observação";
 

@@ -21,6 +21,7 @@ type StoredTicket = Partial<Ticket> & {
   status?: unknown;
   requesterUserId?: unknown;
   assignedTechnicianId?: unknown;
+  inventoryItemId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
   closedAt?: unknown;
@@ -37,6 +38,7 @@ const initialTickets: Ticket[] = [
     status: "Aberto",
     requesterUserId: 3,
     assignedTechnicianId: null,
+    inventoryItemId: null,
     createdAt:
       "2026-05-10T09:00:00.000Z",
     updatedAt:
@@ -53,6 +55,7 @@ const initialTickets: Ticket[] = [
     status: "Em andamento",
     requesterUserId: 3,
     assignedTechnicianId: 2,
+    inventoryItemId: null,
     createdAt:
       "2026-06-11T10:30:00.000Z",
     updatedAt:
@@ -69,6 +72,7 @@ const initialTickets: Ticket[] = [
     status: "Resolvido",
     requesterUserId: 3,
     assignedTechnicianId: 2,
+    inventoryItemId: null,
     createdAt:
       "2026-07-12T08:45:00.000Z",
     updatedAt:
@@ -126,6 +130,20 @@ function normalizeUserId(
 }
 
 function normalizeTechnicianId(
+  value: unknown
+): number | null {
+  if (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value > 0
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+function normalizeInventoryItemId(
   value: unknown
 ): number | null {
   if (
@@ -231,6 +249,10 @@ function migrateStoredTicket(
     assignedTechnicianId:
       normalizeTechnicianId(
         storedTicket.assignedTechnicianId
+      ),
+    inventoryItemId:
+      normalizeInventoryItemId(
+        storedTicket.inventoryItemId
       ),
     createdAt,
     updatedAt,
@@ -406,9 +428,9 @@ export function updateTicketById(
   updatedData: Partial<
     Omit<
       Ticket,
-      "id" |
-        "createdAt" |
-        "updatedAt"
+      | "id"
+      | "createdAt"
+      | "updatedAt"
     >
   >
 ): Ticket | undefined {

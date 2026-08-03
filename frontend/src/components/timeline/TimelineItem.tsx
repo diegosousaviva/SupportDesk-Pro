@@ -1,6 +1,11 @@
 import {
+  AccessTimeOutlined,
+} from "@mui/icons-material";
+
+import {
   Box,
   Chip,
+  Paper,
   Stack,
   Typography,
 } from "@mui/material";
@@ -13,11 +18,10 @@ import type {
 
 interface TimelineItemProps {
   event: TimelineEvent;
-
   isLast?: boolean;
 }
 
-function formatDate(
+function formatRelativeDate(
   value: string
 ): string {
   const date =
@@ -31,50 +35,71 @@ function formatDate(
     return "Data inválida";
   }
 
-  return date.toLocaleDateString(
-    "pt-BR"
-  );
-}
+  const today =
+    new Date();
 
-function formatTime(
-  value: string
-): string {
-  const date =
-    new Date(value);
+  const eventDate =
+    new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+  const currentDate =
+    new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+
+  const diffDays =
+    Math.round(
+      (
+        currentDate.getTime() -
+        eventDate.getTime()
+      ) /
+        86400000
+    );
+
+  const hour =
+    date.toLocaleTimeString(
+      "pt-BR",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
 
   if (
-    Number.isNaN(
-      date.getTime()
-    )
+    diffDays === 0
   ) {
-    return "--:--";
+    return `Hoje às ${hour}`;
   }
 
-  return date.toLocaleTimeString(
-    "pt-BR",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
+  if (
+    diffDays === 1
+  ) {
+    return `Ontem às ${hour}`;
+  }
+
+  return `${date.toLocaleDateString(
+    "pt-BR"
+  )} às ${hour}`;
 }
 
 function TimelineItem({
   event,
   isLast = false,
 }: TimelineItemProps) {
-  const EventIcon =
+  const Icon =
     event.icon;
 
   return (
     <Box
       sx={{
-        display:
-          "grid",
-
+        display: "grid",
         gridTemplateColumns:
-          "44px minmax(0, 1fr)",
-
+          "56px 1fr",
         columnGap: 2,
       }}
     >
@@ -86,188 +111,146 @@ function TimelineItem({
       >
         <Box
           sx={{
-            width: 38,
-            height: 38,
-
-            borderRadius:
-              "50%",
-
-            display:
-              "flex",
-
-            alignItems:
-              "center",
-
-            justifyContent:
-              "center",
-
+            width: 46,
+            height: 46,
+            borderRadius: "50%",
             bgcolor:
               `${event.color}.main`,
-
             color:
               `${event.color}.contrastText`,
-
-            boxShadow:
-              1,
-
-            flexShrink:
-              0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: 3,
+            transition:
+              "all .2s ease",
+            "&:hover": {
+              transform:
+                "scale(1.05)",
+            },
           }}
         >
-          <EventIcon
-            fontSize="small"
-          />
+          <Icon />
         </Box>
 
         {!isLast && (
           <Box
             sx={{
               width: 2,
-
               flex: 1,
-
-              minHeight:
-                36,
-
               bgcolor:
                 "divider",
+              mt: 1,
             }}
           />
         )}
       </Stack>
 
-      <Box
+      <Paper
+        elevation={0}
+        variant="outlined"
         sx={{
-          pb:
-            isLast
-              ? 0
-              : 3,
+          p: 2,
+          mb: isLast
+            ? 0
+            : 2,
+          borderRadius: 2,
+          transition:
+            "all .2s ease",
+          "&:hover": {
+            boxShadow: 3,
+          },
         }}
       >
         <Stack
-          direction={{
-            xs: "column",
-            sm: "row",
-          }}
-          spacing={1}
-          justifyContent="space-between"
-          alignItems={{
-            xs: "flex-start",
-            sm: "center",
-          }}
+          spacing={1.5}
         >
-          <Typography
-            fontWeight={700}
-          >
-            {event.title}
-          </Typography>
-
-          <Chip
-            label={
-              event.category
-            }
-            color={
-              event.color
-            }
-            size="small"
-            variant="outlined"
-          />
-        </Stack>
-
-        {event.description && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mt: 0.75,
-
-              whiteSpace:
-                "pre-wrap",
-
-              lineHeight:
-                1.6,
-            }}
-          >
-            {event.description}
-          </Typography>
-        )}
-
-        <Stack
-          direction={{
-            xs: "column",
-            sm: "row",
-          }}
-          spacing={{
-            xs: 1,
-            sm: 2,
-          }}
-          alignItems={{
-            xs: "flex-start",
-            sm: "center",
-          }}
-          sx={{
-            mt: 1.5,
-          }}
-        >
-          <TimelineAvatar
-            name={
-              event.performedBy
-            }
-            role={
-              event.performedByRole
-            }
-          />
-
-          <Box
-            sx={{
-              display:
-                "flex",
-
-              alignItems:
-                "center",
-
-              gap: 0.75,
-
-              px: 1.25,
-
-              py: 0.5,
-
-              borderRadius:
-                999,
-
-              bgcolor:
-                "action.hover",
-            }}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            flexWrap="wrap"
+            gap={1}
           >
             <Typography
-              variant="caption"
-              color="text.secondary"
-              fontWeight={600}
-            >
-              {formatDate(
-                event.performedAt
-              )}
-            </Typography>
-
-            <Typography
-              variant="caption"
-              color="text.disabled"
-            >
-              •
-            </Typography>
-
-            <Typography
-              variant="caption"
-              color="text.secondary"
+              variant="subtitle1"
               fontWeight={700}
             >
-              {formatTime(
-                event.performedAt
-              )}
+              {event.title}
             </Typography>
-          </Box>
+
+            <Chip
+              size="small"
+              color={
+                event.color
+              }
+              label={
+                event.category
+              }
+            />
+          </Stack>
+
+          {event.description && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                lineHeight: 1.7,
+                whiteSpace:
+                  "pre-wrap",
+              }}
+            >
+              {event.description}
+            </Typography>
+          )}
+
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            justifyContent="space-between"
+            alignItems={{
+              xs: "flex-start",
+              md: "center",
+            }}
+            spacing={1.5}
+          >
+            <TimelineAvatar
+              name={
+                event.performedBy
+              }
+              role={
+                event.performedByRole
+              }
+            />
+
+            <Stack
+              direction="row"
+              spacing={0.5}
+              alignItems="center"
+            >
+              <AccessTimeOutlined
+                sx={{
+                  fontSize: 18,
+                  color:
+                    "text.secondary",
+                }}
+              />
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+              >
+                {formatRelativeDate(
+                  event.performedAt
+                )}
+              </Typography>
+            </Stack>
+          </Stack>
         </Stack>
-      </Box>
+      </Paper>
     </Box>
   );
 }

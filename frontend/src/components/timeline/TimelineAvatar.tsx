@@ -1,7 +1,6 @@
 import {
   Avatar,
   Box,
-  Stack,
   Typography,
 } from "@mui/material";
 
@@ -21,26 +20,25 @@ function getInitials(
       .filter(Boolean);
 
   if (
-    words.length ===
-    0
+    words.length === 0
   ) {
     return "?";
   }
 
   if (
-    words.length ===
-    1
+    words.length === 1
   ) {
     return words[0]
-      .slice(0, 2)
+      .substring(0, 2)
       .toUpperCase();
   }
 
-  return `${words[0][0]}${
+  return (
+    words[0][0] +
     words[
       words.length - 1
     ][0]
-  }`.toUpperCase();
+  ).toUpperCase();
 }
 
 function TimelineAvatar({
@@ -48,29 +46,36 @@ function TimelineAvatar({
   role,
 }: TimelineAvatarProps) {
   return (
-    <Stack
-      direction="row"
-      spacing={1}
-      alignItems="center"
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+      }}
     >
       <Avatar
         sx={{
-          width: 32,
-          height: 32,
-          fontSize: "0.75rem",
+          width: 42,
+          height: 42,
+          bgcolor: "primary.main",
+          color: "primary.contrastText",
           fontWeight: 700,
+          fontSize: 15,
+          boxShadow: 2,
+          flexShrink: 0,
         }}
       >
-        {getInitials(
-          name
-        )}
+        {getInitials(name)}
       </Avatar>
 
-      <Box minWidth={0}>
+      <Box
+        sx={{
+          minWidth: 0,
+        }}
+      >
         <Typography
-          variant="caption"
+          variant="body2"
           fontWeight={700}
-          display="block"
           noWrap
         >
           {name}
@@ -80,14 +85,13 @@ function TimelineAvatar({
           <Typography
             variant="caption"
             color="text.secondary"
-            display="block"
             noWrap
           >
             {role}
           </Typography>
         )}
       </Box>
-    </Stack>
+    </Box>
   );
 }
 

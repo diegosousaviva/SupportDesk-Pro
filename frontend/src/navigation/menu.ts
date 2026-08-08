@@ -3,6 +3,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import NoteAltIcon from "@mui/icons-material/NoteAlt";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import StoreIcon from "@mui/icons-material/Store";
@@ -47,6 +48,15 @@ export const navigationSections:
           icon: Inventory2Icon,
           permission:
             Permissions.inventory.view,
+        },
+
+        {
+          id: "notes",
+          label: "Notas",
+          path: "/notes",
+          icon: NoteAltIcon,
+          permission:
+            Permissions.notes.view,
         },
       ],
     },

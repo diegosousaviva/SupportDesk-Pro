@@ -10,75 +10,89 @@ import type {
   UserRole,
 } from "../types/User";
 
-const ADMINISTRATOR_PERMISSIONS =
-  [
-    Permissions.dashboard.view,
+const ADMINISTRATOR_PERMISSIONS = [
+  Permissions.dashboard.view,
 
-    Permissions.users.view,
-    Permissions.users.create,
-    Permissions.users.edit,
-    Permissions.users.delete,
+  Permissions.users.view,
+  Permissions.users.create,
+  Permissions.users.edit,
+  Permissions.users.delete,
 
-    Permissions.tickets.view,
-    Permissions.tickets.viewAll,
-    Permissions.tickets.create,
-    Permissions.tickets.edit,
-    Permissions.tickets.delete,
-    Permissions.tickets.assign,
-    Permissions.tickets.updateStatus,
-    Permissions.tickets.close,
-    Permissions.tickets.comment,
+  Permissions.tickets.view,
+  Permissions.tickets.viewAll,
+  Permissions.tickets.create,
+  Permissions.tickets.edit,
+  Permissions.tickets.delete,
+  Permissions.tickets.assign,
+  Permissions.tickets.updateStatus,
+  Permissions.tickets.close,
+  Permissions.tickets.comment,
 
-    Permissions.categories.view,
-    Permissions.categories.create,
-    Permissions.categories.edit,
-    Permissions.categories.delete,
+  Permissions.categories.view,
+  Permissions.categories.create,
+  Permissions.categories.edit,
+  Permissions.categories.delete,
 
+  Permissions.stores.view,
+  Permissions.stores.create,
+  Permissions.stores.edit,
+  Permissions.stores.delete,
 
-    Permissions.stores.view,
-    Permissions.stores.create,
-    Permissions.stores.edit,
-    Permissions.stores.delete,
+  Permissions.reports.view,
 
-    Permissions.reports.view,
+  Permissions.settings.view,
+  Permissions.settings.edit,
 
-    Permissions.settings.view,
-    Permissions.settings.edit,
+  Permissions.inventory.view,
+  Permissions.inventory.create,
+  Permissions.inventory.edit,
+  Permissions.inventory.delete,
 
-    Permissions.inventory.view,
-    Permissions.inventory.create,
-    Permissions.inventory.edit,
-    Permissions.inventory.delete,
+  Permissions.notes.view,
+  Permissions.notes.viewAll,
+  Permissions.notes.create,
+  Permissions.notes.edit,
+  Permissions.notes.delete,
+] as const satisfies readonly Permission[];
 
-  ] as const satisfies readonly Permission[];
+const TECHNICIAN_PERMISSIONS = [
+  Permissions.dashboard.view,
 
-const TECHNICIAN_PERMISSIONS =
-  [
-    Permissions.dashboard.view,
+  Permissions.tickets.view,
+  Permissions.tickets.viewAssigned,
+  Permissions.tickets.updateStatus,
+  Permissions.tickets.close,
+  Permissions.tickets.comment,
 
-    Permissions.tickets.view,
-    Permissions.tickets.viewAssigned,
-    Permissions.tickets.updateStatus,
-    Permissions.tickets.close,
-    Permissions.tickets.comment,
-    Permissions.stores.view,
-    Permissions.inventory.view,
-    Permissions.inventory.edit,
-    
+  Permissions.stores.view,
 
-    Permissions.reports.view,
-  ] as const satisfies readonly Permission[];
+  Permissions.inventory.view,
+  Permissions.inventory.edit,
 
-const REQUESTER_PERMISSIONS =
-  [
-    Permissions.dashboard.view,
+  Permissions.reports.view,
 
-    Permissions.tickets.view,
-    Permissions.tickets.viewOwn,
-    Permissions.tickets.create,
-    Permissions.tickets.editOwn,
-    Permissions.tickets.comment,
-  ] as const satisfies readonly Permission[];
+  Permissions.notes.view,
+  Permissions.notes.viewOwn,
+  Permissions.notes.create,
+  Permissions.notes.editOwn,
+  Permissions.notes.deleteOwn,
+] as const satisfies readonly Permission[];
+
+const REQUESTER_PERMISSIONS = [
+  Permissions.dashboard.view,
+
+  Permissions.tickets.view,
+  Permissions.tickets.viewOwn,
+  Permissions.tickets.create,
+  Permissions.tickets.editOwn,
+  Permissions.tickets.comment,
+
+  Permissions.notes.view,
+  Permissions.notes.viewOwn,
+  Permissions.notes.create,
+  Permissions.notes.editOwn,
+  Permissions.notes.deleteOwn,
+] as const satisfies readonly Permission[];
 
 const ROLE_PERMISSIONS: Record<
   UserRole,
@@ -97,14 +111,18 @@ const ROLE_PERMISSIONS: Record<
 export function getRolePermissions(
   role: UserRole
 ): readonly Permission[] {
-  return ROLE_PERMISSIONS[role];
+  return ROLE_PERMISSIONS[
+    role
+  ];
 }
 
 export function roleHasPermission(
   role: UserRole,
   permission: Permission
 ): boolean {
-  return getRolePermissions(role).includes(
+  return getRolePermissions(
+    role
+  ).includes(
     permission
   );
 }

@@ -23,6 +23,14 @@ import {
 } from "./DashboardRoutes";
 
 import {
+  inventoryRoutes,
+} from "./InventoryRoutes";
+
+import {
+  noteRoutes,
+} from "./NoteRoutes";
+
+import {
   publicRoutes,
 } from "./PublicRoutes";
 
@@ -46,10 +54,6 @@ import {
   userRoutes,
 } from "./UserRoutes";
 
-import {
-  inventoryRoutes,
-} from "./InventoryRoutes";
-
 const ForbiddenPage = lazy(
   () =>
     import(
@@ -68,6 +72,7 @@ function AppRoutes() {
       ...reportRoutes,
       ...settingsRoutes,
       ...inventoryRoutes,
+      ...noteRoutes,
     ]);
 
   return useRoutes([

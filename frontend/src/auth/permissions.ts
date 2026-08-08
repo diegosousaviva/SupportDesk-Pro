@@ -41,21 +41,30 @@ export const Permissions = {
     edit: "settings.edit",
   },
 
-stores: {
-  view: "stores.view",
-  create: "stores.create",
-  edit: "stores.edit",
-  delete: "stores.delete",
-},
+  stores: {
+    view: "stores.view",
+    create: "stores.create",
+    edit: "stores.edit",
+    delete: "stores.delete",
+  },
 
-inventory: {
-  view: "inventory.view",
-  create: "inventory.create",
-  edit: "inventory.edit",
-  delete: "inventory.delete",
-},
+  inventory: {
+    view: "inventory.view",
+    create: "inventory.create",
+    edit: "inventory.edit",
+    delete: "inventory.delete",
+  },
 
-
+  notes: {
+    view: "notes.view",
+    viewAll: "notes.view-all",
+    viewOwn: "notes.view-own",
+    create: "notes.create",
+    edit: "notes.edit",
+    editOwn: "notes.edit-own",
+    delete: "notes.delete",
+    deleteOwn: "notes.delete-own",
+  },
 } as const;
 
 type PermissionGroup =

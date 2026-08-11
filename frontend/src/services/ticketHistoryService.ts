@@ -6,29 +6,46 @@ import type {
 import {
   createTicketHistoryEntryRepository,
   deleteHistoryByTicketId,
+  findAllTicketHistoryEntries,
   findHistoryByTicketId,
 } from "../repositories/ticketHistoryRepository";
 
 export interface CreateTicketHistoryEntryData {
   ticketId: number;
-  eventType: TicketHistoryEventType;
-  description: string;
+
+  eventType:
+    TicketHistoryEventType;
+
+  description:
+    string;
+}
+
+export function getAllTicketHistory():
+  TicketHistoryEntry[] {
+  return findAllTicketHistoryEntries();
 }
 
 export function getTicketHistory(
   ticketId: number
 ): TicketHistoryEntry[] {
-  return findHistoryByTicketId(ticketId);
+  return findHistoryByTicketId(
+    ticketId
+  );
 }
 
 export function createTicketHistoryEntry(
-  historyData: CreateTicketHistoryEntryData
+  historyData:
+    CreateTicketHistoryEntryData
 ): TicketHistoryEntry {
-  return createTicketHistoryEntryRepository(historyData);
+  return createTicketHistoryEntryRepository(
+    historyData
+  );
 }
 
 export function deleteTicketHistory(
   ticketId: number
 ): void {
-  deleteHistoryByTicketId(ticketId);
+  deleteHistoryByTicketId(
+    ticketId
+  );
 }

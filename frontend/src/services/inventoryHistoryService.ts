@@ -1,6 +1,7 @@
 import {
   createInventoryHistoryEvent as createInventoryHistoryEventRepository,
   deleteInventoryHistoryByItemId,
+  findAllInventoryHistoryEvents,
   findInventoryHistoryByItemId,
 } from "../repositories/inventoryHistoryRepository";
 
@@ -61,6 +62,56 @@ function validatePerformedByUser(
   }
 }
 
+function sortHistoryByDate(
+  events:
+    InventoryHistoryEvent[]
+): InventoryHistoryEvent[] {
+  return [
+    ...events,
+  ].sort(
+    (
+      firstEvent,
+      secondEvent
+    ) => {
+      const firstDate =
+        new Date(
+          firstEvent.createdAt
+        ).getTime();
+
+      const secondDate =
+        new Date(
+          secondEvent.createdAt
+        ).getTime();
+
+      if (
+        Number.isNaN(
+          firstDate
+        ) ||
+        Number.isNaN(
+          secondDate
+        )
+      ) {
+        return (
+          secondEvent.id -
+          firstEvent.id
+        );
+      }
+
+      return (
+        secondDate -
+        firstDate
+      );
+    }
+  );
+}
+
+export function getAllInventoryHistory():
+  InventoryHistoryEvent[] {
+  return sortHistoryByDate(
+    findAllInventoryHistoryEvents()
+  );
+}
+
 export function getInventoryHistory(
   inventoryItemId: number
 ): InventoryHistoryEvent[] {
@@ -73,8 +124,10 @@ export function getInventoryHistory(
     return [];
   }
 
-  return findInventoryHistoryByItemId(
-    inventoryItemId
+  return sortHistoryByDate(
+    findInventoryHistoryByItemId(
+      inventoryItemId
+    )
   );
 }
 

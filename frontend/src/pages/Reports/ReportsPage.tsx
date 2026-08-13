@@ -22,9 +22,14 @@ import {
 import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/dashboard/StatCard";
+import CategoryReportTable from "../../components/reports/CategoryReportTable";
 import ReportActions from "../../components/reports/ReportActions";
 import ReportFilters from "../../components/reports/ReportFilters";
+import ReportSlaSummary from "../../components/reports/ReportSlaSummary";
 import ReportTable from "../../components/reports/ReportTable";
+import StoreReportTable from "../../components/reports/StoreReportTable";
+import TechnicianReportTable from "../../components/reports/TechnicianReportTable";
+
 import {
   exportTicketsToCsv,
 } from "../../services/reportExportService";
@@ -46,8 +51,32 @@ import {
 } from "../../hooks/useSnackbar";
 
 import {
+  calculateSlaSummary,
+} from "../../services/slaService";
+
+import {
   getTickets,
 } from "../../services/ticketService";
+
+import {
+  createTechnicianReport,
+} from "../../services/technicianReportService";
+
+import {
+  createStoreReport,
+} from "../../services/storeReportService";
+
+import {
+  createCategoryReport,
+} from "../../services/categoryReportService";
+
+import {
+  getInventoryItems,
+} from "../../services/inventoryService";
+
+import {
+  getStores,
+} from "../../services/storeService";
 
 import {
   getUsers,
@@ -79,7 +108,9 @@ function getPeriodStartDate(
     new Date();
 
   const startDate =
-    new Date(currentDate);
+    new Date(
+      currentDate
+    );
 
   startDate.setHours(
     0,
@@ -94,20 +125,24 @@ function getPeriodStartDate(
 
     case "7_days":
       startDate.setDate(
-        startDate.getDate() - 6
+        startDate.getDate() -
+          6
       );
 
       return startDate;
 
     case "30_days":
       startDate.setDate(
-        startDate.getDate() - 29
+        startDate.getDate() -
+          29
       );
 
       return startDate;
 
     case "month":
-      startDate.setDate(1);
+      startDate.setDate(
+        1
+      );
 
       return startDate;
 
@@ -138,21 +173,34 @@ function ReportsPage() {
   const users =
     getUsers();
 
+  const inventoryItems =
+    getInventoryItems();
+
+  const stores =
+    getStores();
+
   const [
     filters,
     setFilters,
-  ] = useState<ReportFiltersData>(
-    initialFilters
-  );
+  ] =
+    useState<ReportFiltersData>(
+      initialFilters
+    );
 
   function handleFilterChange(
-    field: keyof ReportFiltersData,
-    value: string
+    field:
+      keyof ReportFiltersData,
+    value:
+      string
   ): void {
     setFilters(
-      (currentFilters) => ({
+      (
+        currentFilters
+      ) => ({
         ...currentFilters,
-        [field]: value,
+
+        [field]:
+          value,
       })
     );
   }
@@ -163,222 +211,123 @@ function ReportsPage() {
     );
   }
 
-  function handleExportPdf(): void {
-    if (
-      filteredTickets.length === 0
-    ) {
-      showSnackbar(
-        "Não há chamados para exportar.",
-        {
-          severity: "warning",
-        }
-      );
-
-      return;
-    }
-
-    exportTicketsToPdf({
-      tickets: filteredTickets,
-      users,
-      summary: {
-        totalTickets,
-        openTickets,
-        inProgressTickets,
-        resolvedTickets,
-        criticalTickets,
-      },
-    });
-
-    showSnackbar(
-      "Relatório PDF exportado com sucesso.",
-      {
-        severity: "success",
-      }
-    );
-  }
-
-  function handleExportExcel(): void {
-    if (
-      filteredTickets.length === 0
-    ) {
-      showSnackbar(
-        "Não há chamados para exportar.",
-        {
-          severity: "warning",
-        }
-      );
-
-      return;
-    }
-
-    exportTicketsToExcel(
-      filteredTickets,
-      users
-    );
-
-    showSnackbar(
-      "Relatório Excel exportado com sucesso.",
-      {
-        severity: "success",
-      }
-    );
-  }
-
-  function handleExportCsv(): void {
-  if (
-    filteredTickets.length === 0
-  ) {
-    showSnackbar(
-      "Não há chamados para exportar.",
-      {
-        severity: "warning",
-      }
-    );
-
-    return;
-  }
-
-  exportTicketsToCsv(
-    filteredTickets,
-    users
-  );
-
-  showSnackbar(
-    "Relatório CSV exportado com sucesso.",
-    {
-      severity: "success",
-    }
-  );
-}
-
-  function handlePrint(): void {
-    if (
-      filteredTickets.length === 0
-    ) {
-      showSnackbar(
-        "Não há chamados para imprimir.",
-        {
-          severity: "warning",
-        }
-      );
-
-      return;
-    }
-
-    window.print();
-  }
-
   const filteredTickets =
-    useMemo(() => {
-      const periodStartDate =
-        getPeriodStartDate(
-          filters.period
-        );
-
-      const normalizedTechnician =
-        normalizeText(
-          filters.technician
-        );
-
-      const normalizedCategory =
-        normalizeText(
-          filters.category
-        );
-
-      const normalizedSearch =
-        normalizeText(
-          filters.search
-        );
-
-      return tickets.filter(
-        (ticket) => {
-          const createdAt =
-            new Date(
-              ticket.createdAt
-            );
-
-          const matchesPeriod =
-            periodStartDate === null ||
-            (
-              !Number.isNaN(
-                createdAt.getTime()
-              ) &&
-              createdAt >=
-                periodStartDate
-            );
-
-          const matchesStatus =
-            !filters.status ||
-            ticket.status ===
-              filters.status;
-
-          const matchesPriority =
-            !filters.priority ||
-            ticket.priority ===
-              filters.priority;
-
-          const technician =
-            ticket.assignedTechnicianId ===
-            null
-              ? undefined
-              : users.find(
-                  (user) =>
-                    user.id ===
-                    ticket.assignedTechnicianId
-                );
-
-          const technicianName =
-            technician?.name ??
-            "Não atribuído";
-
-          const matchesTechnician =
-            !normalizedTechnician ||
-            normalizeText(
-              technicianName
-            ).includes(
-              normalizedTechnician
-            );
-
-          const matchesCategory =
-            !normalizedCategory ||
-            normalizeText(
-              ticket.category
-            ).includes(
-              normalizedCategory
-            );
-
-          const searchableContent =
-            normalizeText(
-              [
-                ticket.id,
-                ticket.title,
-                ticket.description,
-                ticket.category,
-                technicianName,
-              ].join(" ")
-            );
-
-          const matchesSearch =
-            !normalizedSearch ||
-            searchableContent.includes(
-              normalizedSearch
-            );
-
-          return (
-            matchesPeriod &&
-            matchesStatus &&
-            matchesPriority &&
-            matchesTechnician &&
-            matchesCategory &&
-            matchesSearch
+    useMemo(
+      () => {
+        const periodStartDate =
+          getPeriodStartDate(
+            filters.period
           );
-        }
-      );
-    }, [
-      filters,
-      tickets,
-      users,
-    ]);
+
+        const normalizedTechnician =
+          normalizeText(
+            filters.technician
+          );
+
+        const normalizedCategory =
+          normalizeText(
+            filters.category
+          );
+
+        const normalizedSearch =
+          normalizeText(
+            filters.search
+          );
+
+        return tickets.filter(
+          (ticket) => {
+            const createdAt =
+              new Date(
+                ticket.createdAt
+              );
+
+            const matchesPeriod =
+              periodStartDate ===
+                null ||
+              (
+                !Number.isNaN(
+                  createdAt.getTime()
+                ) &&
+                createdAt >=
+                  periodStartDate
+              );
+
+            const matchesStatus =
+              !filters.status ||
+              ticket.status ===
+                filters.status;
+
+            const matchesPriority =
+              !filters.priority ||
+              ticket.priority ===
+                filters.priority;
+
+            const technician =
+              ticket.assignedTechnicianId ===
+              null
+                ? undefined
+                : users.find(
+                    (user) =>
+                      user.id ===
+                      ticket.assignedTechnicianId
+                  );
+
+            const technicianName =
+              technician?.name ??
+              "Não atribuído";
+
+            const matchesTechnician =
+              !normalizedTechnician ||
+              normalizeText(
+                technicianName
+              ).includes(
+                normalizedTechnician
+              );
+
+            const matchesCategory =
+              !normalizedCategory ||
+              normalizeText(
+                ticket.category
+              ).includes(
+                normalizedCategory
+              );
+
+            const searchableContent =
+              normalizeText(
+                [
+                  ticket.id,
+                  ticket.title,
+                  ticket.description,
+                  ticket.category,
+                  technicianName,
+                ].join(
+                  " "
+                )
+              );
+
+            const matchesSearch =
+              !normalizedSearch ||
+              searchableContent.includes(
+                normalizedSearch
+              );
+
+            return (
+              matchesPeriod &&
+              matchesStatus &&
+              matchesPriority &&
+              matchesTechnician &&
+              matchesCategory &&
+              matchesSearch
+            );
+          }
+        );
+      },
+      [
+        filters,
+        tickets,
+        users,
+      ]
+    );
 
   const totalTickets =
     filteredTickets.length;
@@ -411,6 +360,158 @@ function ReportsPage() {
         "Crítica"
     ).length;
 
+  const slaSummary =
+    calculateSlaSummary(
+      filteredTickets
+    );
+
+  const technicianReport =
+    createTechnicianReport(
+      filteredTickets,
+      users
+    );
+
+  const storeReport =
+    createStoreReport(
+      filteredTickets,
+      inventoryItems,
+      stores
+    );
+
+  const categoryReport =
+    createCategoryReport(
+      filteredTickets
+    );
+
+  function handleExportPdf(): void {
+    if (
+      filteredTickets.length ===
+      0
+    ) {
+      showSnackbar(
+        "Não há chamados para exportar.",
+        {
+          severity:
+            "warning",
+        }
+      );
+
+      return;
+    }
+
+    exportTicketsToPdf({
+      tickets:
+        filteredTickets,
+
+      users,
+
+      inventoryItems,
+
+      stores,
+
+      summary: {
+        totalTickets,
+
+        openTickets,
+
+        inProgressTickets,
+
+        resolvedTickets,
+
+        criticalTickets,
+      },
+    });
+
+    showSnackbar(
+      "Relatório PDF exportado com sucesso.",
+      {
+        severity:
+          "success",
+      }
+    );
+  }
+
+  function handleExportExcel(): void {
+    if (
+      filteredTickets.length ===
+      0
+    ) {
+      showSnackbar(
+        "Não há chamados para exportar.",
+        {
+          severity:
+            "warning",
+        }
+      );
+
+      return;
+    }
+
+    exportTicketsToExcel(
+      filteredTickets,
+      users,
+      inventoryItems,
+      stores
+    );
+
+    showSnackbar(
+      "Relatório Excel exportado com sucesso.",
+      {
+        severity:
+          "success",
+      }
+    );
+  }
+
+  function handleExportCsv(): void {
+    if (
+      filteredTickets.length ===
+      0
+    ) {
+      showSnackbar(
+        "Não há chamados para exportar.",
+        {
+          severity:
+            "warning",
+        }
+      );
+
+      return;
+    }
+
+    exportTicketsToCsv(
+      filteredTickets,
+      users
+    );
+
+    showSnackbar(
+      "Relatório CSV exportado com sucesso.",
+      {
+        severity:
+          "success",
+      }
+    );
+  }
+
+  function handlePrint(): void {
+    if (
+      filteredTickets.length ===
+      0
+    ) {
+      showSnackbar(
+        "Não há chamados para imprimir.",
+        {
+          severity:
+            "warning",
+        }
+      );
+
+      return;
+    }
+
+    window.print();
+  }
+
   return (
     <MainLayout title="Relatórios">
       <Stack spacing={3}>
@@ -432,7 +533,9 @@ function ReportsPage() {
           >
             <StatCard
               title="Total de chamados"
-              value={totalTickets}
+              value={
+                totalTickets
+              }
               color="#1565c0"
               icon={
                 <ConfirmationNumberOutlined />
@@ -449,7 +552,9 @@ function ReportsPage() {
           >
             <StatCard
               title="Chamados abertos"
-              value={openTickets}
+              value={
+                openTickets
+              }
               color="#ed6c02"
               icon={
                 <WarningAmberOutlined />
@@ -516,12 +621,38 @@ function ReportsPage() {
         </Grid>
 
         <ReportFilters
-          filters={filters}
+          filters={
+            filters
+          }
           onChange={
             handleFilterChange
           }
           onClear={
             handleClearFilters
+          }
+        />
+
+        <ReportSlaSummary
+          summary={
+            slaSummary
+          }
+        />
+
+        <TechnicianReportTable
+          items={
+            technicianReport
+          }
+        />
+
+        <StoreReportTable
+          items={
+            storeReport
+          }
+        />
+
+        <CategoryReportTable
+          items={
+            categoryReport
           }
         />
 
@@ -544,8 +675,12 @@ function ReportsPage() {
           tickets={
             filteredTickets
           }
-          users={users}
-          onView={(ticketId) =>
+          users={
+            users
+          }
+          onView={(
+            ticketId
+          ) =>
             navigate(
               `/tickets/${ticketId}`
             )

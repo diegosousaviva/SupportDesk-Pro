@@ -18,6 +18,16 @@ import {
   Typography,
 } from "@mui/material";
 
+import {
+  calculateTicketSla,
+  getSlaRemainingLabel,
+  getSlaStatusLabel,
+} from "../../services/slaService";
+
+import type {
+  SlaStatus,
+} from "../../services/slaService";
+
 import type {
   Ticket,
   TicketPriority,
@@ -76,6 +86,35 @@ function getStatusColor(
 
     case "Resolvido":
       return "success";
+
+    default:
+      return "default";
+  }
+}
+
+function getSlaColor(
+  status: SlaStatus
+):
+  | "success"
+  | "warning"
+  | "error"
+  | "info"
+  | "default" {
+  switch (status) {
+    case "within":
+      return "success";
+
+    case "warning":
+      return "warning";
+
+    case "expired":
+      return "error";
+
+    case "completed_within":
+      return "success";
+
+    case "completed_expired":
+      return "error";
 
     default:
       return "default";
@@ -148,8 +187,10 @@ function ReportTable({
             md: 3,
           },
           py: 2.5,
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          borderBottom:
+            "1px solid",
+          borderColor:
+            "divider",
         }}
       >
         <Typography
@@ -162,7 +203,9 @@ function ReportTable({
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ mt: 0.5 }}
+          sx={{
+            mt: 0.5,
+          }}
         >
           {tickets.length === 0
             ? "Nenhum chamado encontrado com os filtros informados."
@@ -186,7 +229,7 @@ function ReportTable({
       >
         <Table
           sx={{
-            minWidth: 1050,
+            minWidth: 1280,
           }}
         >
           <TableHead>
@@ -216,6 +259,10 @@ function ReportTable({
               </TableCell>
 
               <TableCell>
+                SLA
+              </TableCell>
+
+              <TableCell>
                 Criado em
               </TableCell>
 
@@ -235,8 +282,8 @@ function ReportTable({
                 <TableCell
                   colSpan={
                     onView
-                      ? 8
-                      : 7
+                      ? 9
+                      : 8
                   }
                   align="center"
                 >
@@ -264,125 +311,186 @@ function ReportTable({
               </TableRow>
             ) : (
               tickets.map(
-                (ticket) => (
-                  <TableRow
-                    key={ticket.id}
-                    hover
-                  >
-                    <TableCell>
-                      <Typography
-                        color="primary.main"
-                        fontWeight={700}
-                      >
-                        #{ticket.id}
-                      </Typography>
-                    </TableCell>
+                (ticket) => {
+                  const sla =
+                    calculateTicketSla(
+                      ticket
+                    );
 
-                    <TableCell>
-                      <Box
-                        sx={{
-                          maxWidth: 300,
-                        }}
-                      >
+                  return (
+                    <TableRow
+                      key={
+                        ticket.id
+                      }
+                      hover
+                    >
+                      <TableCell>
                         <Typography
-                          fontWeight={600}
+                          color="primary.main"
+                          fontWeight={700}
+                        >
+                          #{ticket.id}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell>
+                        <Box
                           sx={{
-                            overflowWrap:
-                              "anywhere",
+                            maxWidth: 300,
                           }}
                         >
-                          {ticket.title}
-                        </Typography>
+                          <Typography
+                            fontWeight={600}
+                            sx={{
+                              overflowWrap:
+                                "anywhere",
+                            }}
+                          >
+                            {
+                              ticket.title
+                            }
+                          </Typography>
 
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              display:
+                                "block",
+                              mt: 0.25,
+                              overflow:
+                                "hidden",
+                              textOverflow:
+                                "ellipsis",
+                              whiteSpace:
+                                "nowrap",
+                            }}
+                          >
+                            {
+                              ticket.description
+                            }
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>
+                        {
+                          ticket.category
+                        }
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={
+                            ticket.priority
+                          }
+                          color={getPriorityColor(
+                            ticket.priority
+                          )}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={
+                            ticket.status
+                          }
+                          color={getStatusColor(
+                            ticket.status
+                          )}
+                          size="small"
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        {getTechnicianName(
+                          ticket.assignedTechnicianId,
+                          users
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <Stack
+                          spacing={0.5}
                           sx={{
-                            display: "block",
-                            mt: 0.25,
-                            overflow: "hidden",
-                            textOverflow:
-                              "ellipsis",
+                            minWidth: 190,
+                          }}
+                        >
+                          <Chip
+                            label={getSlaStatusLabel(
+                              sla.status
+                            )}
+                            color={getSlaColor(
+                              sla.status
+                            )}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              alignSelf:
+                                "flex-start",
+                            }}
+                          />
+
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            {getSlaRemainingLabel(
+                              sla
+                            )}
+                          </Typography>
+
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            Prazo:{" "}
+                            {
+                              sla.targetHours
+                            }
+                            h
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{
                             whiteSpace:
                               "nowrap",
                           }}
                         >
-                          {ticket.description}
+                          {formatDate(
+                            ticket.createdAt
+                          )}
                         </Typography>
-                      </Box>
-                    </TableCell>
-
-                    <TableCell>
-                      {ticket.category}
-                    </TableCell>
-
-                    <TableCell>
-                      <Chip
-                        label={
-                          ticket.priority
-                        }
-                        color={getPriorityColor(
-                          ticket.priority
-                        )}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      <Chip
-                        label={
-                          ticket.status
-                        }
-                        color={getStatusColor(
-                          ticket.status
-                        )}
-                        size="small"
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      {getTechnicianName(
-                        ticket.assignedTechnicianId,
-                        users
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          whiteSpace:
-                            "nowrap",
-                        }}
-                      >
-                        {formatDate(
-                          ticket.createdAt
-                        )}
-                      </Typography>
-                    </TableCell>
-
-                    {onView && (
-                      <TableCell
-                        align="center"
-                      >
-                        <Tooltip title="Visualizar chamado">
-                          <IconButton
-                            color="primary"
-                            aria-label={`Visualizar chamado ${ticket.id}`}
-                            onClick={() =>
-                              onView(
-                                ticket.id
-                              )
-                            }
-                          >
-                            <VisibilityOutlined />
-                          </IconButton>
-                        </Tooltip>
                       </TableCell>
-                    )}
-                  </TableRow>
-                )
+
+                      {onView && (
+                        <TableCell
+                          align="center"
+                        >
+                          <Tooltip title="Visualizar chamado">
+                            <IconButton
+                              color="primary"
+                              aria-label={`Visualizar chamado ${ticket.id}`}
+                              onClick={() =>
+                                onView(
+                                  ticket.id
+                                )
+                              }
+                            >
+                              <VisibilityOutlined />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                }
               )
             )}
           </TableBody>

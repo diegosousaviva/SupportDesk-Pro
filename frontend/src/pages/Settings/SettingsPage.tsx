@@ -1,4 +1,5 @@
 import {
+  HistoryOutlined,
   SaveOutlined,
 } from "@mui/icons-material";
 
@@ -6,7 +7,9 @@ import {
   Alert,
   Button,
   Grid,
+  Paper,
   Stack,
+  Typography,
 } from "@mui/material";
 
 import {
@@ -18,6 +21,14 @@ import {
 import type {
   ChangeEvent,
 } from "react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  Permissions,
+} from "../../auth/permissions";
 
 import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
@@ -49,6 +60,10 @@ import {
 } from "../../contexts/ColorModeContext";
 
 import {
+  usePermissions,
+} from "../../hooks/usePermissions";
+
+import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
 
@@ -62,29 +77,54 @@ const STORAGE_KEY =
   "supportdesk-pro-settings";
 
 const defaultSettings: SettingsFormData = {
-  companyName: "SupportDesk Pro",
+  companyName:
+    "SupportDesk Pro",
+
   supportEmail:
     "suporte@supportdesk.com",
+
   supportPhone:
     "(11) 99999-0000",
-  website: "",
 
-  notifyNewTicket: true,
-  notifyStatusChange: true,
-  notifyCriticalTicket: true,
-  notifyAssignedTicket: true,
-  notifySlaExpired: true,
+  website:
+    "",
 
-  compactMode: false,
-  preferredTheme: "light",
-  language: "pt-BR",
+  notifyNewTicket:
+    true,
 
-  sessionTimeoutMinutes: 60,
-  requireStrongPassword: true,
-  automaticLogout: false,
+  notifyStatusChange:
+    true,
+
+  notifyCriticalTicket:
+    true,
+
+  notifyAssignedTicket:
+    true,
+
+  notifySlaExpired:
+    true,
+
+  compactMode:
+    false,
+
+  preferredTheme:
+    "light",
+
+  language:
+    "pt-BR",
+
+  sessionTimeoutMinutes:
+    60,
+
+  requireStrongPassword:
+    true,
+
+  automaticLogout:
+    false,
 };
 
-function loadSettings(): SettingsFormData {
+function loadSettings():
+  SettingsFormData {
   const storedSettings =
     localStorage.getItem(
       STORAGE_KEY
@@ -115,6 +155,13 @@ function loadSettings(): SettingsFormData {
 }
 
 function SettingsPage() {
+  const navigate =
+    useNavigate();
+
+  const {
+    can,
+  } = usePermissions();
+
   const {
     showSnackbar,
   } = useSnackbar();
@@ -132,43 +179,67 @@ function SettingsPage() {
   const [
     settings,
     setSettings,
-  ] = useState<SettingsFormData>(
-    () => ({
-      ...loadSettings(),
-      preferredTheme:
-        preference,
-    })
-  );
+  ] =
+    useState<SettingsFormData>(
+      () => ({
+        ...loadSettings(),
 
-  const [
-    saved,
-    setSaved,
-  ] = useState(false);
-
-  useEffect(() => {
-    setSettings(
-      (currentSettings) => ({
-        ...currentSettings,
         preferredTheme:
           preference,
       })
     );
-  }, [preference]);
 
-  function markAsChanged(): void {
+  const [
+    saved,
+    setSaved,
+  ] =
+    useState(
+      false
+    );
+
+  const canViewAudit =
+    can(
+      Permissions.audit.view
+    );
+
+  useEffect(() => {
+    setSettings(
+      (
+        currentSettings
+      ) => ({
+        ...currentSettings,
+
+        preferredTheme:
+          preference,
+      })
+    );
+  }, [
+    preference,
+  ]);
+
+  function markAsChanged():
+    void {
     if (saved) {
-      setSaved(false);
+      setSaved(
+        false
+      );
     }
   }
 
   function handleCompanyChange(
-    field: keyof CompanySettingsData,
-    value: string
+    field:
+      keyof CompanySettingsData,
+    value:
+      string
   ): void {
     setSettings(
-      (currentSettings) => ({
+      (
+        currentSettings
+      ) => ({
         ...currentSettings,
-        [field]: value,
+
+        [field]:
+          value,
       })
     );
 
@@ -176,13 +247,19 @@ function SettingsPage() {
   }
 
   function handleNotificationChange(
-    field: keyof NotificationSettingsData,
-    checked: boolean
+    field:
+      keyof NotificationSettingsData,
+    checked:
+      boolean
   ): void {
     setSettings(
-      (currentSettings) => ({
+      (
+        currentSettings
+      ) => ({
         ...currentSettings,
-        [field]: checked,
+
+        [field]:
+          checked,
       })
     );
 
@@ -190,13 +267,19 @@ function SettingsPage() {
   }
 
   function handleAppearanceSwitchChange(
-    field: "compactMode",
-    checked: boolean
+    field:
+      "compactMode",
+    checked:
+      boolean
   ): void {
     setSettings(
-      (currentSettings) => ({
+      (
+        currentSettings
+      ) => ({
         ...currentSettings,
-        [field]: checked,
+
+        [field]:
+          checked,
       })
     );
 
@@ -207,7 +290,8 @@ function SettingsPage() {
     field:
       | "preferredTheme"
       | "language",
-    value: string
+    value:
+      string
   ): void {
     if (
       field ===
@@ -221,8 +305,11 @@ function SettingsPage() {
       );
 
       setSettings(
-        (currentSettings) => ({
+        (
+          currentSettings
+        ) => ({
           ...currentSettings,
+
           preferredTheme:
             newPreference,
         })
@@ -234,8 +321,11 @@ function SettingsPage() {
     }
 
     setSettings(
-      (currentSettings) => ({
+      (
+        currentSettings
+      ) => ({
         ...currentSettings,
+
         language:
           value as AppearanceSettingsData["language"],
       })
@@ -248,12 +338,17 @@ function SettingsPage() {
     field:
       | "requireStrongPassword"
       | "automaticLogout",
-    checked: boolean
+    checked:
+      boolean
   ): void {
     setSettings(
-      (currentSettings) => ({
+      (
+        currentSettings
+      ) => ({
         ...currentSettings,
-        [field]: checked,
+
+        [field]:
+          checked,
       })
     );
 
@@ -261,11 +356,15 @@ function SettingsPage() {
   }
 
   function handleSessionTimeoutChange(
-    value: number
+    value:
+      number
   ): void {
     setSettings(
-      (currentSettings) => ({
+      (
+        currentSettings
+      ) => ({
         ...currentSettings,
+
         sessionTimeoutMinutes:
           value,
       })
@@ -274,7 +373,8 @@ function SettingsPage() {
     markAsChanged();
   }
 
-  function handleSave(): void {
+  function handleSave():
+    void {
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -287,12 +387,15 @@ function SettingsPage() {
         settings.preferredTheme
       );
 
-      setSaved(true);
+      setSaved(
+        true
+      );
 
       showSnackbar(
         "Configurações salvas com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
     } catch (error) {
@@ -304,19 +407,25 @@ function SettingsPage() {
       showSnackbar(
         "Não foi possível salvar as configurações.",
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     }
   }
 
-  function handleExportBackup(): void {
+  function handleExportBackup():
+    void {
     const backupData = {
       application:
         "SupportDesk Pro",
-      version: "1.0.0",
+
+      version:
+        "1.0.0",
+
       exportedAt:
         new Date().toISOString(),
+
       settings,
     };
 
@@ -329,9 +438,12 @@ function SettingsPage() {
 
     const blob =
       new Blob(
-        [fileContent],
+        [
+          fileContent,
+        ],
         {
-          type: "application/json;charset=utf-8",
+          type:
+            "application/json;charset=utf-8",
         }
       );
 
@@ -351,7 +463,10 @@ function SettingsPage() {
     downloadLink.download =
       `supportdesk-configuracoes-${new Date()
         .toISOString()
-        .slice(0, 10)}.json`;
+        .slice(
+          0,
+          10
+        )}.json`;
 
     document.body.appendChild(
       downloadLink
@@ -370,22 +485,26 @@ function SettingsPage() {
     showSnackbar(
       "Backup das configurações exportado.",
       {
-        severity: "success",
+        severity:
+          "success",
       }
     );
   }
 
-  function handleImportBackup(): void {
+  function handleImportBackup():
+    void {
     importInputRef.current?.click();
   }
 
   async function handleBackupFileChange(
-    event: ChangeEvent<HTMLInputElement>
+    event:
+      ChangeEvent<HTMLInputElement>
   ): Promise<void> {
     const file =
       event.target.files?.[0];
 
-    event.target.value = "";
+    event.target.value =
+      "";
 
     if (!file) {
       return;
@@ -399,7 +518,8 @@ function SettingsPage() {
         JSON.parse(
           fileContent
         ) as {
-          settings?: Partial<SettingsFormData>;
+          settings?:
+            Partial<SettingsFormData>;
         };
 
       if (
@@ -412,9 +532,10 @@ function SettingsPage() {
         );
       }
 
-      const restoredSettings: SettingsFormData =
-        {
+      const restoredSettings:
+        SettingsFormData = {
           ...defaultSettings,
+
           ...parsedBackup.settings,
         };
 
@@ -433,12 +554,15 @@ function SettingsPage() {
         )
       );
 
-      setSaved(true);
+      setSaved(
+        true
+      );
 
       showSnackbar(
         "Configurações importadas com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
     } catch (error) {
@@ -450,13 +574,15 @@ function SettingsPage() {
       showSnackbar(
         "O arquivo de backup é inválido.",
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     }
   }
 
-  function handleRestoreDefaults(): void {
+  function handleRestoreDefaults():
+    void {
     const confirmed =
       window.confirm(
         "Deseja restaurar todas as configurações para os valores padrão?"
@@ -481,17 +607,21 @@ function SettingsPage() {
       )
     );
 
-    setSaved(true);
+    setSaved(
+      true
+    );
 
     showSnackbar(
       "Configurações padrão restauradas.",
       {
-        severity: "success",
+        severity:
+          "success",
       }
     );
   }
 
-  function handleResetSystem(): void {
+  function handleResetSystem():
+    void {
     const confirmed =
       window.confirm(
         "Esta ação apagará os dados locais do SupportDesk Pro, incluindo chamados, usuários, categorias e configurações. Deseja continuar?"
@@ -501,8 +631,8 @@ function SettingsPage() {
       return;
     }
 
-    const keysToRemove: string[] =
-      [];
+    const keysToRemove:
+      string[] = [];
 
     for (
       let index = 0;
@@ -539,6 +669,13 @@ function SettingsPage() {
       "/login";
   }
 
+  function handleOpenAudit():
+    void {
+    navigate(
+      "/settings/audit"
+    );
+  }
+
   return (
     <MainLayout title="Configurações">
       <Stack spacing={3}>
@@ -567,10 +704,13 @@ function SettingsPage() {
               settings={{
                 companyName:
                   settings.companyName,
+
                 supportEmail:
                   settings.supportEmail,
+
                 supportPhone:
                   settings.supportPhone,
+
                 website:
                   settings.website,
               }}
@@ -661,6 +801,83 @@ function SettingsPage() {
             />
           </Grid>
 
+          {canViewAudit && (
+            <Grid
+              size={{
+                xs: 12,
+              }}
+            >
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: {
+                    xs: 2.5,
+                    md: 3,
+                  },
+                }}
+              >
+                <Stack
+                  direction={{
+                    xs: "column",
+                    sm: "row",
+                  }}
+                  spacing={2}
+                  justifyContent="space-between"
+                  alignItems={{
+                    xs: "flex-start",
+                    sm: "center",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                  >
+                    <HistoryOutlined
+                      color="primary"
+                      sx={{
+                        fontSize:
+                          38,
+                      }}
+                    />
+
+                    <Stack spacing={0.5}>
+                      <Typography
+                        variant="h6"
+                        fontWeight={700}
+                      >
+                        Auditoria
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Consulte o histórico de acessos, alterações e ações administrativas realizadas no sistema.
+                      </Typography>
+                    </Stack>
+                  </Stack>
+
+                  <Button
+                    variant="outlined"
+                    startIcon={
+                      <HistoryOutlined />
+                    }
+                    onClick={
+                      handleOpenAudit
+                    }
+                    sx={{
+                      flexShrink:
+                        0,
+                    }}
+                  >
+                    Ver auditoria
+                  </Button>
+                </Stack>
+              </Paper>
+            </Grid>
+          )}
+
           <Grid
             size={{
               xs: 12,
@@ -684,7 +901,9 @@ function SettingsPage() {
         </Grid>
 
         <input
-          ref={importInputRef}
+          ref={
+            importInputRef
+          }
           type="file"
           accept="application/json,.json"
           hidden

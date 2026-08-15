@@ -10,19 +10,43 @@ import type {
   AppRoute,
 } from "./types";
 
-const SettingsPage = lazy(
-  () =>
-    import(
-      "../pages/Settings/SettingsPage"
-    )
-);
+const SettingsPage =
+  lazy(
+    () =>
+      import(
+        "../pages/Settings/SettingsPage"
+      )
+  );
 
-export const settingsRoutes: readonly AppRoute[] =
-  [
+const AuditLogPage =
+  lazy(
+    () =>
+      import(
+        "../pages/Settings/AuditLogPage"
+      )
+  );
+
+export const settingsRoutes:
+  readonly AppRoute[] = [
     {
-      path: "/settings",
-      element: <SettingsPage />,
+      path:
+        "/settings",
+
+      element:
+        <SettingsPage />,
+
       permission:
         Permissions.settings.view,
+    },
+
+    {
+      path:
+        "/settings/audit",
+
+      element:
+        <AuditLogPage />,
+
+      permission:
+        Permissions.audit.view,
     },
   ];

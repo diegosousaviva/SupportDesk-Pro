@@ -10,6 +10,14 @@ import {
 } from "../repositories/inventoryRepository";
 
 import {
+  createAuditLog,
+} from "./auditLogService";
+
+import {
+  getCurrentUser,
+} from "./authService";
+
+import {
   getStoreById,
 } from "./storeService";
 
@@ -69,6 +77,102 @@ function normalizeAssetNumber(
     .toUpperCase();
 }
 
+function getAuditUser(): {
+  userId: number | null;
+  userName: string;
+} {
+  const currentUser =
+    getCurrentUser();
+
+  if (!currentUser) {
+    return {
+      userId: null,
+      userName: "Sistema",
+    };
+  }
+
+  return {
+    userId:
+      currentUser.id,
+
+    userName:
+      currentUser.name,
+  };
+}
+
+function registerInventoryAudit(
+  itemId: number,
+  action:
+    | "Criação"
+    | "Edição"
+    | "Exclusão"
+    | "Alteração de status"
+    | "Alteração de responsável",
+  description: string,
+  details?: string
+): void {
+  const auditUser =
+    getAuditUser();
+
+  createAuditLog({
+    module:
+      "Inventário",
+
+    action,
+
+    userId:
+      auditUser.userId,
+
+    userName:
+      auditUser.userName,
+
+    entityId:
+      itemId,
+
+    description,
+
+    details,
+  });
+}
+
+function getStoreDescription(
+  storeId: number
+): string {
+  const store =
+    getStoreById(
+      storeId
+    );
+
+  if (!store) {
+    return `Loja não encontrada (#${storeId})`;
+  }
+
+  return store.name;
+}
+
+function getResponsibleDescription(
+  responsibleUserId:
+    number | null
+): string {
+  if (
+    responsibleUserId ===
+    null
+  ) {
+    return "Não atribuído";
+  }
+
+  const user =
+    getUserById(
+      responsibleUserId
+    );
+
+  if (!user) {
+    return `Usuário não encontrado (#${responsibleUserId})`;
+  }
+
+  return user.name;
+}
+
 function validateTagFormat(
   tag: string
 ): void {
@@ -78,7 +182,10 @@ function validateTagFormat(
     );
   }
 
-  if (tag.length > 50) {
+  if (
+    tag.length >
+    50
+  ) {
     throw new Error(
       "A etiqueta deve possuir no máximo 50 caracteres."
     );
@@ -105,7 +212,10 @@ function validateAssetNumberFormat(
     return;
   }
 
-  if (assetNumber.length > 50) {
+  if (
+    assetNumber.length >
+    50
+  ) {
     throw new Error(
       "O patrimônio deve possuir no máximo 50 caracteres."
     );
@@ -383,7 +493,8 @@ function resolveTag(
 
   const normalizedTag =
     normalizeTag(
-      informedTag ?? ""
+      informedTag ??
+        ""
     );
 
   validateTagFormat(
@@ -391,6 +502,204 @@ function resolveTag(
   );
 
   return normalizedTag;
+}
+
+function registerInventoryChanges(
+  currentItem: InventoryItem,
+  updatedItem: InventoryItem
+): void {
+  const generalChanges:
+    string[] = [];
+
+  if (
+    currentItem.tag !==
+    updatedItem.tag
+  ) {
+    generalChanges.push(
+      `Etiqueta: "${currentItem.tag}" → "${updatedItem.tag}"`
+    );
+  }
+
+  if (
+    currentItem.assetNumber !==
+    updatedItem.assetNumber
+  ) {
+    generalChanges.push(
+      `Patrimônio: "${currentItem.assetNumber || "Não informado"}" → "${updatedItem.assetNumber || "Não informado"}"`
+    );
+  }
+
+  if (
+    currentItem.description !==
+    updatedItem.description
+  ) {
+    generalChanges.push(
+      "Descrição alterada"
+    );
+  }
+
+  if (
+    currentItem.category !==
+    updatedItem.category
+  ) {
+    generalChanges.push(
+      `Categoria: "${currentItem.category}" → "${updatedItem.category}"`
+    );
+  }
+
+  if (
+    currentItem.manufacturer !==
+    updatedItem.manufacturer
+  ) {
+    generalChanges.push(
+      `Fabricante: "${currentItem.manufacturer || "Não informado"}" → "${updatedItem.manufacturer || "Não informado"}"`
+    );
+  }
+
+  if (
+    currentItem.model !==
+    updatedItem.model
+  ) {
+    generalChanges.push(
+      `Modelo: "${currentItem.model || "Não informado"}" → "${updatedItem.model || "Não informado"}"`
+    );
+  }
+
+  if (
+    currentItem.serialNumber !==
+    updatedItem.serialNumber
+  ) {
+    generalChanges.push(
+      "Número de série alterado"
+    );
+  }
+
+  if (
+    currentItem.location !==
+    updatedItem.location
+  ) {
+    generalChanges.push(
+      `Localização: "${currentItem.location}" → "${updatedItem.location}"`
+    );
+  }
+
+  if (
+    currentItem.value !==
+    updatedItem.value
+  ) {
+    generalChanges.push(
+      `Valor: ${currentItem.value} → ${updatedItem.value}`
+    );
+  }
+
+  if (
+    currentItem.acquisitionDate !==
+    updatedItem.acquisitionDate
+  ) {
+    generalChanges.push(
+      "Data de aquisição alterada"
+    );
+  }
+
+  if (
+    currentItem.warrantyUntil !==
+    updatedItem.warrantyUntil
+  ) {
+    generalChanges.push(
+      "Data de garantia alterada"
+    );
+  }
+
+  if (
+    currentItem.notes !==
+    updatedItem.notes
+  ) {
+    generalChanges.push(
+      "Observações alteradas"
+    );
+  }
+
+  if (
+    generalChanges.length >
+    0
+  ) {
+    registerInventoryAudit(
+      updatedItem.id,
+      "Edição",
+      `Equipamento ${updatedItem.tag} editado.`,
+      generalChanges.join(
+        " | "
+      )
+    );
+  }
+
+  if (
+    currentItem.status !==
+    updatedItem.status
+  ) {
+    registerInventoryAudit(
+      updatedItem.id,
+      "Alteração de status",
+      `Situação do equipamento ${updatedItem.tag} alterada.`,
+      `"${currentItem.status}" → "${updatedItem.status}"`
+    );
+  }
+
+  if (
+    currentItem.responsibleUserId !==
+    updatedItem.responsibleUserId
+  ) {
+    const previousResponsible =
+      getResponsibleDescription(
+        currentItem.responsibleUserId
+      );
+
+    const newResponsible =
+      getResponsibleDescription(
+        updatedItem.responsibleUserId
+      );
+
+    registerInventoryAudit(
+      updatedItem.id,
+      "Alteração de responsável",
+      `Responsável pelo equipamento ${updatedItem.tag} alterado.`,
+      `"${previousResponsible}" → "${newResponsible}"`
+    );
+  }
+
+  if (
+    currentItem.storeId !==
+    updatedItem.storeId
+  ) {
+    const previousStore =
+      getStoreDescription(
+        currentItem.storeId
+      );
+
+    const newStore =
+      getStoreDescription(
+        updatedItem.storeId
+      );
+
+    registerInventoryAudit(
+      updatedItem.id,
+      "Edição",
+      `Loja do equipamento ${updatedItem.tag} alterada.`,
+      `"${previousStore}" → "${newStore}"`
+    );
+  }
+
+  if (
+    currentItem.condition !==
+    updatedItem.condition
+  ) {
+    registerInventoryAudit(
+      updatedItem.id,
+      "Edição",
+      `Estado físico do equipamento ${updatedItem.tag} alterado.`,
+      `"${currentItem.condition}" → "${updatedItem.condition}"`
+    );
+  }
 }
 
 export function getInventoryItems():
@@ -541,8 +850,8 @@ export function createInventoryItem(
     itemData.condition
   );
 
-  return createInventoryItemRepository(
-    {
+  const createdItem =
+    createInventoryItemRepository({
       tag,
 
       tagMode:
@@ -594,8 +903,16 @@ export function createInventoryItem(
         normalizeText(
           itemData.notes
         ),
-    }
+    });
+
+  registerInventoryAudit(
+    createdItem.id,
+    "Criação",
+    `Equipamento ${createdItem.tag} cadastrado.`,
+    `Categoria: ${createdItem.category} | Situação: ${createdItem.status} | Estado físico: ${createdItem.condition}`
   );
+
+  return createdItem;
 }
 
 export function updateInventoryItem(
@@ -746,78 +1063,111 @@ export function updateInventoryItem(
     condition
   );
 
-  return updateInventoryItemById(
-    itemId,
-    {
-      tag,
+  const updatedItem =
+    updateInventoryItemById(
+      itemId,
+      {
+        tag,
 
-      tagMode,
+        tagMode,
 
-      assetNumber,
+        assetNumber,
 
-      storeId,
+        storeId,
 
-      category,
+        category,
 
-      description,
+        description,
 
-      manufacturer:
-        itemData.manufacturer ===
-        undefined
-          ? currentItem.manufacturer
-          : normalizeText(
-              itemData.manufacturer
-            ),
+        manufacturer:
+          itemData.manufacturer ===
+          undefined
+            ? currentItem.manufacturer
+            : normalizeText(
+                itemData.manufacturer
+              ),
 
-      model:
-        itemData.model ===
-        undefined
-          ? currentItem.model
-          : normalizeText(
-              itemData.model
-            ),
+        model:
+          itemData.model ===
+          undefined
+            ? currentItem.model
+            : normalizeText(
+                itemData.model
+              ),
 
-      serialNumber:
-        itemData.serialNumber ===
-        undefined
-          ? currentItem.serialNumber
-          : normalizeText(
-              itemData.serialNumber
-            ),
+        serialNumber:
+          itemData.serialNumber ===
+          undefined
+            ? currentItem.serialNumber
+            : normalizeText(
+                itemData.serialNumber
+              ),
 
-      location,
+        location,
 
-      value,
+        value,
 
-      acquisitionDate,
+        acquisitionDate,
 
-      warrantyUntil,
+        warrantyUntil,
 
-      responsibleUserId,
+        responsibleUserId,
 
-      status:
-        itemData.status ??
-        currentItem.status,
+        status:
+          itemData.status ??
+          currentItem.status,
 
-      condition,
+        condition,
 
-      notes:
-        itemData.notes ===
-        undefined
-          ? currentItem.notes
-          : normalizeText(
-              itemData.notes
-            ),
-    }
+        notes:
+          itemData.notes ===
+          undefined
+            ? currentItem.notes
+            : normalizeText(
+                itemData.notes
+              ),
+      }
+    );
+
+  if (!updatedItem) {
+    return undefined;
+  }
+
+  registerInventoryChanges(
+    currentItem,
+    updatedItem
   );
+
+  return updatedItem;
 }
 
 export function deleteInventoryItem(
   itemId: number
 ): boolean {
-  return deleteInventoryItemById(
-    itemId
-  );
+  const currentItem =
+    getInventoryItemById(
+      itemId
+    );
+
+  if (!currentItem) {
+    return false;
+  }
+
+  const deleted =
+    deleteInventoryItemById(
+      itemId
+    );
+
+  if (deleted) {
+    registerInventoryAudit(
+      currentItem.id,
+      "Exclusão",
+      `Equipamento ${currentItem.tag} excluído.`,
+      `Descrição: "${currentItem.description}" | Categoria: ${currentItem.category} | Situação: ${currentItem.status}`
+    );
+  }
+
+  return deleted;
 }
 
 export function previewNextAutomaticTag():

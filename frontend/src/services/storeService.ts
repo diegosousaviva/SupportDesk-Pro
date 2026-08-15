@@ -11,6 +11,14 @@ import type {
   Store,
 } from "../types/Store";
 
+import {
+  createAuditLog,
+} from "./auditLogService";
+
+import {
+  getCurrentUser,
+} from "./authService";
+
 export type CreateStoreData = Omit<
   Store,
   | "id"
@@ -36,6 +44,63 @@ function normalizeText(
   return value.trim();
 }
 
+function getAuditUser(): {
+  userId: number | null;
+  userName: string;
+} {
+  const currentUser =
+    getCurrentUser();
+
+  if (!currentUser) {
+    return {
+      userId: null,
+      userName: "Sistema",
+    };
+  }
+
+  return {
+    userId:
+      currentUser.id,
+
+    userName:
+      currentUser.name,
+  };
+}
+
+function registerStoreAudit(
+  storeId: number,
+  action:
+    | "Criação"
+    | "Edição"
+    | "Exclusão"
+    | "Alteração de status",
+  description: string,
+  details?: string
+): void {
+  const auditUser =
+    getAuditUser();
+
+  createAuditLog({
+    module:
+      "Lojas",
+
+    action,
+
+    userId:
+      auditUser.userId,
+
+    userName:
+      auditUser.userName,
+
+    entityId:
+      storeId,
+
+    description,
+
+    details,
+  });
+}
+
 function validateStoreCode(
   code: string
 ): void {
@@ -45,7 +110,10 @@ function validateStoreCode(
     );
   }
 
-  if (code.length > 20) {
+  if (
+    code.length >
+    20
+  ) {
     throw new Error(
       "O código da loja deve possuir no máximo 20 caracteres."
     );
@@ -74,7 +142,10 @@ function validateStoreName(
     );
   }
 
-  if (name.length > 100) {
+  if (
+    name.length >
+    100
+  ) {
     throw new Error(
       "O nome da loja deve possuir no máximo 100 caracteres."
     );
@@ -122,7 +193,135 @@ function ensureUniqueCode(
   }
 }
 
-export function getStores(): Store[] {
+function registerStoreChanges(
+  currentStore: Store,
+  updatedStore: Store
+): void {
+  const generalChanges:
+    string[] = [];
+
+  if (
+    currentStore.code !==
+    updatedStore.code
+  ) {
+    generalChanges.push(
+      `Código: "${currentStore.code}" → "${updatedStore.code}"`
+    );
+  }
+
+  if (
+    currentStore.name !==
+    updatedStore.name
+  ) {
+    generalChanges.push(
+      `Nome: "${currentStore.name}" → "${updatedStore.name}"`
+    );
+  }
+
+  if (
+    currentStore.address !==
+    updatedStore.address
+  ) {
+    generalChanges.push(
+      "Endereço alterado"
+    );
+  }
+
+  if (
+    currentStore.city !==
+    updatedStore.city
+  ) {
+    generalChanges.push(
+      `Cidade: "${currentStore.city}" → "${updatedStore.city}"`
+    );
+  }
+
+  if (
+    currentStore.state !==
+    updatedStore.state
+  ) {
+    generalChanges.push(
+      `Estado: "${currentStore.state}" → "${updatedStore.state}"`
+    );
+  }
+
+  if (
+    currentStore.zipCode !==
+    updatedStore.zipCode
+  ) {
+    generalChanges.push(
+      "CEP alterado"
+    );
+  }
+
+  if (
+    currentStore.phone !==
+    updatedStore.phone
+  ) {
+    generalChanges.push(
+      "Telefone alterado"
+    );
+  }
+
+  if (
+    currentStore.email !==
+    updatedStore.email
+  ) {
+    generalChanges.push(
+      `E-mail: "${currentStore.email || "Não informado"}" → "${updatedStore.email || "Não informado"}"`
+    );
+  }
+
+  if (
+    currentStore.manager !==
+    updatedStore.manager
+  ) {
+    generalChanges.push(
+      `Responsável/Gerente: "${currentStore.manager || "Não informado"}" → "${updatedStore.manager || "Não informado"}"`
+    );
+  }
+
+  if (
+    currentStore.notes !==
+    updatedStore.notes
+  ) {
+    generalChanges.push(
+      "Observações alteradas"
+    );
+  }
+
+  if (
+    generalChanges.length >
+    0
+  ) {
+    registerStoreAudit(
+      updatedStore.id,
+      "Edição",
+      `Loja "${updatedStore.name}" editada.`,
+      generalChanges.join(
+        " | "
+      )
+    );
+  }
+
+  if (
+    currentStore.status !==
+    updatedStore.status
+  ) {
+    registerStoreAudit(
+      updatedStore.id,
+      "Alteração de status",
+      updatedStore.status ===
+      "Ativa"
+        ? `Loja "${updatedStore.name}" ativada.`
+        : `Loja "${updatedStore.name}" inativada.`,
+      `"${currentStore.status}" → "${updatedStore.status}"`
+    );
+  }
+}
+
+export function getStores():
+  Store[] {
   return findAllStores()
     .sort(
       (
@@ -136,7 +335,8 @@ export function getStores(): Store[] {
     );
 }
 
-export function getActiveStores(): Store[] {
+export function getActiveStores():
+  Store[] {
   return getStores().filter(
     (store) =>
       store.status ===
@@ -164,8 +364,8 @@ export function getStoreById(
 export function createStore(
   storeData: CreateStoreData
 ): Store {
-  const normalizedData: CreateStoreData =
-    {
+  const normalizedData:
+    CreateStoreData = {
       code:
         normalizeCode(
           storeData.code
@@ -236,9 +436,19 @@ export function createStore(
     normalizedData.code
   );
 
-  return createStoreRepository(
-    normalizedData
+  const createdStore =
+    createStoreRepository(
+      normalizedData
+    );
+
+  registerStoreAudit(
+    createdStore.id,
+    "Criação",
+    `Loja "${createdStore.name}" criada.`,
+    `Código: ${createdStore.code} | Cidade: ${createdStore.city} | Estado: ${createdStore.state} | Status: ${createdStore.status}`
   );
+
+  return createdStore;
 }
 
 export function updateStore(
@@ -254,8 +464,8 @@ export function updateStore(
     return undefined;
   }
 
-  const updatedData: CreateStoreData =
-    {
+  const updatedData:
+    CreateStoreData = {
       code:
         storeData.code ===
         undefined
@@ -358,16 +568,49 @@ export function updateStore(
     storeId
   );
 
-  return updateStoreById(
-    storeId,
-    updatedData
+  const updatedStore =
+    updateStoreById(
+      storeId,
+      updatedData
+    );
+
+  if (!updatedStore) {
+    return undefined;
+  }
+
+  registerStoreChanges(
+    currentStore,
+    updatedStore
   );
+
+  return updatedStore;
 }
 
 export function deleteStore(
   storeId: number
 ): boolean {
-  return deleteStoreById(
-    storeId
-  );
+  const currentStore =
+    getStoreById(
+      storeId
+    );
+
+  if (!currentStore) {
+    return false;
+  }
+
+  const deleted =
+    deleteStoreById(
+      storeId
+    );
+
+  if (deleted) {
+    registerStoreAudit(
+      currentStore.id,
+      "Exclusão",
+      `Loja "${currentStore.name}" excluída.`,
+      `Código: ${currentStore.code} | Cidade: ${currentStore.city} | Estado: ${currentStore.state} | Status: ${currentStore.status}`
+    );
+  }
+
+  return deleted;
 }

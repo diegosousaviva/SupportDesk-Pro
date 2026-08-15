@@ -17,6 +17,14 @@ import {
 } from "../utils/password";
 
 import {
+  createAuditLog,
+} from "./auditLogService";
+
+import {
+  getCurrentUser,
+} from "./authService";
+
+import {
   createUserHistory,
 } from "./userHistoryService";
 
@@ -25,6 +33,63 @@ export type CreateUserData = Omit<
   "id"
 >;
 
+function getAuditUser(): {
+  userId: number | null;
+  userName: string;
+} {
+  const currentUser =
+    getCurrentUser();
+
+  if (!currentUser) {
+    return {
+      userId: null,
+      userName: "Sistema",
+    };
+  }
+
+  return {
+    userId:
+      currentUser.id,
+
+    userName:
+      currentUser.name,
+  };
+}
+
+function registerUserAudit(
+  targetUserId: number,
+  action:
+    | "Criação"
+    | "Edição"
+    | "Exclusão"
+    | "Alteração de status",
+  description: string,
+  details?: string
+): void {
+  const auditUser =
+    getAuditUser();
+
+  createAuditLog({
+    module:
+      "Usuários",
+
+    action,
+
+    userId:
+      auditUser.userId,
+
+    userName:
+      auditUser.userName,
+
+    entityId:
+      targetUserId,
+
+    description,
+
+    details,
+  });
+}
+
 export function getUsers(): User[] {
   return findAllUsers();
 }
@@ -32,21 +97,25 @@ export function getUsers(): User[] {
 export function getUserById(
   id: number
 ): User | undefined {
-  return findUserById(id);
+  return findUserById(
+    id
+  );
 }
 
 function validateEmailAvailability(
   email: string,
   ignoredUserId?: number
 ): void {
-  const normalizedEmail = email
-    .trim()
-    .toLowerCase();
+  const normalizedEmail =
+    email
+      .trim()
+      .toLowerCase();
 
   const emailAlreadyExists =
     getUsers().some(
       (user) =>
-        user.id !== ignoredUserId &&
+        user.id !==
+          ignoredUserId &&
         user.email
           .trim()
           .toLowerCase() ===
@@ -82,25 +151,51 @@ export async function createUser(
   const newUser =
     createUserRepository({
       ...userData,
-      name: userData.name.trim(),
-      email: userData.email
-        .trim()
-        .toLowerCase(),
-      password: protectedPassword,
-      phone: userData.phone.trim(),
+
+      name:
+        userData.name.trim(),
+
+      email:
+        userData.email
+          .trim()
+          .toLowerCase(),
+
+      password:
+        protectedPassword,
+
+      phone:
+        userData.phone.trim(),
+
       department:
         userData.department.trim(),
     });
 
   createUserHistory({
-    userId: newUser.id,
-    action: "created",
-    title: "Usuário criado",
+    userId:
+      newUser.id,
+
+    action:
+      "created",
+
+    title:
+      "Usuário criado",
+
     description:
       "O cadastro do usuário foi criado no sistema.",
-    performedBy: "Sistema",
-    createdAt: newUser.createdAt,
+
+    performedBy:
+      "Sistema",
+
+    createdAt:
+      newUser.createdAt,
   });
+
+  registerUserAudit(
+    newUser.id,
+    "Criação",
+    `Usuário "${newUser.name}" criado.`,
+    `E-mail: ${newUser.email} | Perfil: ${newUser.role} | Status: ${newUser.status}`
+  );
 
   return newUser;
 }
@@ -110,14 +205,17 @@ export async function updateUser(
   updatedData: Partial<User>
 ): Promise<User | undefined> {
   const currentUser =
-    getUserById(id);
+    getUserById(
+      id
+    );
 
   if (!currentUser) {
     return undefined;
   }
 
   if (
-    updatedData.email !== undefined
+    updatedData.email !==
+    undefined
   ) {
     validateEmailAvailability(
       updatedData.email,
@@ -131,53 +229,56 @@ export async function updateUser(
   const passwordWasChanged =
     updatedData.password !==
       undefined &&
-    updatedData.password.trim() !== "";
+    updatedData.password.trim() !==
+      "";
 
   if (passwordWasChanged) {
     const normalizedPassword =
       updatedData.password?.trim() ??
       "";
 
-    password = isPasswordHash(
-      normalizedPassword
-    )
-      ? normalizedPassword
-      : await hashPassword(
-          normalizedPassword
-        );
+    password =
+      isPasswordHash(
+        normalizedPassword
+      )
+        ? normalizedPassword
+        : await hashPassword(
+            normalizedPassword
+          );
   }
 
-  const normalizedData: Partial<User> = {
-    ...updatedData,
+  const normalizedData:
+    Partial<User> = {
+      ...updatedData,
 
-    name:
-      updatedData.name !==
-      undefined
-        ? updatedData.name.trim()
-        : currentUser.name,
+      name:
+        updatedData.name !==
+        undefined
+          ? updatedData.name.trim()
+          : currentUser.name,
 
-    email:
-      updatedData.email !==
-      undefined
-        ? updatedData.email
-            .trim()
-            .toLowerCase()
-        : currentUser.email,
+      email:
+        updatedData.email !==
+        undefined
+          ? updatedData.email
+              .trim()
+              .toLowerCase()
+          : currentUser.email,
 
-    phone:
-      updatedData.phone !==
-      undefined
-        ? updatedData.phone.trim()
-        : currentUser.phone,
+      phone:
+        updatedData.phone !==
+        undefined
+          ? updatedData.phone.trim()
+          : currentUser.phone,
 
-    department:
-      updatedData.department !==
-      undefined
-        ? updatedData.department.trim()
-        : currentUser.department,
+      department:
+        updatedData.department !==
+        undefined
+          ? updatedData.department.trim()
+          : currentUser.department,
 
-    password,
-  };
+      password,
+    };
 
   const updatedUser =
     updateUserById(
@@ -221,15 +322,19 @@ export async function updateUser(
     passwordWasChanged;
 
   if (generalDataChanged) {
-    const changedFields: string[] =
-      [];
+    const changedFields:
+      string[] = [];
 
     if (nameChanged) {
-      changedFields.push("nome");
+      changedFields.push(
+        "nome"
+      );
     }
 
     if (emailChanged) {
-      changedFields.push("e-mail");
+      changedFields.push(
+        "e-mail"
+      );
     }
 
     if (phoneChanged) {
@@ -245,48 +350,102 @@ export async function updateUser(
     }
 
     if (passwordWasChanged) {
-      changedFields.push("senha");
+      changedFields.push(
+        "senha"
+      );
     }
 
     createUserHistory({
-      userId: id,
-      action: "updated",
+      userId:
+        id,
+
+      action:
+        "updated",
+
       title:
         "Dados do usuário atualizados",
-      description: `Os seguintes campos foram alterados: ${changedFields.join(
-        ", "
-      )}.`,
-      performedBy: "Sistema",
+
+      description:
+        `Os seguintes campos foram alterados: ${changedFields.join(
+          ", "
+        )}.`,
+
+      performedBy:
+        "Sistema",
     });
+
+    registerUserAudit(
+      updatedUser.id,
+      "Edição",
+      `Dados do usuário "${updatedUser.name}" atualizados.`,
+      `Campos alterados: ${changedFields.join(
+        ", "
+      )}`
+    );
   }
 
   if (roleChanged) {
     createUserHistory({
-      userId: id,
-      action: "role_changed",
-      title: "Perfil alterado",
-      description: `O perfil foi alterado de ${currentUser.role} para ${updatedUser.role}.`,
-      performedBy: "Sistema",
+      userId:
+        id,
+
+      action:
+        "role_changed",
+
+      title:
+        "Perfil alterado",
+
+      description:
+        `O perfil foi alterado de ${currentUser.role} para ${updatedUser.role}.`,
+
+      performedBy:
+        "Sistema",
     });
+
+    registerUserAudit(
+      updatedUser.id,
+      "Edição",
+      `Perfil do usuário "${updatedUser.name}" alterado.`,
+      `"${currentUser.role}" → "${updatedUser.role}"`
+    );
   }
 
   if (statusChanged) {
     const userWasActivated =
-      updatedUser.status === "Ativo";
+      updatedUser.status ===
+      "Ativo";
 
     createUserHistory({
-      userId: id,
-      action: userWasActivated
-        ? "activated"
-        : "deactivated",
-      title: userWasActivated
-        ? "Usuário ativado"
-        : "Usuário inativado",
-      description: userWasActivated
-        ? "O acesso do usuário ao sistema foi ativado."
-        : "O acesso do usuário ao sistema foi inativado.",
-      performedBy: "Sistema",
+      userId:
+        id,
+
+      action:
+        userWasActivated
+          ? "activated"
+          : "deactivated",
+
+      title:
+        userWasActivated
+          ? "Usuário ativado"
+          : "Usuário inativado",
+
+      description:
+        userWasActivated
+          ? "O acesso do usuário ao sistema foi ativado."
+          : "O acesso do usuário ao sistema foi inativado.",
+
+      performedBy:
+        "Sistema",
     });
+
+    registerUserAudit(
+      updatedUser.id,
+      "Alteração de status",
+      userWasActivated
+        ? `Usuário "${updatedUser.name}" ativado.`
+        : `Usuário "${updatedUser.name}" inativado.`,
+      `"${currentUser.status}" → "${updatedUser.status}"`
+    );
   }
 
   return updatedUser;
@@ -297,7 +456,9 @@ export async function changeUserStatus(
   status: UserStatus
 ): Promise<User> {
   const currentUser =
-    getUserById(id);
+    getUserById(
+      id
+    );
 
   if (!currentUser) {
     throw new Error(
@@ -306,9 +467,12 @@ export async function changeUserStatus(
   }
 
   const updatedUser =
-    await updateUser(id, {
-      status,
-    });
+    await updateUser(
+      id,
+      {
+        status,
+      }
+    );
 
   if (!updatedUser) {
     throw new Error(
@@ -323,20 +487,44 @@ export function deleteUser(
   id: number
 ): boolean {
   const currentUser =
-    getUserById(id);
+    getUserById(
+      id
+    );
 
   if (!currentUser) {
     return false;
   }
 
   createUserHistory({
-    userId: id,
-    action: "deleted",
-    title: "Usuário excluído",
+    userId:
+      id,
+
+    action:
+      "deleted",
+
+    title:
+      "Usuário excluído",
+
     description:
       "O cadastro do usuário foi excluído do sistema.",
-    performedBy: "Sistema",
+
+    performedBy:
+      "Sistema",
   });
 
-  return deleteUserById(id);
+  const deleted =
+    deleteUserById(
+      id
+    );
+
+  if (deleted) {
+    registerUserAudit(
+      currentUser.id,
+      "Exclusão",
+      `Usuário "${currentUser.name}" excluído.`,
+      `E-mail: ${currentUser.email} | Perfil: ${currentUser.role} | Status: ${currentUser.status}`
+    );
+  }
+
+  return deleted;
 }

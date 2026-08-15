@@ -53,6 +53,8 @@ const ADMINISTRATOR_PERMISSIONS = [
   Permissions.notes.create,
   Permissions.notes.edit,
   Permissions.notes.delete,
+
+  Permissions.audit.view,
 ] as const satisfies readonly Permission[];
 
 const TECHNICIAN_PERMISSIONS = [

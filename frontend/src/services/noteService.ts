@@ -8,6 +8,10 @@ import {
 } from "../repositories/noteRepository";
 
 import {
+  createAuditLog,
+} from "./auditLogService";
+
+import {
   removeAllNoteAttachments,
 } from "./noteAttachmentService";
 
@@ -31,7 +35,8 @@ function isAdministrator(
   user: NoteAccessUser
 ): boolean {
   return (
-    user.role === "Administrador"
+    user.role ===
+    "Administrador"
   );
 }
 
@@ -143,16 +148,81 @@ function canManageNote(
   );
 }
 
+function getAuditUserName(
+  user: NoteAccessUser
+): string {
+  const registeredUser =
+    getUserById(
+      user.id
+    );
+
+  return (
+    registeredUser?.name ??
+    `Usuário #${user.id}`
+  );
+}
+
+function getNoteAuthorName(
+  note: Note
+): string {
+  const author =
+    getUserById(
+      note.authorUserId
+    );
+
+  return (
+    author?.name ??
+    `Usuário #${note.authorUserId}`
+  );
+}
+
+function registerNoteAudit(
+  noteId: number,
+  user: NoteAccessUser,
+  action:
+    | "Criação"
+    | "Edição"
+    | "Exclusão",
+  description: string,
+  details?: string
+): void {
+  createAuditLog({
+    module:
+      "Notas",
+
+    action,
+
+    userId:
+      user.id,
+
+    userName:
+      getAuditUserName(
+        user
+      ),
+
+    entityId:
+      noteId,
+
+    description,
+
+    details,
+  });
+}
+
 export function getNotesForUser(
   user:
     | NoteAccessUser
     | null
     | undefined
 ): Note[] {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   const notes =
-    isAdministrator(user)
+    isAdministrator(
+      user
+    )
       ? findAllNotes()
       : findNotesByAuthorUserId(
           user.id
@@ -181,7 +251,9 @@ export function getNoteByIdForUser(
     | null
     | undefined
 ): Note | undefined {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   if (
     !Number.isInteger(
@@ -223,7 +295,9 @@ export function createNote(
     | null
     | undefined
 ): Note {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   const registeredUser =
     getUserById(
@@ -250,17 +324,28 @@ export function createNote(
     noteData.category
   );
 
-  return createNoteRepository({
-    title,
+  const createdNote =
+    createNoteRepository({
+      title,
 
-    description,
+      description,
 
-    category:
-      noteData.category,
+      category:
+        noteData.category,
 
-    authorUserId:
-      user.id,
-  });
+      authorUserId:
+        user.id,
+    });
+
+  registerNoteAudit(
+    createdNote.id,
+    user,
+    "Criação",
+    `Nota "${createdNote.title}" criada.`,
+    `Categoria: ${createdNote.category} | Autor: ${registeredUser.name}`
+  );
+
+  return createdNote;
 }
 
 export function updateNote(
@@ -272,7 +357,9 @@ export function updateNote(
     | null
     | undefined
 ): Note {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   const note =
     findNoteById(
@@ -343,6 +430,59 @@ export function updateNote(
     );
   }
 
+  const changedFields:
+    string[] = [];
+
+  if (
+    note.title !==
+    updatedNote.title
+  ) {
+    changedFields.push(
+      `Título: "${note.title}" → "${updatedNote.title}"`
+    );
+  }
+
+  if (
+    note.category !==
+    updatedNote.category
+  ) {
+    changedFields.push(
+      `Categoria: "${note.category}" → "${updatedNote.category}"`
+    );
+  }
+
+  if (
+    note.description !==
+    updatedNote.description
+  ) {
+    changedFields.push(
+      "Descrição alterada"
+    );
+  }
+
+  if (
+    changedFields.length >
+    0
+  ) {
+    const authorName =
+      getNoteAuthorName(
+        note
+      );
+
+    registerNoteAudit(
+      updatedNote.id,
+      user,
+      "Edição",
+      `Nota "${updatedNote.title}" editada.`,
+      [
+        ...changedFields,
+        `Autor: ${authorName}`,
+      ].join(
+        " | "
+      )
+    );
+  }
+
   return updatedNote;
 }
 
@@ -353,7 +493,9 @@ export async function deleteNote(
     | null
     | undefined
 ): Promise<boolean> {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   if (
     !Number.isInteger(
@@ -409,6 +551,16 @@ export async function deleteNote(
       "Não foi possível excluir a nota."
     );
   }
+
+  registerNoteAudit(
+    note.id,
+    user,
+    "Exclusão",
+    `Nota "${note.title}" excluída.`,
+    `Categoria: ${note.category} | Autor: ${getNoteAuthorName(
+      note
+    )}`
+  );
 
   return true;
 }

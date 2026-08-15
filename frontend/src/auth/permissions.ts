@@ -65,6 +65,10 @@ export const Permissions = {
     delete: "notes.delete",
     deleteOwn: "notes.delete-own",
   },
+
+  audit: {
+    view: "audit.view",
+  },
 } as const;
 
 type PermissionGroup =

@@ -10,6 +10,14 @@ import {
   findNoteById,
 } from "../repositories/noteRepository";
 
+import {
+  createAuditLog,
+} from "./auditLogService";
+
+import {
+  getUserById,
+} from "./userService";
+
 import type {
   NoteAttachment,
   StoredNoteAttachment,
@@ -41,7 +49,8 @@ function isAdministrator(
   user: NoteAttachmentAccessUser
 ): boolean {
   return (
-    user.role === "Administrador"
+    user.role ===
+    "Administrador"
   );
 }
 
@@ -96,7 +105,9 @@ function validateNoteAccess(
   }
 
   if (
-    !isAdministrator(user) &&
+    !isAdministrator(
+      user
+    ) &&
     note.authorUserId !==
       user.id
   ) {
@@ -106,14 +117,94 @@ function validateNoteAccess(
   }
 }
 
+function getAuditUserName(
+  user: NoteAttachmentAccessUser
+): string {
+  const registeredUser =
+    getUserById(
+      user.id
+    );
+
+  return (
+    registeredUser?.name ??
+    `Usuário #${user.id}`
+  );
+}
+
+function formatFileSize(
+  fileSize: number
+): string {
+  if (
+    fileSize <
+    1024
+  ) {
+    return `${fileSize} B`;
+  }
+
+  if (
+    fileSize <
+    1024 * 1024
+  ) {
+    return `${Math.round(
+      fileSize / 1024
+    )} KB`;
+  }
+
+  return `${(
+    fileSize /
+    (
+      1024 *
+      1024
+    )
+  ).toFixed(
+    2
+  )} MB`;
+}
+
+function registerAttachmentAudit(
+  noteId: number,
+  user: NoteAttachmentAccessUser,
+  action:
+    | "Upload"
+    | "Download"
+    | "Exclusão",
+  description: string,
+  details?: string
+): void {
+  createAuditLog({
+    module:
+      "Notas",
+
+    action,
+
+    userId:
+      user.id,
+
+    userName:
+      getAuditUserName(
+        user
+      ),
+
+    entityId:
+      noteId,
+
+    description,
+
+    details,
+  });
+}
+
 function getFileExtension(
   fileName: string
 ): string {
   const lastDotIndex =
-    fileName.lastIndexOf(".");
+    fileName.lastIndexOf(
+      "."
+    );
 
   if (
-    lastDotIndex === -1 ||
+    lastDotIndex ===
+      -1 ||
     lastDotIndex ===
       fileName.length - 1
   ) {
@@ -122,7 +213,8 @@ function getFileExtension(
 
   return fileName
     .slice(
-      lastDotIndex + 1
+      lastDotIndex +
+        1
     )
     .toLowerCase();
 }
@@ -132,7 +224,10 @@ function validateFile(
 ): void {
   if (
     !file ||
-    !(file instanceof File)
+    !(
+      file instanceof
+      File
+    )
   ) {
     throw new Error(
       "Arquivo inválido."
@@ -148,7 +243,8 @@ function validateFile(
   }
 
   if (
-    file.size <= 0
+    file.size <=
+    0
   ) {
     throw new Error(
       "O arquivo selecionado está vazio."
@@ -226,7 +322,9 @@ export async function addNoteAttachment(
     | null
     | undefined
 ): Promise<NoteAttachment> {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   validateNoteAccess(
     noteId,
@@ -237,14 +335,27 @@ export async function addNoteAttachment(
     file
   );
 
-  return createNoteAttachmentRepository({
+  const attachment =
+    await createNoteAttachmentRepository({
+      noteId,
+
+      file,
+
+      uploadedByUserId:
+        user.id,
+    });
+
+  registerAttachmentAudit(
     noteId,
+    user,
+    "Upload",
+    `Anexo "${attachment.fileName}" enviado para a nota #${noteId}.`,
+    `Tamanho: ${formatFileSize(
+      file.size
+    )}`
+  );
 
-    file,
-
-    uploadedByUserId:
-      user.id,
-  });
+  return attachment;
 }
 
 export async function getNoteAttachments(
@@ -254,7 +365,9 @@ export async function getNoteAttachments(
     | null
     | undefined
 ): Promise<NoteAttachment[]> {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   validateNoteAccess(
     noteId,
@@ -273,7 +386,9 @@ export async function getNoteAttachmentFile(
     | null
     | undefined
 ): Promise<StoredNoteAttachment> {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   return validateAttachmentAccess(
     attachmentId,
@@ -288,16 +403,36 @@ export async function removeNoteAttachment(
     | null
     | undefined
 ): Promise<boolean> {
-  validateUser(user);
-
-  await validateAttachmentAccess(
-    attachmentId,
+  validateUser(
     user
   );
 
-  return deleteNoteAttachmentById(
-    attachmentId
-  );
+  const attachment =
+    await validateAttachmentAccess(
+      attachmentId,
+      user
+    );
+
+  const deleted =
+    await deleteNoteAttachmentById(
+      attachmentId
+    );
+
+  if (
+    deleted
+  ) {
+    registerAttachmentAudit(
+      attachment.noteId,
+      user,
+      "Exclusão",
+      `Anexo "${attachment.fileName}" excluído da nota #${attachment.noteId}.`,
+      `Tamanho: ${formatFileSize(
+        attachment.file.size
+      )}`
+    );
+  }
+
+  return deleted;
 }
 
 export async function removeAllNoteAttachments(
@@ -307,7 +442,9 @@ export async function removeAllNoteAttachments(
     | null
     | undefined
 ): Promise<void> {
-  validateUser(user);
+  validateUser(
+    user
+  );
 
   validateNoteAccess(
     noteId,
@@ -326,6 +463,10 @@ export async function downloadNoteAttachment(
     | null
     | undefined
 ): Promise<void> {
+  validateUser(
+    user
+  );
+
   const attachment =
     await getNoteAttachmentFile(
       attachmentId,
@@ -360,6 +501,16 @@ export async function downloadNoteAttachment(
 
   URL.revokeObjectURL(
     objectUrl
+  );
+
+  registerAttachmentAudit(
+    attachment.noteId,
+    user,
+    "Download",
+    `Anexo "${attachment.fileName}" baixado da nota #${attachment.noteId}.`,
+    `Tamanho: ${formatFileSize(
+      attachment.file.size
+    )}`
   );
 }
 

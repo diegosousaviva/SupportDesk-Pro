@@ -1,4 +1,10 @@
-import type { User } from "../types/User";
+import type {
+  User,
+} from "../types/User";
+
+import {
+  createAuditLog,
+} from "./auditLogService";
 
 import {
   getUsers,
@@ -16,17 +22,27 @@ const LOCAL_SESSION_KEY =
 const TEMPORARY_SESSION_KEY =
   "supportdesk-pro-auth-session";
 
-export type AuthUser = Omit<User, "password">;
+export type AuthUser =
+  Omit<
+    User,
+    "password"
+  >;
 
 export interface LoginData {
   email: string;
+
   password: string;
+
   remember: boolean;
 }
 
-function removePassword(user: User): AuthUser {
+function removePassword(
+  user: User
+): AuthUser {
   const {
-    password: _password,
+    password:
+      _password,
+
     ...authenticatedUser
   } = user;
 
@@ -37,13 +53,18 @@ function saveSession(
   user: AuthUser,
   remember: boolean
 ): void {
-  localStorage.removeItem(LOCAL_SESSION_KEY);
+  localStorage.removeItem(
+    LOCAL_SESSION_KEY
+  );
 
   sessionStorage.removeItem(
     TEMPORARY_SESSION_KEY
   );
 
-  const serializedUser = JSON.stringify(user);
+  const serializedUser =
+    JSON.stringify(
+      user
+    );
 
   if (remember) {
     localStorage.setItem(
@@ -68,16 +89,22 @@ function parseStoredUser(
   }
 
   try {
-    const parsedUser = JSON.parse(
-      storedValue
-    ) as Partial<AuthUser>;
+    const parsedUser =
+      JSON.parse(
+        storedValue
+      ) as Partial<AuthUser>;
 
     if (
-      typeof parsedUser.id !== "number" ||
-      typeof parsedUser.name !== "string" ||
-      typeof parsedUser.email !== "string" ||
-      typeof parsedUser.role !== "string" ||
-      typeof parsedUser.status !== "string"
+      typeof parsedUser.id !==
+        "number" ||
+      typeof parsedUser.name !==
+        "string" ||
+      typeof parsedUser.email !==
+        "string" ||
+      typeof parsedUser.role !==
+        "string" ||
+      typeof parsedUser.status !==
+        "string"
     ) {
       return null;
     }
@@ -93,15 +120,19 @@ export async function login({
   password,
   remember,
 }: LoginData): Promise<AuthUser> {
-  const normalizedEmail = email
-    .trim()
-    .toLowerCase();
+  const normalizedEmail =
+    email
+      .trim()
+      .toLowerCase();
 
-  const user = getUsers().find(
-    (currentUser) =>
-      currentUser.email.trim().toLowerCase() ===
-      normalizedEmail
-  );
+  const user =
+    getUsers().find(
+      (currentUser) =>
+        currentUser.email
+          .trim()
+          .toLowerCase() ===
+        normalizedEmail
+    );
 
   if (!user) {
     throw new Error(
@@ -121,63 +152,135 @@ export async function login({
     );
   }
 
-  if (user.status !== "Ativo") {
+  if (
+    user.status !==
+    "Ativo"
+  ) {
     throw new Error(
       "Este usuário está inativo e não pode acessar o sistema."
     );
   }
 
-  let authenticatedUserData = user;
+  let authenticatedUserData =
+    user;
 
   /*
    * Migração automática:
    * caso a senha ainda esteja em texto puro,
    * updateUser gera e salva o hash PBKDF2.
    */
-  if (!isPasswordHash(user.password)) {
-    const migratedUser = await updateUser(
-      user.id,
-      {
-        password,
-      }
-    );
+  if (
+    !isPasswordHash(
+      user.password
+    )
+  ) {
+    const migratedUser =
+      await updateUser(
+        user.id,
+        {
+          password,
+        }
+      );
 
     if (migratedUser) {
-      authenticatedUserData = migratedUser;
+      authenticatedUserData =
+        migratedUser;
     }
   }
 
-  const authenticatedUser = removePassword(
-    authenticatedUserData
+  const authenticatedUser =
+    removePassword(
+      authenticatedUserData
+    );
+
+  saveSession(
+    authenticatedUser,
+    remember
   );
 
-  saveSession(authenticatedUser, remember);
+  createAuditLog({
+    module:
+      "Autenticação",
+
+    action:
+      "Login",
+
+    userId:
+      authenticatedUser.id,
+
+    userName:
+      authenticatedUser.name,
+
+    entityId:
+      authenticatedUser.id,
+
+    description:
+      "Login realizado com sucesso.",
+
+    details:
+      `Perfil: ${authenticatedUser.role}`,
+  });
 
   return authenticatedUser;
 }
 
 export function logout(): void {
-  localStorage.removeItem(LOCAL_SESSION_KEY);
+  const currentUser =
+    getCurrentUser();
+
+  if (currentUser) {
+    createAuditLog({
+      module:
+        "Autenticação",
+
+      action:
+        "Logout",
+
+      userId:
+        currentUser.id,
+
+      userName:
+        currentUser.name,
+
+      entityId:
+        currentUser.id,
+
+      description:
+        "Logout realizado com sucesso.",
+
+      details:
+        `Perfil: ${currentUser.role}`,
+    });
+  }
+
+  localStorage.removeItem(
+    LOCAL_SESSION_KEY
+  );
 
   sessionStorage.removeItem(
     TEMPORARY_SESSION_KEY
   );
 }
 
-export function getCurrentUser(): AuthUser | null {
-  const localUser = parseStoredUser(
-    localStorage.getItem(LOCAL_SESSION_KEY)
-  );
+export function getCurrentUser():
+  AuthUser | null {
+  const localUser =
+    parseStoredUser(
+      localStorage.getItem(
+        LOCAL_SESSION_KEY
+      )
+    );
 
   if (localUser) {
     return localUser;
   }
 
-  const temporaryUser = parseStoredUser(
-    sessionStorage.getItem(
-      TEMPORARY_SESSION_KEY
-    )
-  );
+  const temporaryUser =
+    parseStoredUser(
+      sessionStorage.getItem(
+        TEMPORARY_SESSION_KEY
+      )
+    );
 
   if (temporaryUser) {
     return temporaryUser;
@@ -186,6 +289,10 @@ export function getCurrentUser(): AuthUser | null {
   return null;
 }
 
-export function isAuthenticated(): boolean {
-  return getCurrentUser() !== null;
+export function isAuthenticated():
+  boolean {
+  return (
+    getCurrentUser() !==
+    null
+  );
 }

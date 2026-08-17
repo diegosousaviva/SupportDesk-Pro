@@ -7,6 +7,25 @@ import {
 } from "./auditLogService";
 
 import {
+  formatLoginBlockTime,
+  getRemainingBlockMilliseconds,
+  isLoginBlocked,
+  registerFailedLoginAttempt,
+  resetLoginAttempts,
+} from "./loginAttemptService";
+
+import {
+  clearSession,
+  getCurrentUser as getCurrentUserFromSession,
+  isAuthenticated as isAuthenticatedFromSession,
+  saveSession,
+} from "./sessionService";
+
+import type {
+  AuthUser,
+} from "./sessionService";
+
+import {
   getUsers,
   updateUser,
 } from "./userService";
@@ -16,17 +35,16 @@ import {
   verifyPassword,
 } from "../utils/password";
 
-const LOCAL_SESSION_KEY =
-  "supportdesk-pro-auth-local";
+export type {
+  AuthUser,
+} from "./sessionService";
 
-const TEMPORARY_SESSION_KEY =
-  "supportdesk-pro-auth-session";
-
-export type AuthUser =
-  Omit<
-    User,
-    "password"
-  >;
+export type LogoutReason =
+  | "manual"
+  | "inactivity"
+  | "maximum_duration"
+  | "user_inactive"
+  | "user_deleted";
 
 export interface LoginData {
   email: string;
@@ -49,70 +67,111 @@ function removePassword(
   return authenticatedUser;
 }
 
-function saveSession(
-  user: AuthUser,
-  remember: boolean
+function registerLoginFailureAudit(
+  email: string
 ): void {
-  localStorage.removeItem(
-    LOCAL_SESSION_KEY
-  );
+  createAuditLog({
+    module:
+      "Autenticação",
 
-  sessionStorage.removeItem(
-    TEMPORARY_SESSION_KEY
-  );
+    action:
+      "Falha de login",
 
-  const serializedUser =
-    JSON.stringify(
-      user
+    userId:
+      null,
+
+    userName:
+      "Não autenticado",
+
+    entityId:
+      null,
+
+    description:
+      "Tentativa de login com credenciais inválidas.",
+
+    details:
+      `E-mail informado: ${email}`,
+  });
+}
+
+function registerLoginBlockAudit(
+  email: string,
+  remainingMilliseconds: number
+): void {
+  createAuditLog({
+    module:
+      "Autenticação",
+
+    action:
+      "Bloqueio de login",
+
+    userId:
+      null,
+
+    userName:
+      "Não autenticado",
+
+    entityId:
+      null,
+
+    description:
+      "Login temporariamente bloqueado após excesso de tentativas inválidas.",
+
+    details:
+      `E-mail informado: ${email} | Tempo restante: ${formatLoginBlockTime(
+        remainingMilliseconds
+      )}`,
+  });
+}
+
+function throwBlockedLoginError(
+  email: string,
+  registerAudit: boolean
+): never {
+  const remainingMilliseconds =
+    getRemainingBlockMilliseconds(
+      email
     );
 
-  if (remember) {
-    localStorage.setItem(
-      LOCAL_SESSION_KEY,
-      serializedUser
+  if (registerAudit) {
+    registerLoginBlockAudit(
+      email,
+      remainingMilliseconds
     );
-
-    return;
   }
 
-  sessionStorage.setItem(
-    TEMPORARY_SESSION_KEY,
-    serializedUser
+  throw new Error(
+    `Muitas tentativas de login foram realizadas. Tente novamente em ${formatLoginBlockTime(
+      remainingMilliseconds
+    )}.`
   );
 }
 
-function parseStoredUser(
-  storedValue: string | null
-): AuthUser | null {
-  if (!storedValue) {
-    return null;
+function registerInvalidCredentials(
+  email: string
+): never {
+  registerLoginFailureAudit(
+    email
+  );
+
+  registerFailedLoginAttempt(
+    email
+  );
+
+  if (
+    isLoginBlocked(
+      email
+    )
+  ) {
+    throwBlockedLoginError(
+      email,
+      true
+    );
   }
 
-  try {
-    const parsedUser =
-      JSON.parse(
-        storedValue
-      ) as Partial<AuthUser>;
-
-    if (
-      typeof parsedUser.id !==
-        "number" ||
-      typeof parsedUser.name !==
-        "string" ||
-      typeof parsedUser.email !==
-        "string" ||
-      typeof parsedUser.role !==
-        "string" ||
-      typeof parsedUser.status !==
-        "string"
-    ) {
-      return null;
-    }
-
-    return parsedUser as AuthUser;
-  } catch {
-    return null;
-  }
+  throw new Error(
+    "E-mail ou senha inválidos."
+  );
 }
 
 export async function login({
@@ -125,6 +184,17 @@ export async function login({
       .trim()
       .toLowerCase();
 
+  if (
+    isLoginBlocked(
+      normalizedEmail
+    )
+  ) {
+    throwBlockedLoginError(
+      normalizedEmail,
+      true
+    );
+  }
+
   const user =
     getUsers().find(
       (currentUser) =>
@@ -135,8 +205,8 @@ export async function login({
     );
 
   if (!user) {
-    throw new Error(
-      "E-mail ou senha inválidos."
+    registerInvalidCredentials(
+      normalizedEmail
     );
   }
 
@@ -147,10 +217,14 @@ export async function login({
     );
 
   if (!validPassword) {
-    throw new Error(
-      "E-mail ou senha inválidos."
+    registerInvalidCredentials(
+      normalizedEmail
     );
   }
+
+  resetLoginAttempts(
+    normalizedEmail
+  );
 
   if (
     user.status !==
@@ -164,11 +238,6 @@ export async function login({
   let authenticatedUserData =
     user;
 
-  /*
-   * Migração automática:
-   * caso a senha ainda esteja em texto puro,
-   * updateUser gera e salva o hash PBKDF2.
-   */
   if (
     !isPasswordHash(
       user.password
@@ -224,75 +293,153 @@ export async function login({
   return authenticatedUser;
 }
 
-export function logout(): void {
+export function logout(
+  reason: LogoutReason =
+    "manual"
+): void {
   const currentUser =
-    getCurrentUser();
+    getCurrentUserFromSession();
 
   if (currentUser) {
-    createAuditLog({
-      module:
-        "Autenticação",
+    if (
+      reason ===
+      "inactivity"
+    ) {
+      createAuditLog({
+        module:
+          "Autenticação",
 
-      action:
-        "Logout",
+        action:
+          "Sessão expirada",
 
-      userId:
-        currentUser.id,
+        userId:
+          currentUser.id,
 
-      userName:
-        currentUser.name,
+        userName:
+          currentUser.name,
 
-      entityId:
-        currentUser.id,
+        entityId:
+          currentUser.id,
 
-      description:
-        "Logout realizado com sucesso.",
+        description:
+          "Sessão encerrada automaticamente por inatividade.",
 
-      details:
-        `Perfil: ${currentUser.role}`,
-    });
+        details:
+          `Perfil: ${currentUser.role}`,
+      });
+    } else if (
+      reason ===
+      "maximum_duration"
+    ) {
+      createAuditLog({
+        module:
+          "Autenticação",
+
+        action:
+          "Sessão expirada",
+
+        userId:
+          currentUser.id,
+
+        userName:
+          currentUser.name,
+
+        entityId:
+          currentUser.id,
+
+        description:
+          "Sessão encerrada após atingir a duração máxima permitida.",
+
+        details:
+          `Perfil: ${currentUser.role}`,
+      });
+    } else if (
+      reason ===
+      "user_inactive"
+    ) {
+      createAuditLog({
+        module:
+          "Autenticação",
+
+        action:
+          "Sessão invalidada",
+
+        userId:
+          currentUser.id,
+
+        userName:
+          currentUser.name,
+
+        entityId:
+          currentUser.id,
+
+        description:
+          "Sessão invalidada porque o usuário foi inativado.",
+
+        details:
+          `Perfil: ${currentUser.role}`,
+      });
+    } else if (
+      reason ===
+      "user_deleted"
+    ) {
+      createAuditLog({
+        module:
+          "Autenticação",
+
+        action:
+          "Sessão invalidada",
+
+        userId:
+          currentUser.id,
+
+        userName:
+          currentUser.name,
+
+        entityId:
+          currentUser.id,
+
+        description:
+          "Sessão invalidada porque o usuário não existe mais.",
+
+        details:
+          `Perfil: ${currentUser.role}`,
+      });
+    } else {
+      createAuditLog({
+        module:
+          "Autenticação",
+
+        action:
+          "Logout",
+
+        userId:
+          currentUser.id,
+
+        userName:
+          currentUser.name,
+
+        entityId:
+          currentUser.id,
+
+        description:
+          "Logout realizado com sucesso.",
+
+        details:
+          `Perfil: ${currentUser.role}`,
+      });
+    }
   }
 
-  localStorage.removeItem(
-    LOCAL_SESSION_KEY
-  );
-
-  sessionStorage.removeItem(
-    TEMPORARY_SESSION_KEY
-  );
+  clearSession();
 }
 
 export function getCurrentUser():
   AuthUser | null {
-  const localUser =
-    parseStoredUser(
-      localStorage.getItem(
-        LOCAL_SESSION_KEY
-      )
-    );
-
-  if (localUser) {
-    return localUser;
-  }
-
-  const temporaryUser =
-    parseStoredUser(
-      sessionStorage.getItem(
-        TEMPORARY_SESSION_KEY
-      )
-    );
-
-  if (temporaryUser) {
-    return temporaryUser;
-  }
-
-  return null;
+  return getCurrentUserFromSession();
 }
 
 export function isAuthenticated():
   boolean {
-  return (
-    getCurrentUser() !==
-    null
-  );
+  return isAuthenticatedFromSession();
 }

@@ -116,6 +116,9 @@ const defaultSettings: SettingsFormData = {
   sessionTimeoutMinutes:
     60,
 
+  maximumSessionDurationMinutes:
+    480,
+
   requireStrongPassword:
     true,
 
@@ -366,6 +369,24 @@ function SettingsPage() {
         ...currentSettings,
 
         sessionTimeoutMinutes:
+          value,
+      })
+    );
+
+    markAsChanged();
+  }
+
+  function handleMaximumSessionDurationChange(
+    value:
+      number
+  ): void {
+    setSettings(
+      (
+        currentSettings
+      ) => ({
+        ...currentSettings,
+
+        maximumSessionDurationMinutes:
           value,
       })
     );
@@ -786,6 +807,9 @@ function SettingsPage() {
                 sessionTimeoutMinutes:
                   settings.sessionTimeoutMinutes,
 
+                maximumSessionDurationMinutes:
+                  settings.maximumSessionDurationMinutes,
+
                 requireStrongPassword:
                   settings.requireStrongPassword,
 
@@ -797,6 +821,9 @@ function SettingsPage() {
               }
               onSessionTimeoutChange={
                 handleSessionTimeoutChange
+              }
+              onMaximumSessionDurationChange={
+                handleMaximumSessionDurationChange
               }
             />
           </Grid>

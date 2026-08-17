@@ -18,15 +18,29 @@ import {
 import type {
   AuthUser,
   LoginData,
+  LogoutReason,
 } from "../services/authService";
+
+import {
+  updateCurrentSessionUser,
+} from "../services/sessionService";
 
 interface AuthContextValue {
   user: AuthUser | null;
+
   authenticated: boolean;
+
   login: (
     loginData: LoginData
   ) => Promise<AuthUser>;
-  logout: () => void;
+
+  logout: (
+    reason?: LogoutReason
+  ) => void;
+
+  refreshUser: (
+    user: AuthUser
+  ) => void;
 }
 
 interface AuthProviderProps {
@@ -34,54 +48,99 @@ interface AuthProviderProps {
 }
 
 const AuthContext =
-  createContext<AuthContextValue | null>(null);
+  createContext<AuthContextValue | null>(
+    null
+  );
 
 export function AuthProvider({
   children,
 }: AuthProviderProps) {
-  const [user, setUser] =
-    useState<AuthUser | null>(() =>
-      getCurrentUser()
+  const [
+    user,
+    setUser,
+  ] =
+    useState<AuthUser | null>(
+      () =>
+        getCurrentUser()
     );
 
   async function login(
     loginData: LoginData
   ): Promise<AuthUser> {
     const authenticatedUser =
-      await loginService(loginData);
+      await loginService(
+        loginData
+      );
 
-    setUser(authenticatedUser);
+    setUser(
+      authenticatedUser
+    );
 
     return authenticatedUser;
   }
 
-  function logout(): void {
-    logoutService();
-    setUser(null);
+  function logout(
+    reason: LogoutReason =
+      "manual"
+  ): void {
+    logoutService(
+      reason
+    );
+
+    setUser(
+      null
+    );
+  }
+
+  function refreshUser(
+    refreshedUser: AuthUser
+  ): void {
+    updateCurrentSessionUser(
+      refreshedUser
+    );
+
+    setUser(
+      refreshedUser
+    );
   }
 
   const contextValue =
     useMemo<AuthContextValue>(
       () => ({
         user,
-        authenticated: user !== null,
+
+        authenticated:
+          user !==
+          null,
+
         login,
+
         logout,
+
+        refreshUser,
       }),
-      [user]
+      [
+        user,
+      ]
     );
 
   return (
     <AuthContext.Provider
-      value={contextValue}
+      value={
+        contextValue
+      }
     >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
+export function useAuth():
+  AuthContextValue {
+  const context =
+    useContext(
+      AuthContext
+    );
 
   if (!context) {
     throw new Error(

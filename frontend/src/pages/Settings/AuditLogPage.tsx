@@ -92,6 +92,12 @@ function getActionColor(
     case "Logout":
       return "default";
 
+    case "Falha de login":
+      return "warning";
+
+    case "Bloqueio de login":
+      return "error";
+
     case "Criação":
       return "success";
 
@@ -673,17 +679,13 @@ function AuditLogPage() {
             Refine os eventos de auditoria por texto, módulo, ação, usuário ou período.
           </Typography>
 
-          <Stack
-            spacing={2}
-          >
+          <Stack spacing={2}>
             <TextField
               fullWidth
               label="Pesquisar"
               placeholder="Usuário, descrição, detalhes, módulo, ação ou número do registro..."
               value={search}
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 handleSearchChange(
                   event.target.value
                 )
@@ -724,9 +726,7 @@ function AuditLogPage() {
                 value={
                   moduleFilter
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   handleModuleChange(
                     event.target.value
                   )
@@ -758,9 +758,7 @@ function AuditLogPage() {
                 value={
                   actionFilter
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   handleActionChange(
                     event.target.value
                   )
@@ -792,9 +790,7 @@ function AuditLogPage() {
                 value={
                   userFilter
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   handleUserChange(
                     event.target.value
                   )
@@ -826,9 +822,7 @@ function AuditLogPage() {
                 value={
                   startDate
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   handleStartDateChange(
                     event.target.value
                   )
@@ -847,9 +841,7 @@ function AuditLogPage() {
                 value={
                   endDate
                 }
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   handleEndDateChange(
                     event.target.value
                   )

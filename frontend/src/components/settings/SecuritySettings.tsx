@@ -1,4 +1,5 @@
 import {
+  AccessTimeOutlined,
   LockOutlined,
   SecurityOutlined,
   TimerOutlined,
@@ -18,19 +19,26 @@ import {
 
 export interface SecuritySettingsData {
   sessionTimeoutMinutes: number;
+  maximumSessionDurationMinutes: number;
   requireStrongPassword: boolean;
   automaticLogout: boolean;
 }
 
 interface SecuritySettingsProps {
   settings: SecuritySettingsData;
+
   onSwitchChange: (
     field:
       | "requireStrongPassword"
       | "automaticLogout",
     checked: boolean
   ) => void;
+
   onSessionTimeoutChange: (
+    value: number
+  ) => void;
+
+  onMaximumSessionDurationChange: (
     value: number
   ) => void;
 }
@@ -39,6 +47,7 @@ function SecuritySettings({
   settings,
   onSwitchChange,
   onSessionTimeoutChange,
+  onMaximumSessionDurationChange,
 }: SecuritySettingsProps) {
   return (
     <Paper
@@ -48,6 +57,7 @@ function SecuritySettings({
           xs: 2.5,
           md: 3,
         },
+
         height: "100%",
       }}
     >
@@ -73,18 +83,17 @@ function SecuritySettings({
           variant="body2"
           color="text.secondary"
         >
-          Defina regras de sessão e políticas básicas de
-          segurança.
+          Defina regras de sessão e políticas básicas de segurança.
         </Typography>
 
         <FormControl fullWidth>
           <InputLabel id="session-timeout-label">
-            Tempo da sessão
+            Tempo de inatividade
           </InputLabel>
 
           <Select
             labelId="session-timeout-label"
-            label="Tempo da sessão"
+            label="Tempo de inatividade"
             value={
               settings.sessionTimeoutMinutes
             }
@@ -106,6 +115,10 @@ function SecuritySettings({
               />
             }
           >
+            <MenuItem value={1}>
+              1 minuto
+            </MenuItem>
+
             <MenuItem value={15}>
               15 minutos
             </MenuItem>
@@ -124,6 +137,61 @@ function SecuritySettings({
 
             <MenuItem value={480}>
               8 horas
+            </MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <InputLabel id="maximum-session-duration-label">
+            Duração máxima da sessão
+          </InputLabel>
+
+          <Select
+            labelId="maximum-session-duration-label"
+            label="Duração máxima da sessão"
+            value={
+              settings.maximumSessionDurationMinutes
+            }
+            onChange={(event) =>
+              onMaximumSessionDurationChange(
+                Number(
+                  event.target.value
+                )
+              )
+            }
+            startAdornment={
+              <AccessTimeOutlined
+                fontSize="small"
+                sx={{
+                  mr: 1,
+                  color:
+                    "text.secondary",
+                }}
+              />
+            }
+          >
+            <MenuItem value={1}>
+              1 minuto
+            </MenuItem>
+
+            <MenuItem value={60}>
+              1 hora
+            </MenuItem>
+
+            <MenuItem value={240}>
+              4 horas
+            </MenuItem>
+
+            <MenuItem value={480}>
+              8 horas
+            </MenuItem>
+
+            <MenuItem value={720}>
+              12 horas
+            </MenuItem>
+
+            <MenuItem value={1440}>
+              24 horas
             </MenuItem>
           </Select>
         </FormControl>
@@ -180,9 +248,7 @@ function SecuritySettings({
           variant="caption"
           color="text.secondary"
         >
-          Nesta versão, as preferências são armazenadas
-          localmente. A aplicação real dessas regras será
-          concluída com a autenticação do backend.
+          O tempo de inatividade controla o logout automático sem interação. A duração máxima limita o tempo total da sessão, mesmo com o usuário ativo.
         </Typography>
       </Stack>
     </Paper>

@@ -11,6 +11,10 @@ export type AuditModule =
 export type AuditAction =
   | "Login"
   | "Logout"
+  | "Falha de login"
+  | "Bloqueio de login"
+  | "Sessão expirada"
+  | "Sessão invalidada"
   | "Criação"
   | "Edição"
   | "Exclusão"
@@ -29,45 +33,14 @@ export interface AuditLog {
 
   action: AuditAction;
 
-  /*
-   * Usuário responsável pela ação.
-   *
-   * null é permitido para eventos em que
-   * não existe um usuário autenticado.
-   */
   userId: number | null;
 
-  /*
-   * Nome do usuário no momento em que
-   * a ação foi registrada.
-   *
-   * Mantemos também o nome para preservar
-   * o histórico mesmo se o usuário for
-   * alterado futuramente.
-   */
   userName: string;
 
-  /*
-   * ID do registro afetado.
-   *
-   * Exemplo:
-   * chamado #1024, equipamento #15 etc.
-   */
   entityId: number | null;
 
-  /*
-   * Descrição curta do evento.
-   */
   description: string;
 
-  /*
-   * Informações adicionais opcionais.
-   *
-   * Poderemos utilizar este campo para
-   * registrar valores anteriores/novos
-   * sem precisar modificar a estrutura
-   * principal da auditoria.
-   */
   details?: string;
 
   createdAt: string;

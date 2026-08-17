@@ -9,6 +9,18 @@ import {
 import AppRoutes from "./routes";
 
 import {
+  useMaximumSessionDuration,
+} from "./hooks/useMaximumSessionDuration";
+
+import {
+  useSessionTimeout,
+} from "./hooks/useSessionTimeout";
+
+import {
+  useSessionValidation,
+} from "./hooks/useSessionValidation";
+
+import {
   useSlaMonitor,
 } from "./hooks/useSlaMonitor";
 
@@ -16,10 +28,18 @@ function PageLoading() {
   return (
     <div
       style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        minHeight:
+          "100vh",
+
+        display:
+          "flex",
+
+        alignItems:
+          "center",
+
+        justifyContent:
+          "center",
+
         fontFamily:
           "Roboto, Arial, sans-serif",
       }}
@@ -31,6 +51,12 @@ function PageLoading() {
 
 function AppContent() {
   useSlaMonitor();
+
+  useSessionTimeout();
+
+  useMaximumSessionDuration();
+
+  useSessionValidation();
 
   return (
     <Suspense

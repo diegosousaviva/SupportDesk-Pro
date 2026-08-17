@@ -39,6 +39,8 @@ import {
   SnackbarProvider,
 } from "./contexts/SnackbarContext";
 
+import GlobalErrorBoundary from "./components/common/GlobalErrorBoundary";
+
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
@@ -77,16 +79,18 @@ function Root() {
   const [
     preference,
     setPreference,
-  ] = useState<ColorModePreference>(
-    loadColorModePreference
-  );
+  ] =
+    useState<ColorModePreference>(
+      loadColorModePreference
+    );
 
   const [
     systemMode,
     setSystemMode,
-  ] = useState<PaletteMode>(
-    getSystemMode
-  );
+  ] =
+    useState<PaletteMode>(
+      getSystemMode
+    );
 
   useEffect(() => {
     const mediaQuery =
@@ -95,7 +99,8 @@ function Root() {
       );
 
     function handleSystemThemeChange(
-      event: MediaQueryListEvent
+      event:
+        MediaQueryListEvent
     ): void {
       setSystemMode(
         event.matches
@@ -117,10 +122,12 @@ function Root() {
     };
   }, []);
 
-  const mode: PaletteMode =
-    preference === "system"
-      ? systemMode
-      : preference;
+  const mode:
+    PaletteMode =
+      preference ===
+      "system"
+        ? systemMode
+        : preference;
 
   const colorMode =
     useMemo(
@@ -142,22 +149,24 @@ function Root() {
           );
         },
 
-        toggleColorMode: () => {
-          const newPreference:
-            ColorModePreference =
-              mode === "light"
-                ? "dark"
-                : "light";
+        toggleColorMode:
+          () => {
+            const newPreference:
+              ColorModePreference =
+                mode ===
+                "light"
+                  ? "dark"
+                  : "light";
 
-          setPreference(
-            newPreference
-          );
+            setPreference(
+              newPreference
+            );
 
-          localStorage.setItem(
-            COLOR_MODE_STORAGE_KEY,
-            newPreference
-          );
-        },
+            localStorage.setItem(
+              COLOR_MODE_STORAGE_KEY,
+              newPreference
+            );
+          },
       }),
       [
         mode,
@@ -171,23 +180,33 @@ function Root() {
         createAppTheme(
           mode
         ),
-      [mode]
+      [
+        mode,
+      ]
     );
 
   return (
     <ColorModeContext.Provider
-      value={colorMode}
+      value={
+        colorMode
+      }
     >
-      <ThemeProvider theme={theme}>
+      <ThemeProvider
+        theme={
+          theme
+        }
+      >
         <CssBaseline />
 
-        <SnackbarProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <App />
-            </NotificationProvider>
-          </AuthProvider>
-        </SnackbarProvider>
+        <GlobalErrorBoundary>
+          <SnackbarProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <App />
+              </NotificationProvider>
+            </AuthProvider>
+          </SnackbarProvider>
+        </GlobalErrorBoundary>
       </ThemeProvider>
     </ColorModeContext.Provider>
   );

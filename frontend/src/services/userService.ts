@@ -1,5 +1,6 @@
 import type {
   User,
+  UserRole,
   UserStatus,
 } from "../types/User";
 
@@ -12,6 +13,7 @@ import {
 } from "../repositories/userRepository";
 
 import {
+  assertStrongPassword,
   hashPassword,
   isPasswordHash,
 } from "../utils/password";
@@ -22,7 +24,7 @@ import {
 
 import {
   getCurrentUser,
-} from "./authService";
+} from "./sessionService";
 
 import {
   createUserHistory,
@@ -32,6 +34,52 @@ export type CreateUserData = Omit<
   User,
   "id"
 >;
+
+const SETTINGS_STORAGE_KEY =
+  "supportdesk-pro-settings";
+
+function isStrongPasswordRequired():
+  boolean {
+  try {
+    const storedSettings =
+      localStorage.getItem(
+        SETTINGS_STORAGE_KEY
+      );
+
+    if (!storedSettings) {
+      return true;
+    }
+
+    const parsedSettings =
+      JSON.parse(
+        storedSettings
+      ) as {
+        requireStrongPassword?:
+          unknown;
+      };
+
+    return (
+      parsedSettings.requireStrongPassword !==
+      false
+    );
+  } catch {
+    return true;
+  }
+}
+
+function validatePasswordPolicy(
+  password: string
+): void {
+  if (
+    !isStrongPasswordRequired()
+  ) {
+    return;
+  }
+
+  assertStrongPassword(
+    password
+  );
+}
 
 function getAuditUser(): {
   userId: number | null;
@@ -90,7 +138,8 @@ function registerUserAudit(
   });
 }
 
-export function getUsers(): User[] {
+export function getUsers():
+  User[] {
   return findAllUsers();
 }
 
@@ -100,6 +149,137 @@ export function getUserById(
   return findUserById(
     id
   );
+}
+
+function getActiveAdministrators():
+  User[] {
+  return getUsers().filter(
+    (user) =>
+      user.role ===
+        "Administrador" &&
+      user.status ===
+        "Ativo"
+  );
+}
+
+function isCurrentSessionUser(
+  userId: number
+): boolean {
+  const sessionUser =
+    getCurrentUser();
+
+  return (
+    sessionUser?.id ===
+    userId
+  );
+}
+
+function validateAdministratorUpdate(
+  currentUser: User,
+  updatedData: Partial<User>
+): void {
+  const newRole:
+    UserRole =
+      updatedData.role ??
+      currentUser.role;
+
+  const newStatus:
+    UserStatus =
+      updatedData.status ??
+      currentUser.status;
+
+  const wasActiveAdministrator =
+    currentUser.role ===
+      "Administrador" &&
+    currentUser.status ===
+      "Ativo";
+
+  const willBeActiveAdministrator =
+    newRole ===
+      "Administrador" &&
+    newStatus ===
+      "Ativo";
+
+  if (
+    !wasActiveAdministrator ||
+    willBeActiveAdministrator
+  ) {
+    return;
+  }
+
+  if (
+    isCurrentSessionUser(
+      currentUser.id
+    )
+  ) {
+    if (
+      newStatus !==
+      "Ativo"
+    ) {
+      throw new Error(
+        "Você não pode inativar sua própria conta administrativa."
+      );
+    }
+
+    if (
+      newRole !==
+      "Administrador"
+    ) {
+      throw new Error(
+        "Você não pode remover o perfil de Administrador da sua própria conta."
+      );
+    }
+  }
+
+  const activeAdministrators =
+    getActiveAdministrators();
+
+  if (
+    activeAdministrators.length <=
+    1
+  ) {
+    throw new Error(
+      "O sistema deve possuir pelo menos um Administrador ativo."
+    );
+  }
+}
+
+function validateAdministratorDeletion(
+  user: User
+): void {
+  if (
+    isCurrentSessionUser(
+      user.id
+    )
+  ) {
+    throw new Error(
+      "Você não pode excluir sua própria conta enquanto estiver conectado."
+    );
+  }
+
+  const isActiveAdministrator =
+    user.role ===
+      "Administrador" &&
+    user.status ===
+      "Ativo";
+
+  if (
+    !isActiveAdministrator
+  ) {
+    return;
+  }
+
+  const activeAdministrators =
+    getActiveAdministrators();
+
+  if (
+    activeAdministrators.length <=
+    1
+  ) {
+    throw new Error(
+      "O sistema deve possuir pelo menos um Administrador ativo."
+    );
+  }
 }
 
 function validateEmailAvailability(
@@ -138,6 +318,16 @@ export async function createUser(
 
   const normalizedPassword =
     userData.password.trim();
+
+  if (
+    !isPasswordHash(
+      normalizedPassword
+    )
+  ) {
+    validatePasswordPolicy(
+      normalizedPassword
+    );
+  }
 
   const protectedPassword =
     isPasswordHash(
@@ -213,6 +403,11 @@ export async function updateUser(
     return undefined;
   }
 
+  validateAdministratorUpdate(
+    currentUser,
+    updatedData
+  );
+
   if (
     updatedData.email !==
     undefined
@@ -236,6 +431,16 @@ export async function updateUser(
     const normalizedPassword =
       updatedData.password?.trim() ??
       "";
+
+    if (
+      !isPasswordHash(
+        normalizedPassword
+      )
+    ) {
+      validatePasswordPolicy(
+        normalizedPassword
+      );
+    }
 
     password =
       isPasswordHash(
@@ -494,6 +699,10 @@ export function deleteUser(
   if (!currentUser) {
     return false;
   }
+
+  validateAdministratorDeletion(
+    currentUser
+  );
 
   createUserHistory({
     userId:

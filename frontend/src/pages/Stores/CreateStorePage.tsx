@@ -2,29 +2,27 @@ import {
   useState,
 } from "react";
 
-import type {
-  FormEvent,
-} from "react";
-
-import {
-  useNavigate,
-} from "react-router-dom";
-
 import {
   Alert,
   Box,
   Button,
-  MenuItem,
   Paper,
-  Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 
 import {
   ArrowBack,
-  Save,
 } from "@mui/icons-material";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import StoreForm from "../../components/forms/StoreForm";
+
+import type {
+  StoreFormData,
+} from "../../components/forms/StoreForm";
 
 import MainLayout from "../../components/layout/MainLayout";
 
@@ -36,10 +34,6 @@ import {
   createStore,
 } from "../../services/storeService";
 
-import type {
-  StoreStatus,
-} from "../../types/Store";
-
 function CreateStorePage() {
   const navigate =
     useNavigate();
@@ -47,63 +41,6 @@ function CreateStorePage() {
   const {
     showSnackbar,
   } = useSnackbar();
-
-  const [
-    code,
-    setCode,
-  ] = useState("");
-
-  const [
-    name,
-    setName,
-  ] = useState("");
-
-  const [
-    status,
-    setStatus,
-  ] = useState<StoreStatus>(
-    "Ativa"
-  );
-
-  const [
-    address,
-    setAddress,
-  ] = useState("");
-
-  const [
-    city,
-    setCity,
-  ] = useState("");
-
-  const [
-    state,
-    setState,
-  ] = useState("");
-
-  const [
-    zipCode,
-    setZipCode,
-  ] = useState("");
-
-  const [
-    phone,
-    setPhone,
-  ] = useState("");
-
-  const [
-    email,
-    setEmail,
-  ] = useState("");
-
-  const [
-    manager,
-    setManager,
-  ] = useState("");
-
-  const [
-    notes,
-    setNotes,
-  ] = useState("");
 
   const [
     errorMessage,
@@ -115,8 +52,11 @@ function CreateStorePage() {
     setIsSaving,
   ] = useState(false);
 
-  function handleBack(): void {
-    if (isSaving) {
+  function handleBack():
+    void {
+    if (
+      isSaving
+    ) {
       return;
     }
 
@@ -126,34 +66,32 @@ function CreateStorePage() {
   }
 
   function handleSubmit(
-    event: FormEvent<HTMLFormElement>
+    values:
+      StoreFormData
   ): void {
-    event.preventDefault();
+    if (
+      isSaving
+    ) {
+      return;
+    }
 
     setErrorMessage("");
 
     try {
-      setIsSaving(true);
+      setIsSaving(
+        true
+      );
 
       const createdStore =
-        createStore({
-          code,
-          name,
-          status,
-          address,
-          city,
-          state,
-          zipCode,
-          phone,
-          email,
-          manager,
-          notes,
-        });
+        createStore(
+          values
+        );
 
       showSnackbar(
         "Loja cadastrada com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
 
@@ -178,11 +116,14 @@ function CreateStorePage() {
       showSnackbar(
         message,
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     } finally {
-      setIsSaving(false);
+      setIsSaving(
+        false
+      );
     }
   }
 
@@ -190,7 +131,8 @@ function CreateStorePage() {
     <MainLayout title="Nova Loja">
       <Box
         sx={{
-          maxWidth: 960,
+          maxWidth:
+            960,
         }}
       >
         <Button
@@ -205,7 +147,8 @@ function CreateStorePage() {
             isSaving
           }
           sx={{
-            mb: 2,
+            mb:
+              2,
           }}
         >
           Voltar para lojas
@@ -216,7 +159,8 @@ function CreateStorePage() {
           component="h1"
           fontWeight={700}
           sx={{
-            mb: 1,
+            mb:
+              1,
           }}
         >
           Cadastrar nova loja
@@ -225,21 +169,24 @@ function CreateStorePage() {
         <Typography
           color="text.secondary"
           sx={{
-            mb: 3,
+            mb:
+              3,
           }}
         >
-          Informe os dados da unidade que será utilizada
-          no inventário.
+          Informe os dados da unidade que será utilizada no inventário.
         </Typography>
 
         {errorMessage && (
           <Alert
             severity="error"
             sx={{
-              mb: 3,
+              mb:
+                3,
             }}
             onClose={() =>
-              setErrorMessage("")
+              setErrorMessage(
+                ""
+              )
             }
           >
             {errorMessage}
@@ -249,273 +196,26 @@ function CreateStorePage() {
         <Paper
           sx={{
             p: {
-              xs: 2.5,
-              md: 4,
+              xs:
+                2.5,
+
+              md:
+                4,
             },
           }}
         >
-          <Box
-            component="form"
+          <StoreForm
             onSubmit={
               handleSubmit
             }
-          >
-            <Stack spacing={3}>
-              <Stack
-                direction={{
-                  xs: "column",
-                  md: "row",
-                }}
-                spacing={2}
-              >
-                <TextField
-                  label="Código da loja"
-                  value={code}
-                  onChange={(event) =>
-                    setCode(
-                      event.target.value
-                    )
-                  }
-                  helperText="Exemplo: LJ001"
-                  fullWidth
-                  required
-                  disabled={
-                    isSaving
-                  }
-                  slotProps={{
-                    htmlInput: {
-                      maxLength: 20,
-                    },
-                  }}
-                />
-
-                <TextField
-                  label="Nome da loja"
-                  value={name}
-                  onChange={(event) =>
-                    setName(
-                      event.target.value
-                    )
-                  }
-                  fullWidth
-                  required
-                  disabled={
-                    isSaving
-                  }
-                  slotProps={{
-                    htmlInput: {
-                      maxLength: 100,
-                    },
-                  }}
-                />
-
-                <TextField
-                  select
-                  label="Status"
-                  value={status}
-                  onChange={(event) =>
-                    setStatus(
-                      event.target
-                        .value as StoreStatus
-                    )
-                  }
-                  fullWidth
-                  disabled={
-                    isSaving
-                  }
-                >
-                  <MenuItem value="Ativa">
-                    Ativa
-                  </MenuItem>
-
-                  <MenuItem value="Inativa">
-                    Inativa
-                  </MenuItem>
-                </TextField>
-              </Stack>
-
-              <TextField
-                label="Endereço"
-                value={address}
-                onChange={(event) =>
-                  setAddress(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-
-              <Stack
-                direction={{
-                  xs: "column",
-                  md: "row",
-                }}
-                spacing={2}
-              >
-                <TextField
-                  label="Cidade"
-                  value={city}
-                  onChange={(event) =>
-                    setCity(
-                      event.target.value
-                    )
-                  }
-                  fullWidth
-                  disabled={
-                    isSaving
-                  }
-                />
-
-                <TextField
-                  label="Estado"
-                  value={state}
-                  onChange={(event) =>
-                    setState(
-                      event.target.value
-                    )
-                  }
-                  placeholder="SP"
-                  fullWidth
-                  disabled={
-                    isSaving
-                  }
-                  slotProps={{
-                    htmlInput: {
-                      maxLength: 2,
-                    },
-                  }}
-                />
-
-                <TextField
-                  label="CEP"
-                  value={zipCode}
-                  onChange={(event) =>
-                    setZipCode(
-                      event.target.value
-                    )
-                  }
-                  fullWidth
-                  disabled={
-                    isSaving
-                  }
-                />
-              </Stack>
-
-              <Stack
-                direction={{
-                  xs: "column",
-                  md: "row",
-                }}
-                spacing={2}
-              >
-                <TextField
-                  label="Telefone"
-                  value={phone}
-                  onChange={(event) =>
-                    setPhone(
-                      event.target.value
-                    )
-                  }
-                  fullWidth
-                  disabled={
-                    isSaving
-                  }
-                />
-
-                <TextField
-                  label="E-mail"
-                  type="email"
-                  value={email}
-                  onChange={(event) =>
-                    setEmail(
-                      event.target.value
-                    )
-                  }
-                  fullWidth
-                  disabled={
-                    isSaving
-                  }
-                />
-              </Stack>
-
-              <TextField
-                label="Gerente responsável"
-                value={manager}
-                onChange={(event) =>
-                  setManager(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-
-              <TextField
-                label="Observações"
-                value={notes}
-                onChange={(event) =>
-                  setNotes(
-                    event.target.value
-                  )
-                }
-                multiline
-                rows={5}
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-
-              <Stack
-                direction={{
-                  xs: "column",
-                  sm: "row",
-                }}
-                spacing={2}
-                justifyContent="flex-end"
-              >
-                <Button
-                  variant="outlined"
-                  startIcon={
-                    <ArrowBack />
-                  }
-                  onClick={
-                    handleBack
-                  }
-                  disabled={
-                    isSaving
-                  }
-                >
-                  Cancelar
-                </Button>
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={
-                    <Save />
-                  }
-                  loading={
-                    isSaving
-                  }
-                  disabled={
-                    isSaving ||
-                    !code.trim() ||
-                    !name.trim()
-                  }
-                >
-                  {isSaving
-                    ? "Salvando..."
-                    : "Salvar loja"}
-                </Button>
-              </Stack>
-            </Stack>
-          </Box>
+            onCancel={
+              handleBack
+            }
+            saving={
+              isSaving
+            }
+            submitLabel="Salvar loja"
+          />
         </Paper>
       </Box>
     </MainLayout>

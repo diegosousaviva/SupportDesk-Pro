@@ -31,12 +31,46 @@ interface NoteAccessUser {
   role: string;
 }
 
+const MINIMUM_TITLE_LENGTH =
+  3;
+
+const MAXIMUM_TITLE_LENGTH =
+  150;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  10;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  10000;
+
+const VALID_CATEGORIES:
+  readonly NoteCategory[] = [
+    "Geral",
+    "Procedimento",
+    "Documentação",
+    "Inventário",
+    "Chamado",
+    "Loja",
+    "Outro",
+  ];
+
 function isAdministrator(
   user: NoteAccessUser
 ): boolean {
   return (
     user.role ===
     "Administrador"
+  );
+}
+
+function isValidNoteId(
+  noteId: number
+): boolean {
+  return (
+    Number.isInteger(
+      noteId
+    ) &&
+    noteId > 0
   );
 }
 
@@ -64,22 +98,37 @@ function validateUser(
   }
 }
 
-function validateNoteCategory(
-  category: NoteCategory
+function validateRegisteredUser(
+  user:
+    NoteAccessUser
 ): void {
-  const validCategories:
-    NoteCategory[] = [
-      "Geral",
-      "Procedimento",
-      "Documentação",
-      "Inventário",
-      "Chamado",
-      "Loja",
-      "Outro",
-    ];
+  const registeredUser =
+    getUserById(
+      user.id
+    );
+
+  if (!registeredUser) {
+    throw new Error(
+      "O usuário responsável pela operação não foi encontrado."
+    );
+  }
 
   if (
-    !validCategories.includes(
+    registeredUser.status !==
+    "Ativo"
+  ) {
+    throw new Error(
+      "O usuário responsável pela operação está inativo."
+    );
+  }
+}
+
+function validateNoteCategory(
+  category:
+    NoteCategory
+): void {
+  if (
+    !VALID_CATEGORIES.includes(
       category
     )
   ) {
@@ -95,18 +144,29 @@ function validateTitle(
   const normalizedTitle =
     title.trim();
 
-  if (!normalizedTitle) {
+  if (
+    !normalizedTitle
+  ) {
     throw new Error(
       "Informe o título da nota."
     );
   }
 
   if (
-    normalizedTitle.length >
-    150
+    normalizedTitle.length <
+    MINIMUM_TITLE_LENGTH
   ) {
     throw new Error(
-      "O título da nota deve possuir no máximo 150 caracteres."
+      `O título da nota deve possuir pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+    );
+  }
+
+  if (
+    normalizedTitle.length >
+    MAXIMUM_TITLE_LENGTH
+  ) {
+    throw new Error(
+      `O título da nota deve possuir no máximo ${MAXIMUM_TITLE_LENGTH} caracteres.`
     );
   }
 
@@ -119,18 +179,31 @@ function validateDescription(
   const normalizedDescription =
     description.trim();
 
-  if (!normalizedDescription) {
+  if (
+    !normalizedDescription
+  ) {
     throw new Error(
       "Informe a descrição da nota."
     );
   }
 
   if (
-    normalizedDescription.length >
-    10000
+    normalizedDescription.length <
+    MINIMUM_DESCRIPTION_LENGTH
   ) {
     throw new Error(
-      "A descrição da nota deve possuir no máximo 10.000 caracteres."
+      `A descrição da nota deve possuir pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+    );
+  }
+
+  if (
+    normalizedDescription.length >
+    MAXIMUM_DESCRIPTION_LENGTH
+  ) {
+    throw new Error(
+      `A descrição da nota deve possuir no máximo ${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+        "pt-BR"
+      )} caracteres.`
     );
   }
 
@@ -142,14 +215,17 @@ function canManageNote(
   user: NoteAccessUser
 ): boolean {
   return (
-    isAdministrator(user) ||
+    isAdministrator(
+      user
+    ) ||
     note.authorUserId ===
       user.id
   );
 }
 
 function getAuditUserName(
-  user: NoteAccessUser
+  user:
+    NoteAccessUser
 ): string {
   const registeredUser =
     getUserById(
@@ -256,10 +332,9 @@ export function getNoteByIdForUser(
   );
 
   if (
-    !Number.isInteger(
+    !isValidNoteId(
       noteId
-    ) ||
-    noteId <= 0
+    )
   ) {
     return undefined;
   }
@@ -296,6 +371,10 @@ export function createNote(
     | undefined
 ): Note {
   validateUser(
+    user
+  );
+
+  validateRegisteredUser(
     user
   );
 
@@ -360,6 +439,16 @@ export function updateNote(
   validateUser(
     user
   );
+
+  if (
+    !isValidNoteId(
+      noteId
+    )
+  ) {
+    throw new Error(
+      "Nota inválida."
+    );
+  }
 
   const note =
     findNoteById(
@@ -476,6 +565,7 @@ export function updateNote(
       `Nota "${updatedNote.title}" editada.`,
       [
         ...changedFields,
+
         `Autor: ${authorName}`,
       ].join(
         " | "
@@ -498,10 +588,9 @@ export async function deleteNote(
   );
 
   if (
-    !Number.isInteger(
+    !isValidNoteId(
       noteId
-    ) ||
-    noteId <= 0
+    )
   ) {
     return false;
   }
@@ -572,7 +661,13 @@ export function canUserManageNote(
     | null
     | undefined
 ): boolean {
-  if (!user) {
+  if (
+    !user ||
+    !Number.isInteger(
+      user.id
+    ) ||
+    user.id <= 0
+  ) {
     return false;
   }
 

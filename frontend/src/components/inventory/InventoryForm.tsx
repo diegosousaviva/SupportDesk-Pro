@@ -101,6 +101,36 @@ interface InventoryFormProps {
 const NO_RESPONSIBLE_VALUE =
   "unassigned";
 
+const MAXIMUM_TAG_LENGTH =
+  50;
+
+const MAXIMUM_ASSET_NUMBER_LENGTH =
+  50;
+
+const MAXIMUM_LOCATION_LENGTH =
+  120;
+
+const MAXIMUM_CATEGORY_LENGTH =
+  80;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  3;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  200;
+
+const MAXIMUM_MANUFACTURER_LENGTH =
+  100;
+
+const MAXIMUM_MODEL_LENGTH =
+  100;
+
+const MAXIMUM_SERIAL_NUMBER_LENGTH =
+  100;
+
+const MAXIMUM_NOTES_LENGTH =
+  2000;
+
 function InventoryForm({
   data,
   stores,
@@ -127,6 +157,45 @@ function InventoryForm({
         "Ativo"
     );
 
+  const normalizedDescription =
+    data.description.trim();
+
+  const descriptionTooShort =
+    normalizedDescription.length >
+      0 &&
+    normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH;
+
+  const numericValue =
+    data.value.trim()
+      ? Number(
+          data.value
+        )
+      : null;
+
+  const invalidValue =
+    numericValue !==
+      null &&
+    (
+      !Number.isFinite(
+        numericValue
+      ) ||
+      numericValue < 0
+    );
+
+  const invalidWarrantyDate =
+    Boolean(
+      data.acquisitionDate &&
+      data.warrantyUntil &&
+      data.warrantyUntil <
+        data.acquisitionDate
+    );
+
+  const formHasValidationError =
+    descriptionTooShort ||
+    invalidValue ||
+    invalidWarrantyDate;
+
   return (
     <Paper
       sx={{
@@ -139,7 +208,9 @@ function InventoryForm({
       <Stack
         component="form"
         spacing={3}
-        onSubmit={onSubmit}
+        onSubmit={
+          onSubmit
+        }
       >
         {errorMessage && (
           <Alert severity="error">
@@ -154,7 +225,9 @@ function InventoryForm({
 
           <RadioGroup
             row
-            value={data.tagMode}
+            value={
+              data.tagMode
+            }
             onChange={(event) =>
               onChange(
                 "tagMode",
@@ -164,16 +237,24 @@ function InventoryForm({
           >
             <FormControlLabel
               value="Automática"
-              control={<Radio />}
+              control={
+                <Radio />
+              }
               label="Gerar automaticamente"
-              disabled={saving}
+              disabled={
+                saving
+              }
             />
 
             <FormControlLabel
               value="Manual"
-              control={<Radio />}
+              control={
+                <Radio />
+              }
               label="Informar manualmente"
-              disabled={saving}
+              disabled={
+                saving
+              }
             />
           </RadioGroup>
         </FormControl>
@@ -192,7 +273,9 @@ function InventoryForm({
         ) : (
           <TextField
             label="Etiqueta física"
-            value={data.tag}
+            value={
+              data.tag
+            }
             onChange={(event) =>
               onChange(
                 "tag",
@@ -200,13 +283,16 @@ function InventoryForm({
               )
             }
             placeholder="Exemplo: TI-00452"
-            helperText="O código precisa ser único."
+            helperText={`${data.tag.length}/${MAXIMUM_TAG_LENGTH} caracteres. O código precisa ser único.`}
             required
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
             slotProps={{
               htmlInput: {
-                maxLength: 50,
+                maxLength:
+                  MAXIMUM_TAG_LENGTH,
               },
             }}
           />
@@ -224,27 +310,34 @@ function InventoryForm({
             )
           }
           placeholder="Exemplo: PAT-000145"
-          helperText="Campo opcional. Quando informado, o número precisa ser único."
+          helperText={`${data.assetNumber.length}/${MAXIMUM_ASSET_NUMBER_LENGTH} caracteres. Campo opcional e, quando informado, precisa ser único.`}
           fullWidth
-          disabled={saving}
+          disabled={
+            saving
+          }
           slotProps={{
             htmlInput: {
-              maxLength: 50,
+              maxLength:
+                MAXIMUM_ASSET_NUMBER_LENGTH,
             },
           }}
         />
 
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+            md:
+              "row",
           }}
           spacing={2}
         >
           <TextField
             select
             label="Loja"
-            value={data.storeId}
+            value={
+              data.storeId
+            }
             onChange={(event) =>
               onChange(
                 "storeId",
@@ -253,12 +346,16 @@ function InventoryForm({
             }
             required
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
           >
             {activeStores.map(
               (store) => (
                 <MenuItem
-                  key={store.id}
+                  key={
+                    store.id
+                  }
                   value={String(
                     store.id
                   )}
@@ -272,7 +369,9 @@ function InventoryForm({
 
           <TextField
             label="Localização"
-            value={data.location}
+            value={
+              data.location
+            }
             onChange={(event) =>
               onChange(
                 "location",
@@ -280,22 +379,35 @@ function InventoryForm({
               )
             }
             placeholder="Exemplo: Financeiro, Caixa 03"
+            helperText={`${data.location.length}/${MAXIMUM_LOCATION_LENGTH} caracteres`}
             required
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
+            slotProps={{
+              htmlInput: {
+                maxLength:
+                  MAXIMUM_LOCATION_LENGTH,
+              },
+            }}
           />
         </Stack>
 
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+            md:
+              "row",
           }}
           spacing={2}
         >
           <TextField
             label="Categoria"
-            value={data.category}
+            value={
+              data.category
+            }
             onChange={(event) =>
               onChange(
                 "category",
@@ -303,15 +415,26 @@ function InventoryForm({
               )
             }
             placeholder="Exemplo: Notebook"
+            helperText={`${data.category.length}/${MAXIMUM_CATEGORY_LENGTH} caracteres`}
             required
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
+            slotProps={{
+              htmlInput: {
+                maxLength:
+                  MAXIMUM_CATEGORY_LENGTH,
+              },
+            }}
           />
 
           <TextField
             select
             label="Situação"
-            value={data.status}
+            value={
+              data.status
+            }
             onChange={(event) =>
               onChange(
                 "status",
@@ -320,7 +443,9 @@ function InventoryForm({
             }
             required
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
           >
             <MenuItem value="Em uso">
               Em uso
@@ -354,7 +479,9 @@ function InventoryForm({
           <TextField
             select
             label="Estado físico"
-            value={data.condition}
+            value={
+              data.condition
+            }
             onChange={(event) =>
               onChange(
                 "condition",
@@ -363,7 +490,9 @@ function InventoryForm({
             }
             required
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
           >
             <MenuItem value="Novo">
               Novo
@@ -405,13 +534,31 @@ function InventoryForm({
           placeholder="Exemplo: Notebook Dell Latitude 5420"
           required
           fullWidth
-          disabled={saving}
+          disabled={
+            saving
+          }
+          error={
+            descriptionTooShort
+          }
+          helperText={
+            descriptionTooShort
+              ? `Digite pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+              : `${data.description.length}/${MAXIMUM_DESCRIPTION_LENGTH} caracteres`
+          }
+          slotProps={{
+            htmlInput: {
+              maxLength:
+                MAXIMUM_DESCRIPTION_LENGTH,
+            },
+          }}
         />
 
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+            md:
+              "row",
           }}
           spacing={2}
         >
@@ -426,21 +573,41 @@ function InventoryForm({
                 event.target.value
               )
             }
+            helperText={`${data.manufacturer.length}/${MAXIMUM_MANUFACTURER_LENGTH} caracteres`}
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
+            slotProps={{
+              htmlInput: {
+                maxLength:
+                  MAXIMUM_MANUFACTURER_LENGTH,
+              },
+            }}
           />
 
           <TextField
             label="Modelo"
-            value={data.model}
+            value={
+              data.model
+            }
             onChange={(event) =>
               onChange(
                 "model",
                 event.target.value
               )
             }
+            helperText={`${data.model.length}/${MAXIMUM_MODEL_LENGTH} caracteres`}
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
+            slotProps={{
+              htmlInput: {
+                maxLength:
+                  MAXIMUM_MODEL_LENGTH,
+              },
+            }}
           />
 
           <TextField
@@ -454,34 +621,59 @@ function InventoryForm({
                 event.target.value
               )
             }
+            helperText={`${data.serialNumber.length}/${MAXIMUM_SERIAL_NUMBER_LENGTH} caracteres`}
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
+            slotProps={{
+              htmlInput: {
+                maxLength:
+                  MAXIMUM_SERIAL_NUMBER_LENGTH,
+              },
+            }}
           />
         </Stack>
 
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+            md:
+              "row",
           }}
           spacing={2}
         >
           <TextField
             label="Valor do equipamento"
             type="number"
-            value={data.value}
+            value={
+              data.value
+            }
             onChange={(event) =>
               onChange(
                 "value",
                 event.target.value
               )
             }
+            error={
+              invalidValue
+            }
+            helperText={
+              invalidValue
+                ? "O valor do equipamento não pode ser negativo."
+                : "Campo opcional. Informe um valor igual ou superior a zero."
+            }
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
             slotProps={{
               htmlInput: {
-                min: 0,
-                step: "0.01",
+                min:
+                  0,
+                step:
+                  "0.01",
               },
             }}
           />
@@ -499,7 +691,9 @@ function InventoryForm({
               )
             }
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
           >
             <MenuItem
               value={
@@ -512,7 +706,9 @@ function InventoryForm({
             {activeUsers.map(
               (user) => (
                 <MenuItem
-                  key={user.id}
+                  key={
+                    user.id
+                  }
                   value={String(
                     user.id
                   )}
@@ -527,8 +723,10 @@ function InventoryForm({
 
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+            md:
+              "row",
           }}
           spacing={2}
         >
@@ -545,10 +743,13 @@ function InventoryForm({
               )
             }
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
             slotProps={{
               inputLabel: {
-                shrink: true,
+                shrink:
+                  true,
               },
             }}
           />
@@ -565,11 +766,28 @@ function InventoryForm({
                 event.target.value
               )
             }
+            error={
+              invalidWarrantyDate
+            }
+            helperText={
+              invalidWarrantyDate
+                ? "A garantia não pode terminar antes da data de aquisição."
+                : "Campo opcional."
+            }
             fullWidth
-            disabled={saving}
+            disabled={
+              saving
+            }
             slotProps={{
               inputLabel: {
-                shrink: true,
+                shrink:
+                  true,
+              },
+
+              htmlInput: {
+                min:
+                  data.acquisitionDate ||
+                  undefined,
               },
             }}
           />
@@ -577,7 +795,9 @@ function InventoryForm({
 
         <TextField
           label="Observações"
-          value={data.notes}
+          value={
+            data.notes
+          }
           onChange={(event) =>
             onChange(
               "notes",
@@ -586,14 +806,27 @@ function InventoryForm({
           }
           multiline
           rows={5}
+          helperText={`${data.notes.length}/${MAXIMUM_NOTES_LENGTH.toLocaleString(
+            "pt-BR"
+          )} caracteres`}
           fullWidth
-          disabled={saving}
+          disabled={
+            saving
+          }
+          slotProps={{
+            htmlInput: {
+              maxLength:
+                MAXIMUM_NOTES_LENGTH,
+            },
+          }}
         />
 
         <Stack
           direction={{
-            xs: "column",
-            sm: "row",
+            xs:
+              "column",
+            sm:
+              "row",
           }}
           spacing={2}
           justifyContent="flex-end"
@@ -607,7 +840,9 @@ function InventoryForm({
             onClick={
               onCancel
             }
-            disabled={saving}
+            disabled={
+              saving
+            }
           >
             Cancelar
           </Button>
@@ -618,18 +853,21 @@ function InventoryForm({
             startIcon={
               <Save />
             }
-            loading={saving}
+            loading={
+              saving
+            }
             disabled={
               saving ||
               !data.storeId ||
               !data.category.trim() ||
-              !data.description.trim() ||
+              !normalizedDescription ||
               !data.location.trim() ||
               (
                 data.tagMode ===
                   "Manual" &&
                 !data.tag.trim()
-              )
+              ) ||
+              formHasValidationError
             }
           >
             {saving

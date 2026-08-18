@@ -15,7 +15,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   FormControl,
   FormHelperText,
@@ -61,6 +60,18 @@ import {
 import type {
   NoteCategory,
 } from "../../types/Note";
+
+const MINIMUM_TITLE_LENGTH =
+  3;
+
+const MAXIMUM_TITLE_LENGTH =
+  150;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  10;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  10000;
 
 const NOTE_CATEGORIES:
   NoteCategory[] = [
@@ -139,6 +150,16 @@ function CreateNotePage() {
   ] = useState("");
 
   const [
+    titleError,
+    setTitleError,
+  ] = useState("");
+
+  const [
+    descriptionError,
+    setDescriptionError,
+  ] = useState("");
+
+  const [
     isSubmitting,
     setIsSubmitting,
   ] = useState(false);
@@ -159,6 +180,110 @@ function CreateNotePage() {
     navigate(
       "/notes"
     );
+  }
+
+  function handleTitleChange(
+    value: string
+  ): void {
+    setTitle(
+      value
+    );
+
+    setTitleError(
+      ""
+    );
+
+    setErrorMessage(
+      ""
+    );
+  }
+
+  function handleDescriptionChange(
+    value: string
+  ): void {
+    setDescription(
+      value
+    );
+
+    setDescriptionError(
+      ""
+    );
+
+    setErrorMessage(
+      ""
+    );
+  }
+
+  function validateForm():
+    boolean {
+    const normalizedTitle =
+      title.trim();
+
+    const normalizedDescription =
+      description.trim();
+
+    let valid =
+      true;
+
+    setTitleError(
+      ""
+    );
+
+    setDescriptionError(
+      ""
+    );
+
+    if (
+      !normalizedTitle
+    ) {
+      setTitleError(
+        "Informe o título da nota."
+      );
+
+      valid =
+        false;
+    } else if (
+      normalizedTitle.length <
+      MINIMUM_TITLE_LENGTH
+    ) {
+      setTitleError(
+        `O título deve possuir pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+      );
+
+      valid =
+        false;
+    }
+
+    if (
+      !normalizedDescription
+    ) {
+      setDescriptionError(
+        "Informe a descrição da nota."
+      );
+
+      valid =
+        false;
+    } else if (
+      normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH
+    ) {
+      setDescriptionError(
+        `A descrição deve possuir pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+      );
+
+      valid =
+        false;
+    }
+
+    if (
+      !valid
+    ) {
+      setErrorMessage(
+        "Revise os campos destacados antes de continuar."
+      );
+    }
+
+    return valid;
   }
 
   function handleFileSelection(
@@ -284,6 +409,12 @@ function CreateNotePage() {
   ): Promise<void> {
     event.preventDefault();
 
+    if (
+      isSubmitting
+    ) {
+      return;
+    }
+
     setErrorMessage("");
 
     if (!user) {
@@ -306,24 +437,8 @@ function CreateNotePage() {
     }
 
     if (
-      !title.trim() ||
-      !description.trim()
+      !validateForm()
     ) {
-      const message =
-        "Preencha o título e a descrição da nota.";
-
-      setErrorMessage(
-        message
-      );
-
-      showSnackbar(
-        message,
-        {
-          severity:
-            "warning",
-        }
-      );
-
       return;
     }
 
@@ -445,7 +560,8 @@ function CreateNotePage() {
     <MainLayout title="Nova nota">
       <Box
         sx={{
-          maxWidth: 900,
+          maxWidth:
+            900,
         }}
       >
         <Button
@@ -460,7 +576,8 @@ function CreateNotePage() {
             isSubmitting
           }
           sx={{
-            mb: 1,
+            mb:
+              1,
           }}
         >
           Voltar para notas
@@ -477,8 +594,11 @@ function CreateNotePage() {
         <Typography
           color="text.secondary"
           sx={{
-            mt: 0.5,
-            mb: 3,
+            mt:
+              0.5,
+
+            mb:
+              3,
           }}
         >
           Registre informações,
@@ -491,7 +611,8 @@ function CreateNotePage() {
           <Alert
             severity="error"
             sx={{
-              mb: 3,
+              mb:
+                3,
             }}
             onClose={
               isSubmitting
@@ -510,8 +631,11 @@ function CreateNotePage() {
           variant="outlined"
           sx={{
             p: {
-              xs: 2.5,
-              md: 4,
+              xs:
+                2.5,
+
+              md:
+                4,
             },
           }}
         >
@@ -520,28 +644,40 @@ function CreateNotePage() {
             onSubmit={
               handleSubmit
             }
+            noValidate
           >
             <Stack spacing={3}>
               <TextField
                 label="Título"
                 placeholder="Exemplo: Manual de configuração do roteador"
-                value={title}
+                value={
+                  title
+                }
                 onChange={(event) =>
-                  setTitle(
-                    event.target
-                      .value
+                  handleTitleChange(
+                    event.target.value
                   )
                 }
-                inputProps={{
-                  maxLength:
-                    150,
-                }}
-                helperText={`${title.length}/150 caracteres`}
+                error={
+                  Boolean(
+                    titleError
+                  )
+                }
+                helperText={
+                  titleError ||
+                  `${title.length}/${MAXIMUM_TITLE_LENGTH} caracteres — mínimo ${MINIMUM_TITLE_LENGTH}`
+                }
                 required
                 fullWidth
                 disabled={
                   isSubmitting
                 }
+                slotProps={{
+                  htmlInput: {
+                    maxLength:
+                      MAXIMUM_TITLE_LENGTH,
+                  },
+                }}
               />
 
               <FormControl
@@ -596,16 +732,21 @@ function CreateNotePage() {
                   description
                 }
                 onChange={(event) =>
-                  setDescription(
-                    event.target
-                      .value
+                  handleDescriptionChange(
+                    event.target.value
                   )
                 }
-                inputProps={{
-                  maxLength:
-                    10000,
-                }}
-                helperText={`${description.length}/10.000 caracteres`}
+                error={
+                  Boolean(
+                    descriptionError
+                  )
+                }
+                helperText={
+                  descriptionError ||
+                  `${description.length}/${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+                    "pt-BR"
+                  )} caracteres — mínimo ${MINIMUM_DESCRIPTION_LENGTH}`
+                }
                 multiline
                 minRows={8}
                 required
@@ -613,12 +754,19 @@ function CreateNotePage() {
                 disabled={
                   isSubmitting
                 }
+                slotProps={{
+                  htmlInput: {
+                    maxLength:
+                      MAXIMUM_DESCRIPTION_LENGTH,
+                  },
+                }}
               />
 
               <Paper
                 variant="outlined"
                 sx={{
-                  p: 2.5,
+                  p:
+                    2.5,
 
                   borderStyle:
                     "dashed",
@@ -650,7 +798,8 @@ function CreateNotePage() {
                       variant="body2"
                       color="text.secondary"
                       sx={{
-                        mt: 0.5,
+                        mt:
+                          0.5,
                       }}
                     >
                       Adicione documentos
@@ -732,7 +881,8 @@ function CreateNotePage() {
                             key={`${file.name}-${file.size}-${file.lastModified}`}
                             variant="outlined"
                             sx={{
-                              p: 1.5,
+                              p:
+                                1.5,
                             }}
                           >
                             <Stack
@@ -746,7 +896,8 @@ function CreateNotePage() {
                                   minWidth:
                                     0,
 
-                                  flex: 1,
+                                  flex:
+                                    1,
                                 }}
                               >
                                 <Typography
@@ -799,8 +950,11 @@ function CreateNotePage() {
 
               <Stack
                 direction={{
-                  xs: "column",
-                  sm: "row",
+                  xs:
+                    "column",
+
+                  sm:
+                    "row",
                 }}
                 spacing={1}
                 justifyContent="flex-end"
@@ -861,7 +1015,9 @@ function TooltipWrapper({
   return (
     <Box
       component="span"
-      title={title}
+      title={
+        title
+      }
     >
       {children}
     </Box>

@@ -13,7 +13,9 @@ import {
   Save,
 } from "@mui/icons-material";
 
-import { useState } from "react";
+import {
+  useState,
+} from "react";
 
 import {
   useNavigate,
@@ -26,7 +28,9 @@ import {
   useNotifications,
 } from "../../contexts/NotificationContext";
 
-import { useSnackbar } from "../../hooks/useSnackbar";
+import {
+  useSnackbar,
+} from "../../hooks/useSnackbar";
 
 import {
   getTicketById,
@@ -41,59 +45,118 @@ import type {
   Ticket,
 } from "../../types/Ticket";
 
-type TicketPriority = Ticket["priority"];
-type TicketStatus = Ticket["status"];
+type TicketPriority =
+  Ticket["priority"];
+
+type TicketStatus =
+  Ticket["status"];
 
 const UNASSIGNED_TECHNICIAN_VALUE =
   "unassigned";
 
-export default function EditTicketPage() {
-  const navigate = useNavigate();
-  const { id } = useParams();
+const MINIMUM_TITLE_LENGTH =
+  3;
 
-  const { showSnackbar } = useSnackbar();
+const MAXIMUM_TITLE_LENGTH =
+  120;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  10;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  2000;
+
+const MAXIMUM_CATEGORY_LENGTH =
+  80;
+
+export default function EditTicketPage() {
+  const navigate =
+    useNavigate();
+
+  const {
+    id,
+  } = useParams();
+
+  const {
+    showSnackbar,
+  } = useSnackbar();
 
   const {
     addNotification,
     removeSlaNotificationsByTicket,
   } = useNotifications();
 
-  const ticketId = Number(id);
-  const ticket = getTicketById(ticketId);
-
-  const technicians = getUsers().filter(
-    (user) =>
-      user.role === "Técnico" &&
-      (
-        user.status === "Ativo" ||
-        user.id ===
-          ticket?.assignedTechnicianId
-      )
-  );
-
-  const [title, setTitle] = useState(
-    ticket?.title ?? ""
-  );
-
-  const [category, setCategory] = useState(
-    ticket?.category ?? ""
-  );
-
-  const [priority, setPriority] =
-    useState<TicketPriority>(
-      ticket?.priority ?? "Baixa"
+  const ticketId =
+    Number(
+      id
     );
 
-  const [status, setStatus] =
+  const ticket =
+    getTicketById(
+      ticketId
+    );
+
+  const technicians =
+    getUsers().filter(
+      (user) =>
+        user.role ===
+          "Técnico" &&
+        (
+          user.status ===
+            "Ativo" ||
+          user.id ===
+            ticket?.assignedTechnicianId
+        )
+    );
+
+  const [
+    title,
+    setTitle,
+  ] = useState(
+    ticket?.title ??
+      ""
+  );
+
+  const [
+    description,
+    setDescription,
+  ] = useState(
+    ticket?.description ??
+      ""
+  );
+
+  const [
+    category,
+    setCategory,
+  ] = useState(
+    ticket?.category ??
+      ""
+  );
+
+  const [
+    priority,
+    setPriority,
+  ] =
+    useState<TicketPriority>(
+      ticket?.priority ??
+        "Baixa"
+    );
+
+  const [
+    status,
+    setStatus,
+  ] =
     useState<TicketStatus>(
-      ticket?.status ?? "Aberto"
+      ticket?.status ??
+        "Aberto"
     );
 
   const [
     assignedTechnicianId,
     setAssignedTechnicianId,
   ] = useState(
-    ticket?.assignedTechnicianId === null ||
+    ticket?.assignedTechnicianId ===
+      null ||
       ticket?.assignedTechnicianId ===
         undefined
       ? UNASSIGNED_TECHNICIAN_VALUE
@@ -102,11 +165,15 @@ export default function EditTicketPage() {
         )
   );
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-  const [isSaving, setIsSaving] =
-    useState(false);
+  const [
+    isSaving,
+    setIsSaving,
+  ] = useState(false);
 
   if (!ticket) {
     return (
@@ -116,11 +183,17 @@ export default function EditTicketPage() {
         </Alert>
 
         <Button
-          sx={{ mt: 2 }}
+          sx={{
+            mt: 2,
+          }}
           variant="outlined"
-          startIcon={<ArrowBack />}
+          startIcon={
+            <ArrowBack />
+          }
           onClick={() =>
-            navigate("/tickets")
+            navigate(
+              "/tickets"
+            )
           }
         >
           Voltar para chamados
@@ -129,44 +202,77 @@ export default function EditTicketPage() {
     );
   }
 
-  const currentTicketId = ticket.id;
+  const currentTicketId =
+    ticket.id;
 
   const ticketDetailsPath =
     `/tickets/${currentTicketId}`;
+
+  const normalizedTitle =
+    title.trim();
+
+  const normalizedDescription =
+    description.trim();
+
+  const normalizedCategory =
+    category.trim();
+
+  const titleTooShort =
+    normalizedTitle.length >
+      0 &&
+    normalizedTitle.length <
+      MINIMUM_TITLE_LENGTH;
+
+  const descriptionTooShort =
+    normalizedDescription.length >
+      0 &&
+    normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH;
 
   const assignedTechnicianNumber =
     assignedTechnicianId ===
     UNASSIGNED_TECHNICIAN_VALUE
       ? null
-      : Number(assignedTechnicianId);
+      : Number(
+          assignedTechnicianId
+        );
 
   const assignedTechnicianExists =
-    assignedTechnicianNumber === null ||
+    assignedTechnicianNumber ===
+      null ||
     technicians.some(
       (technician) =>
         technician.id ===
         assignedTechnicianNumber
     );
 
-  function handleBack(): void {
+  function handleBack():
+    void {
     if (isSaving) {
       return;
     }
 
-    navigate(ticketDetailsPath);
+    navigate(
+      ticketDetailsPath
+    );
   }
 
   function getTechnicianName(
-    technicianId: number | null
+    technicianId:
+      number | null
   ): string {
-    if (technicianId === null) {
+    if (
+      technicianId ===
+      null
+    ) {
       return "Não atribuído";
     }
 
     const technician =
       getUsers().find(
         (user) =>
-          user.id === technicianId
+          user.id ===
+          technicianId
       );
 
     return (
@@ -175,50 +281,133 @@ export default function EditTicketPage() {
     );
   }
 
-  function handleSave(): void {
-    const normalizedTitle = title.trim();
+  function showValidationMessage(
+    message: string
+  ): void {
+    setErrorMessage(
+      message
+    );
 
-    const normalizedCategory =
-      category.trim();
+    showSnackbar(
+      message,
+      {
+        severity:
+          "warning",
+      }
+    );
+  }
+
+  function handleSave():
+    void {
+    if (isSaving) {
+      return;
+    }
 
     setErrorMessage("");
 
     if (
       !normalizedTitle ||
-      !normalizedCategory
+      !normalizedCategory ||
+      !normalizedDescription
     ) {
-      const validationMessage =
-        "Preencha o título e a categoria do chamado.";
-
-      setErrorMessage(validationMessage);
-
-      showSnackbar(validationMessage, {
-        severity: "warning",
-      });
+      showValidationMessage(
+        "Preencha o título, a categoria e a descrição do chamado."
+      );
 
       return;
     }
 
     if (
-      assignedTechnicianNumber !== null &&
-      Number.isNaN(
-        assignedTechnicianNumber
+      normalizedTitle.length <
+      MINIMUM_TITLE_LENGTH
+    ) {
+      showValidationMessage(
+        `O título deve possuir pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedTitle.length >
+      MAXIMUM_TITLE_LENGTH
+    ) {
+      showValidationMessage(
+        `O título deve possuir no máximo ${MAXIMUM_TITLE_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedCategory.length >
+      MAXIMUM_CATEGORY_LENGTH
+    ) {
+      showValidationMessage(
+        `A categoria deve possuir no máximo ${MAXIMUM_CATEGORY_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH
+    ) {
+      showValidationMessage(
+        `A descrição deve possuir pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedDescription.length >
+      MAXIMUM_DESCRIPTION_LENGTH
+    ) {
+      showValidationMessage(
+        `A descrição deve possuir no máximo ${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+          "pt-BR"
+        )} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      assignedTechnicianNumber !==
+        null &&
+      (
+        !Number.isInteger(
+          assignedTechnicianNumber
+        ) ||
+        assignedTechnicianNumber <=
+          0
       )
     ) {
-      const validationMessage =
-        "Selecione um técnico responsável válido.";
+      showValidationMessage(
+        "Selecione um técnico responsável válido."
+      );
 
-      setErrorMessage(validationMessage);
+      return;
+    }
 
-      showSnackbar(validationMessage, {
-        severity: "warning",
-      });
+    if (
+      assignedTechnicianNumber !==
+        null &&
+      !assignedTechnicianExists
+    ) {
+      showValidationMessage(
+        "O técnico responsável selecionado não foi encontrado."
+      );
 
       return;
     }
 
     try {
-      setIsSaving(true);
+      setIsSaving(
+        true
+      );
 
       const previousStatus =
         ticket.status;
@@ -226,17 +415,27 @@ export default function EditTicketPage() {
       const previousTechnicianId =
         ticket.assignedTechnicianId;
 
-      const updatedTicket = updateTicket(
-        currentTicketId,
-        {
-          title: normalizedTitle,
-          category: normalizedCategory,
-          priority,
-          status,
-          assignedTechnicianId:
-            assignedTechnicianNumber,
-        }
-      );
+      const updatedTicket =
+        updateTicket(
+          currentTicketId,
+          {
+            title:
+              normalizedTitle,
+
+            description:
+              normalizedDescription,
+
+            category:
+              normalizedCategory,
+
+            priority,
+
+            status,
+
+            assignedTechnicianId:
+              assignedTechnicianNumber,
+          }
+        );
 
       if (!updatedTicket) {
         throw new Error(
@@ -301,7 +500,8 @@ export default function EditTicketPage() {
                 ? "warning"
                 : "info",
 
-          read: false,
+          read:
+            false,
 
           ticketId:
             updatedTicket.id,
@@ -350,7 +550,8 @@ export default function EditTicketPage() {
               ? "warning"
               : "info",
 
-          read: false,
+          read:
+            false,
 
           ticketId:
             updatedTicket.id,
@@ -363,11 +564,14 @@ export default function EditTicketPage() {
       showSnackbar(
         "Chamado atualizado com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
 
-      navigate(ticketDetailsPath);
+      navigate(
+        ticketDetailsPath
+      );
     } catch (error) {
       console.error(
         "Não foi possível atualizar o chamado.",
@@ -375,18 +579,25 @@ export default function EditTicketPage() {
       );
 
       const failureMessage =
-        "Não foi possível atualizar o chamado. Tente novamente.";
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar o chamado. Tente novamente.";
 
-      setErrorMessage(failureMessage);
+      setErrorMessage(
+        failureMessage
+      );
 
       showSnackbar(
-        "Não foi possível atualizar o chamado.",
+        failureMessage,
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     } finally {
-      setIsSaving(false);
+      setIsSaving(
+        false
+      );
     }
   }
 
@@ -395,11 +606,18 @@ export default function EditTicketPage() {
       <Stack spacing={2}>
         <Button
           variant="text"
-          startIcon={<ArrowBack />}
-          onClick={handleBack}
-          disabled={isSaving}
+          startIcon={
+            <ArrowBack />
+          }
+          onClick={
+            handleBack
+          }
+          disabled={
+            isSaving
+          }
           sx={{
-            alignSelf: "flex-start",
+            alignSelf:
+              "flex-start",
           }}
         >
           Voltar aos detalhes
@@ -409,7 +627,9 @@ export default function EditTicketPage() {
           <Alert
             severity="error"
             onClose={() =>
-              setErrorMessage("")
+              setErrorMessage(
+                ""
+              )
             }
           >
             {errorMessage}
@@ -428,7 +648,10 @@ export default function EditTicketPage() {
             <Typography
               variant="h5"
               component="h1"
-              sx={{ fontWeight: 700 }}
+              sx={{
+                fontWeight:
+                  700,
+              }}
             >
               Editar chamado #
               {currentTicketId}
@@ -436,36 +659,94 @@ export default function EditTicketPage() {
 
             <TextField
               label="Título"
-              value={title}
+              value={
+                title
+              }
               onChange={(event) =>
                 setTitle(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               fullWidth
               required
-              disabled={isSaving}
+              disabled={
+                isSaving
+              }
+              error={
+                titleTooShort
+              }
+              helperText={
+                titleTooShort
+                  ? `Digite pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+                  : `${title.length}/${MAXIMUM_TITLE_LENGTH} caracteres`
+              }
               slotProps={{
                 htmlInput: {
-                  maxLength: 150,
+                  maxLength:
+                    MAXIMUM_TITLE_LENGTH,
                 },
               }}
             />
 
             <TextField
               label="Categoria"
-              value={category}
+              value={
+                category
+              }
               onChange={(event) =>
                 setCategory(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               fullWidth
               required
-              disabled={isSaving}
+              disabled={
+                isSaving
+              }
+              helperText={`${category.length}/${MAXIMUM_CATEGORY_LENGTH} caracteres`}
               slotProps={{
                 htmlInput: {
-                  maxLength: 80,
+                  maxLength:
+                    MAXIMUM_CATEGORY_LENGTH,
+                },
+              }}
+            />
+
+            <TextField
+              label="Descrição"
+              placeholder="Descreva o problema com o máximo de detalhes possível"
+              value={
+                description
+              }
+              onChange={(event) =>
+                setDescription(
+                  event.target
+                    .value
+                )
+              }
+              multiline
+              rows={6}
+              fullWidth
+              required
+              disabled={
+                isSaving
+              }
+              error={
+                descriptionTooShort
+              }
+              helperText={
+                descriptionTooShort
+                  ? `Digite pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+                  : `${description.length}/${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+                      "pt-BR"
+                    )} caracteres`
+              }
+              slotProps={{
+                htmlInput: {
+                  maxLength:
+                    MAXIMUM_DESCRIPTION_LENGTH,
                 },
               }}
             />
@@ -473,7 +754,9 @@ export default function EditTicketPage() {
             <TextField
               select
               label="Prioridade"
-              value={priority}
+              value={
+                priority
+              }
               onChange={(event) =>
                 setPriority(
                   event.target
@@ -481,7 +764,9 @@ export default function EditTicketPage() {
                 )
               }
               fullWidth
-              disabled={isSaving}
+              disabled={
+                isSaving
+              }
             >
               <MenuItem value="Baixa">
                 Baixa
@@ -503,7 +788,9 @@ export default function EditTicketPage() {
             <TextField
               select
               label="Status"
-              value={status}
+              value={
+                status
+              }
               onChange={(event) =>
                 setStatus(
                   event.target
@@ -511,7 +798,9 @@ export default function EditTicketPage() {
                 )
               }
               fullWidth
-              disabled={isSaving}
+              disabled={
+                isSaving
+              }
             >
               <MenuItem value="Aberto">
                 Aberto
@@ -529,19 +818,25 @@ export default function EditTicketPage() {
             <TextField
               select
               label="Técnico responsável"
-              value={assignedTechnicianId}
+              value={
+                assignedTechnicianId
+              }
               onChange={(event) =>
                 setAssignedTechnicianId(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               helperText={
-                technicians.length === 0
+                technicians.length ===
+                0
                   ? "Não há técnicos ativos cadastrados."
                   : "Selecione o técnico responsável pelo chamado."
               }
               fullWidth
-              disabled={isSaving}
+              disabled={
+                isSaving
+              }
             >
               <MenuItem
                 value={
@@ -566,14 +861,20 @@ export default function EditTicketPage() {
                 )}
 
               {technicians.map(
-                (technician) => (
+                (
+                  technician
+                ) => (
                   <MenuItem
-                    key={technician.id}
+                    key={
+                      technician.id
+                    }
                     value={String(
                       technician.id
                     )}
                   >
-                    {technician.name}
+                    {
+                      technician.name
+                    }
                     {technician.status ===
                     "Inativo"
                       ? " — Inativo"
@@ -585,29 +886,44 @@ export default function EditTicketPage() {
 
             <Stack
               direction={{
-                xs: "column",
-                sm: "row",
+                xs:
+                  "column",
+                sm:
+                  "row",
               }}
               spacing={2}
             >
               <Button
                 variant="outlined"
-                startIcon={<ArrowBack />}
-                onClick={handleBack}
-                disabled={isSaving}
+                startIcon={
+                  <ArrowBack />
+                }
+                onClick={
+                  handleBack
+                }
+                disabled={
+                  isSaving
+                }
               >
                 Cancelar
               </Button>
 
               <Button
                 variant="contained"
-                startIcon={<Save />}
-                onClick={handleSave}
-                loading={isSaving}
+                startIcon={
+                  <Save />
+                }
+                onClick={
+                  handleSave
+                }
+                loading={
+                  isSaving
+                }
                 disabled={
                   isSaving ||
-                  !title.trim() ||
-                  !category.trim()
+                  !normalizedTitle ||
+                  !normalizedCategory ||
+                  !normalizedDescription
                 }
               >
                 {isSaving

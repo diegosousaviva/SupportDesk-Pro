@@ -79,6 +79,18 @@ const UNASSIGNED_TECHNICIAN_VALUE =
 const NO_EQUIPMENT_VALUE =
   "none";
 
+const MINIMUM_TITLE_LENGTH =
+  3;
+
+const MAXIMUM_TITLE_LENGTH =
+  120;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  10;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  2000;
+
 function CreateTicketPage() {
   const navigate =
     useNavigate();
@@ -211,6 +223,24 @@ function CreateTicketPage() {
     setIsSubmitting,
   ] = useState(false);
 
+  const normalizedTitle =
+    title.trim();
+
+  const normalizedDescription =
+    description.trim();
+
+  const titleTooShort =
+    normalizedTitle.length >
+      0 &&
+    normalizedTitle.length <
+      MINIMUM_TITLE_LENGTH;
+
+  const descriptionTooShort =
+    normalizedDescription.length >
+      0 &&
+    normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH;
+
   function getNotificationSeverity():
     | "info"
     | "warning"
@@ -299,29 +329,89 @@ function CreateTicketPage() {
     }
   }
 
+  function showValidationMessage(
+    message: string
+  ): void {
+    setErrorMessage(
+      message
+    );
+
+    showSnackbar(
+      message,
+      {
+        severity:
+          "warning",
+      }
+    );
+  }
+
   function handleSubmit(
     event: FormEvent<HTMLFormElement>
   ): void {
     event.preventDefault();
 
+    if (
+      isSubmitting
+    ) {
+      return;
+    }
+
     setErrorMessage("");
 
     if (
-      !title.trim() ||
+      !normalizedTitle ||
       !category ||
       !priority ||
-      !description.trim()
+      !normalizedDescription
     ) {
-      setErrorMessage(
+      showValidationMessage(
         "Preencha todos os campos obrigatórios."
       );
 
-      showSnackbar(
-        "Preencha todos os campos obrigatórios.",
-        {
-          severity:
-            "warning",
-        }
+      return;
+    }
+
+    if (
+      normalizedTitle.length <
+      MINIMUM_TITLE_LENGTH
+    ) {
+      showValidationMessage(
+        `O título deve possuir pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedTitle.length >
+      MAXIMUM_TITLE_LENGTH
+    ) {
+      showValidationMessage(
+        `O título deve possuir no máximo ${MAXIMUM_TITLE_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH
+    ) {
+      showValidationMessage(
+        `A descrição deve possuir pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+      );
+
+      return;
+    }
+
+    if (
+      normalizedDescription.length >
+      MAXIMUM_DESCRIPTION_LENGTH
+    ) {
+      showValidationMessage(
+        `A descrição deve possuir no máximo ${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+          "pt-BR"
+        )} caracteres.`
       );
 
       return;
@@ -364,6 +454,26 @@ function CreateTicketPage() {
       }
 
       if (
+        selectedTechnicianId !==
+        null
+      ) {
+        const technicianExists =
+          technicians.some(
+            (technician) =>
+              technician.id ===
+              selectedTechnicianId
+          );
+
+        if (
+          !technicianExists
+        ) {
+          throw new Error(
+            "O técnico selecionado não está disponível."
+          );
+        }
+      }
+
+      if (
         inventoryItemId !==
           null &&
         (
@@ -399,10 +509,10 @@ function CreateTicketPage() {
       const createdTicket =
         createTicket({
           title:
-            title.trim(),
+            normalizedTitle,
 
           description:
-            description.trim(),
+            normalizedDescription,
 
           category,
 
@@ -659,8 +769,7 @@ function CreateTicketPage() {
                 value={title}
                 onChange={(event) =>
                   setTitle(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 required
@@ -668,6 +777,20 @@ function CreateTicketPage() {
                 disabled={
                   isSubmitting
                 }
+                error={
+                  titleTooShort
+                }
+                helperText={
+                  titleTooShort
+                    ? `Digite pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+                    : `${title.length}/${MAXIMUM_TITLE_LENGTH} caracteres`
+                }
+                slotProps={{
+                  htmlInput: {
+                    maxLength:
+                      MAXIMUM_TITLE_LENGTH,
+                  },
+                }}
               />
 
               <FormControl
@@ -981,6 +1104,22 @@ function CreateTicketPage() {
                 disabled={
                   isSubmitting
                 }
+                error={
+                  descriptionTooShort
+                }
+                helperText={
+                  descriptionTooShort
+                    ? `Digite pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+                    : `${description.length}/${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+                        "pt-BR"
+                      )} caracteres`
+                }
+                slotProps={{
+                  htmlInput: {
+                    maxLength:
+                      MAXIMUM_DESCRIPTION_LENGTH,
+                  },
+                }}
               />
 
               <Box

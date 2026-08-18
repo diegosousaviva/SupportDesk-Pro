@@ -38,6 +38,10 @@ import {
 } from "../../hooks";
 
 import {
+  useSnackbar,
+} from "../../hooks/useSnackbar";
+
+import {
   deleteTicket,
   getTickets,
 } from "../../services/ticketService";
@@ -53,6 +57,10 @@ export default function TicketListPage() {
   const {
     can,
   } = usePermissions();
+
+  const {
+    showSnackbar,
+  } = useSnackbar();
 
   const canCreate = can(
     Permissions.tickets.create
@@ -231,6 +239,14 @@ export default function TicketListPage() {
       );
 
     if (!ticket) {
+      showSnackbar(
+        "O chamado não foi encontrado.",
+        {
+          severity:
+            "error",
+        }
+      );
+
       return;
     }
 
@@ -243,22 +259,48 @@ export default function TicketListPage() {
       return;
     }
 
-    const deleted =
-      deleteTicket(
-        ticketId
+    try {
+      const deleted =
+        deleteTicket(
+          ticketId
+        );
+
+      if (!deleted) {
+        throw new Error(
+          "Não foi possível excluir o chamado."
+        );
+      }
+
+      setTickets(
+        getTickets()
       );
 
-    if (!deleted) {
-      window.alert(
-        "Não foi possível excluir o chamado."
+      showSnackbar(
+        `Chamado #${ticket.id} excluído com sucesso.`,
+        {
+          severity:
+            "success",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Não foi possível excluir o chamado.",
+        error
       );
 
-      return;
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir o chamado. Tente novamente.";
+
+      showSnackbar(
+        message,
+        {
+          severity:
+            "error",
+        }
+      );
     }
-
-    setTickets(
-      getTickets()
-    );
   }
 
   return (

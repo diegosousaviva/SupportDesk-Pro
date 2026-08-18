@@ -3,25 +3,27 @@ import {
 } from "react";
 
 import {
-  useNavigate,
-  useParams,
-} from "react-router-dom";
-
-import {
   Alert,
   Box,
   Button,
-  MenuItem,
   Paper,
-  Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 
 import {
   ArrowBack,
-  Save,
 } from "@mui/icons-material";
+
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
+import StoreForm from "../../components/forms/StoreForm";
+
+import type {
+  StoreFormData,
+} from "../../components/forms/StoreForm";
 
 import MainLayout from "../../components/layout/MainLayout";
 
@@ -33,10 +35,6 @@ import {
   getStoreById,
   updateStore,
 } from "../../services/storeService";
-
-import type {
-  StoreStatus,
-} from "../../types/Store";
 
 function EditStorePage() {
   const navigate =
@@ -51,89 +49,14 @@ function EditStorePage() {
   } = useSnackbar();
 
   const storeId =
-    Number(id);
+    Number(
+      id
+    );
 
   const store =
     getStoreById(
       storeId
     );
-
-  const [
-    code,
-    setCode,
-  ] = useState(
-    store?.code ?? ""
-  );
-
-  const [
-    name,
-    setName,
-  ] = useState(
-    store?.name ?? ""
-  );
-
-  const [
-    status,
-    setStatus,
-  ] = useState<StoreStatus>(
-    store?.status ?? "Ativa"
-  );
-
-  const [
-    address,
-    setAddress,
-  ] = useState(
-    store?.address ?? ""
-  );
-
-  const [
-    city,
-    setCity,
-  ] = useState(
-    store?.city ?? ""
-  );
-
-  const [
-    state,
-    setState,
-  ] = useState(
-    store?.state ?? ""
-  );
-
-  const [
-    zipCode,
-    setZipCode,
-  ] = useState(
-    store?.zipCode ?? ""
-  );
-
-  const [
-    phone,
-    setPhone,
-  ] = useState(
-    store?.phone ?? ""
-  );
-
-  const [
-    email,
-    setEmail,
-  ] = useState(
-    store?.email ?? ""
-  );
-
-  const [
-    manager,
-    setManager,
-  ] = useState(
-    store?.manager ?? ""
-  );
-
-  const [
-    notes,
-    setNotes,
-  ] = useState(
-    store?.notes ?? ""
-  );
 
   const [
     errorMessage,
@@ -145,12 +68,17 @@ function EditStorePage() {
     setIsSaving,
   ] = useState(false);
 
-  function handleBack(): void {
-    if (isSaving) {
+  function handleBack():
+    void {
+    if (
+      isSaving
+    ) {
       return;
     }
 
-    if (store) {
+    if (
+      store
+    ) {
       navigate(
         `/stores/${store.id}`
       );
@@ -163,8 +91,14 @@ function EditStorePage() {
     );
   }
 
-  function handleSave(): void {
-    if (!store) {
+  function handleSubmit(
+    values:
+      StoreFormData
+  ): void {
+    if (
+      isSaving ||
+      !store
+    ) {
       return;
     }
 
@@ -178,22 +112,12 @@ function EditStorePage() {
       const updatedStore =
         updateStore(
           store.id,
-          {
-            code,
-            name,
-            status,
-            address,
-            city,
-            state,
-            zipCode,
-            phone,
-            email,
-            manager,
-            notes,
-          }
+          values
         );
 
-      if (!updatedStore) {
+      if (
+        !updatedStore
+      ) {
         throw new Error(
           "A loja não foi encontrada."
         );
@@ -202,7 +126,8 @@ function EditStorePage() {
       showSnackbar(
         "Loja atualizada com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
 
@@ -227,7 +152,8 @@ function EditStorePage() {
       showSnackbar(
         message,
         {
-          severity: "error",
+          severity:
+            "error",
         }
       );
     } finally {
@@ -237,7 +163,13 @@ function EditStorePage() {
     }
   }
 
-  if (!store) {
+  if (
+    !Number.isInteger(
+      storeId
+    ) ||
+    storeId <= 0 ||
+    !store
+  ) {
     return (
       <MainLayout title="Editar Loja">
         <Alert severity="error">
@@ -255,7 +187,8 @@ function EditStorePage() {
             )
           }
           sx={{
-            mt: 2,
+            mt:
+              2,
           }}
         >
           Voltar para lojas
@@ -264,11 +197,48 @@ function EditStorePage() {
     );
   }
 
+  const initialValues:
+    StoreFormData = {
+      code:
+        store.code,
+
+      name:
+        store.name,
+
+      status:
+        store.status,
+
+      address:
+        store.address,
+
+      city:
+        store.city,
+
+      state:
+        store.state,
+
+      zipCode:
+        store.zipCode,
+
+      phone:
+        store.phone,
+
+      email:
+        store.email,
+
+      manager:
+        store.manager,
+
+      notes:
+        store.notes,
+    };
+
   return (
     <MainLayout title="Editar Loja">
       <Box
         sx={{
-          maxWidth: 960,
+          maxWidth:
+            960,
         }}
       >
         <Button
@@ -283,7 +253,8 @@ function EditStorePage() {
             isSaving
           }
           sx={{
-            mb: 2,
+            mb:
+              2,
           }}
         >
           Voltar aos detalhes
@@ -294,7 +265,8 @@ function EditStorePage() {
           component="h1"
           fontWeight={700}
           sx={{
-            mb: 1,
+            mb:
+              1,
           }}
         >
           Editar loja
@@ -303,7 +275,8 @@ function EditStorePage() {
         <Typography
           color="text.secondary"
           sx={{
-            mb: 3,
+            mb:
+              3,
           }}
         >
           Atualize as informações da unidade.
@@ -313,10 +286,13 @@ function EditStorePage() {
           <Alert
             severity="error"
             sx={{
-              mb: 3,
+              mb:
+                3,
             }}
             onClose={() =>
-              setErrorMessage("")
+              setErrorMessage(
+                ""
+              )
             }
           >
             {errorMessage}
@@ -326,268 +302,29 @@ function EditStorePage() {
         <Paper
           sx={{
             p: {
-              xs: 2.5,
-              md: 4,
+              xs:
+                2.5,
+
+              md:
+                4,
             },
           }}
         >
-          <Stack spacing={3}>
-            <Stack
-              direction={{
-                xs: "column",
-                md: "row",
-              }}
-              spacing={2}
-            >
-              <TextField
-                label="Código da loja"
-                value={code}
-                onChange={(event) =>
-                  setCode(
-                    event.target.value
-                  )
-                }
-                helperText="Exemplo: LJ001"
-                fullWidth
-                required
-                disabled={
-                  isSaving
-                }
-                slotProps={{
-                  htmlInput: {
-                    maxLength: 20,
-                  },
-                }}
-              />
-
-              <TextField
-                label="Nome da loja"
-                value={name}
-                onChange={(event) =>
-                  setName(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                required
-                disabled={
-                  isSaving
-                }
-                slotProps={{
-                  htmlInput: {
-                    maxLength: 100,
-                  },
-                }}
-              />
-
-              <TextField
-                select
-                label="Status"
-                value={status}
-                onChange={(event) =>
-                  setStatus(
-                    event.target
-                      .value as StoreStatus
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              >
-                <MenuItem value="Ativa">
-                  Ativa
-                </MenuItem>
-
-                <MenuItem value="Inativa">
-                  Inativa
-                </MenuItem>
-              </TextField>
-            </Stack>
-
-            <TextField
-              label="Endereço"
-              value={address}
-              onChange={(event) =>
-                setAddress(
-                  event.target.value
-                )
-              }
-              fullWidth
-              disabled={
-                isSaving
-              }
-            />
-
-            <Stack
-              direction={{
-                xs: "column",
-                md: "row",
-              }}
-              spacing={2}
-            >
-              <TextField
-                label="Cidade"
-                value={city}
-                onChange={(event) =>
-                  setCity(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-
-              <TextField
-                label="Estado"
-                value={state}
-                onChange={(event) =>
-                  setState(
-                    event.target.value
-                  )
-                }
-                placeholder="SP"
-                fullWidth
-                disabled={
-                  isSaving
-                }
-                slotProps={{
-                  htmlInput: {
-                    maxLength: 2,
-                  },
-                }}
-              />
-
-              <TextField
-                label="CEP"
-                value={zipCode}
-                onChange={(event) =>
-                  setZipCode(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-            </Stack>
-
-            <Stack
-              direction={{
-                xs: "column",
-                md: "row",
-              }}
-              spacing={2}
-            >
-              <TextField
-                label="Telefone"
-                value={phone}
-                onChange={(event) =>
-                  setPhone(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-
-              <TextField
-                label="E-mail"
-                type="email"
-                value={email}
-                onChange={(event) =>
-                  setEmail(
-                    event.target.value
-                  )
-                }
-                fullWidth
-                disabled={
-                  isSaving
-                }
-              />
-            </Stack>
-
-            <TextField
-              label="Gerente responsável"
-              value={manager}
-              onChange={(event) =>
-                setManager(
-                  event.target.value
-                )
-              }
-              fullWidth
-              disabled={
-                isSaving
-              }
-            />
-
-            <TextField
-              label="Observações"
-              value={notes}
-              onChange={(event) =>
-                setNotes(
-                  event.target.value
-                )
-              }
-              multiline
-              rows={5}
-              fullWidth
-              disabled={
-                isSaving
-              }
-            />
-
-            <Stack
-              direction={{
-                xs: "column",
-                sm: "row",
-              }}
-              spacing={2}
-              justifyContent="flex-end"
-            >
-              <Button
-                variant="outlined"
-                startIcon={
-                  <ArrowBack />
-                }
-                onClick={
-                  handleBack
-                }
-                disabled={
-                  isSaving
-                }
-              >
-                Cancelar
-              </Button>
-
-              <Button
-                variant="contained"
-                startIcon={
-                  <Save />
-                }
-                onClick={
-                  handleSave
-                }
-                loading={
-                  isSaving
-                }
-                disabled={
-                  isSaving ||
-                  !code.trim() ||
-                  !name.trim()
-                }
-              >
-                {isSaving
-                  ? "Salvando..."
-                  : "Salvar alterações"}
-              </Button>
-            </Stack>
-          </Stack>
+          <StoreForm
+            initialValues={
+              initialValues
+            }
+            onSubmit={
+              handleSubmit
+            }
+            onCancel={
+              handleBack
+            }
+            saving={
+              isSaving
+            }
+            submitLabel="Salvar alterações"
+          />
         </Paper>
       </Box>
     </MainLayout>

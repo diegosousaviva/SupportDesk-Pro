@@ -38,6 +38,188 @@ export type CreateUserData = Omit<
 const SETTINGS_STORAGE_KEY =
   "supportdesk-pro-settings";
 
+const MINIMUM_NAME_LENGTH =
+  3;
+
+const MAXIMUM_NAME_LENGTH =
+  100;
+
+const MAXIMUM_EMAIL_LENGTH =
+  150;
+
+const MINIMUM_BASIC_PASSWORD_LENGTH =
+  6;
+
+const MAXIMUM_PASSWORD_LENGTH =
+  128;
+
+const MAXIMUM_PHONE_LENGTH =
+  30;
+
+const MAXIMUM_DEPARTMENT_LENGTH =
+  80;
+
+const EMAIL_PATTERN =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const PHONE_PATTERN =
+  /^[0-9()+\-\s.]+$/;
+
+const VALID_ROLES:
+  readonly UserRole[] = [
+    "Administrador",
+    "Técnico",
+    "Solicitante",
+  ];
+
+const VALID_STATUSES:
+  readonly UserStatus[] = [
+    "Ativo",
+    "Inativo",
+  ];
+
+function normalizeText(
+  value: string
+): string {
+  return value.trim();
+}
+
+function normalizeEmail(
+  email: string
+): string {
+  return email
+    .trim()
+    .toLowerCase();
+}
+
+function validateMaximumLength(
+  value: string,
+  maximumLength: number,
+  fieldName: string
+): void {
+  if (
+    value.length >
+    maximumLength
+  ) {
+    throw new Error(
+      `${fieldName} deve possuir no máximo ${maximumLength} caracteres.`
+    );
+  }
+}
+
+function validateName(
+  name: string
+): void {
+  if (!name) {
+    throw new Error(
+      "Informe o nome do usuário."
+    );
+  }
+
+  if (
+    name.length <
+    MINIMUM_NAME_LENGTH
+  ) {
+    throw new Error(
+      `O nome deve possuir pelo menos ${MINIMUM_NAME_LENGTH} caracteres.`
+    );
+  }
+
+  validateMaximumLength(
+    name,
+    MAXIMUM_NAME_LENGTH,
+    "O nome"
+  );
+}
+
+function validateEmail(
+  email: string
+): void {
+  if (!email) {
+    throw new Error(
+      "Informe o e-mail do usuário."
+    );
+  }
+
+  validateMaximumLength(
+    email,
+    MAXIMUM_EMAIL_LENGTH,
+    "O e-mail"
+  );
+
+  if (
+    !EMAIL_PATTERN.test(
+      email
+    )
+  ) {
+    throw new Error(
+      "Informe um e-mail válido."
+    );
+  }
+}
+
+function validatePhone(
+  phone: string
+): void {
+  if (!phone) {
+    return;
+  }
+
+  validateMaximumLength(
+    phone,
+    MAXIMUM_PHONE_LENGTH,
+    "O telefone"
+  );
+
+  if (
+    !PHONE_PATTERN.test(
+      phone
+    )
+  ) {
+    throw new Error(
+      "Informe um telefone válido."
+    );
+  }
+}
+
+function validateDepartment(
+  department: string
+): void {
+  validateMaximumLength(
+    department,
+    MAXIMUM_DEPARTMENT_LENGTH,
+    "O departamento"
+  );
+}
+
+function validateRole(
+  role: UserRole
+): void {
+  if (
+    !VALID_ROLES.includes(
+      role
+    )
+  ) {
+    throw new Error(
+      "Selecione um perfil de usuário válido."
+    );
+  }
+}
+
+function validateStatus(
+  status: UserStatus
+): void {
+  if (
+    !VALID_STATUSES.includes(
+      status
+    )
+  ) {
+    throw new Error(
+      "Selecione um status de usuário válido."
+    );
+  }
+}
+
 function isStrongPasswordRequired():
   boolean {
   try {
@@ -70,14 +252,73 @@ function isStrongPasswordRequired():
 function validatePasswordPolicy(
   password: string
 ): void {
+  if (!password) {
+    throw new Error(
+      "Informe a senha do usuário."
+    );
+  }
+
   if (
-    !isStrongPasswordRequired()
+    password.length >
+    MAXIMUM_PASSWORD_LENGTH
   ) {
+    throw new Error(
+      `A senha deve possuir no máximo ${MAXIMUM_PASSWORD_LENGTH} caracteres.`
+    );
+  }
+
+  if (
+    isStrongPasswordRequired()
+  ) {
+    assertStrongPassword(
+      password
+    );
+
     return;
   }
 
-  assertStrongPassword(
-    password
+  if (
+    password.length <
+    MINIMUM_BASIC_PASSWORD_LENGTH
+  ) {
+    throw new Error(
+      `A senha deve possuir pelo menos ${MINIMUM_BASIC_PASSWORD_LENGTH} caracteres.`
+    );
+  }
+}
+
+function validateUserData(
+  data: {
+    name: string;
+    email: string;
+    phone: string;
+    department: string;
+    role: UserRole;
+    status: UserStatus;
+  }
+): void {
+  validateName(
+    data.name
+  );
+
+  validateEmail(
+    data.email
+  );
+
+  validatePhone(
+    data.phone
+  );
+
+  validateDepartment(
+    data.department
+  );
+
+  validateRole(
+    data.role
+  );
+
+  validateStatus(
+    data.status
   );
 }
 
@@ -146,6 +387,15 @@ export function getUsers():
 export function getUserById(
   id: number
 ): User | undefined {
+  if (
+    !Number.isInteger(
+      id
+    ) ||
+    id <= 0
+  ) {
+    return undefined;
+  }
+
   return findUserById(
     id
   );
@@ -287,22 +537,24 @@ function validateEmailAvailability(
   ignoredUserId?: number
 ): void {
   const normalizedEmail =
-    email
-      .trim()
-      .toLowerCase();
+    normalizeEmail(
+      email
+    );
 
   const emailAlreadyExists =
     getUsers().some(
       (user) =>
         user.id !==
           ignoredUserId &&
-        user.email
-          .trim()
-          .toLowerCase() ===
+        normalizeEmail(
+          user.email
+        ) ===
           normalizedEmail
     );
 
-  if (emailAlreadyExists) {
+  if (
+    emailAlreadyExists
+  ) {
     throw new Error(
       "Já existe um usuário cadastrado com este e-mail."
     );
@@ -312,12 +564,52 @@ function validateEmailAvailability(
 export async function createUser(
   userData: CreateUserData
 ): Promise<User> {
-  validateEmailAvailability(
-    userData.email
-  );
+  const normalizedName =
+    normalizeText(
+      userData.name
+    );
+
+  const normalizedEmail =
+    normalizeEmail(
+      userData.email
+    );
+
+  const normalizedPhone =
+    normalizeText(
+      userData.phone
+    );
+
+  const normalizedDepartment =
+    normalizeText(
+      userData.department
+    );
 
   const normalizedPassword =
     userData.password.trim();
+
+  validateUserData({
+    name:
+      normalizedName,
+
+    email:
+      normalizedEmail,
+
+    phone:
+      normalizedPhone,
+
+    department:
+      normalizedDepartment,
+
+    role:
+      userData.role,
+
+    status:
+      userData.status,
+  });
+
+  validateEmailAvailability(
+    normalizedEmail
+  );
 
   if (
     !isPasswordHash(
@@ -343,21 +635,19 @@ export async function createUser(
       ...userData,
 
       name:
-        userData.name.trim(),
+        normalizedName,
 
       email:
-        userData.email
-          .trim()
-          .toLowerCase(),
+        normalizedEmail,
 
       password:
         protectedPassword,
 
       phone:
-        userData.phone.trim(),
+        normalizedPhone,
 
       department:
-        userData.department.trim(),
+        normalizedDepartment,
     });
 
   createUserHistory({
@@ -408,12 +698,72 @@ export async function updateUser(
     updatedData
   );
 
+  const normalizedName =
+    updatedData.name !==
+    undefined
+      ? normalizeText(
+          updatedData.name
+        )
+      : currentUser.name;
+
+  const normalizedEmail =
+    updatedData.email !==
+    undefined
+      ? normalizeEmail(
+          updatedData.email
+        )
+      : currentUser.email;
+
+  const normalizedPhone =
+    updatedData.phone !==
+    undefined
+      ? normalizeText(
+          updatedData.phone
+        )
+      : currentUser.phone;
+
+  const normalizedDepartment =
+    updatedData.department !==
+    undefined
+      ? normalizeText(
+          updatedData.department
+        )
+      : currentUser.department;
+
+  const normalizedRole =
+    updatedData.role ??
+    currentUser.role;
+
+  const normalizedStatus =
+    updatedData.status ??
+    currentUser.status;
+
+  validateUserData({
+    name:
+      normalizedName,
+
+    email:
+      normalizedEmail,
+
+    phone:
+      normalizedPhone,
+
+    department:
+      normalizedDepartment,
+
+    role:
+      normalizedRole,
+
+    status:
+      normalizedStatus,
+  });
+
   if (
     updatedData.email !==
     undefined
   ) {
     validateEmailAvailability(
-      updatedData.email,
+      normalizedEmail,
       id
     );
   }
@@ -427,7 +777,9 @@ export async function updateUser(
     updatedData.password.trim() !==
       "";
 
-  if (passwordWasChanged) {
+  if (
+    passwordWasChanged
+  ) {
     const normalizedPassword =
       updatedData.password?.trim() ??
       "";
@@ -457,30 +809,22 @@ export async function updateUser(
       ...updatedData,
 
       name:
-        updatedData.name !==
-        undefined
-          ? updatedData.name.trim()
-          : currentUser.name,
+        normalizedName,
 
       email:
-        updatedData.email !==
-        undefined
-          ? updatedData.email
-              .trim()
-              .toLowerCase()
-          : currentUser.email,
+        normalizedEmail,
 
       phone:
-        updatedData.phone !==
-        undefined
-          ? updatedData.phone.trim()
-          : currentUser.phone,
+        normalizedPhone,
 
       department:
-        updatedData.department !==
-        undefined
-          ? updatedData.department.trim()
-          : currentUser.department,
+        normalizedDepartment,
+
+      role:
+        normalizedRole,
+
+      status:
+        normalizedStatus,
 
       password,
     };
@@ -526,35 +870,47 @@ export async function updateUser(
     departmentChanged ||
     passwordWasChanged;
 
-  if (generalDataChanged) {
+  if (
+    generalDataChanged
+  ) {
     const changedFields:
       string[] = [];
 
-    if (nameChanged) {
+    if (
+      nameChanged
+    ) {
       changedFields.push(
         "nome"
       );
     }
 
-    if (emailChanged) {
+    if (
+      emailChanged
+    ) {
       changedFields.push(
         "e-mail"
       );
     }
 
-    if (phoneChanged) {
+    if (
+      phoneChanged
+    ) {
       changedFields.push(
         "telefone"
       );
     }
 
-    if (departmentChanged) {
+    if (
+      departmentChanged
+    ) {
       changedFields.push(
         "departamento"
       );
     }
 
-    if (passwordWasChanged) {
+    if (
+      passwordWasChanged
+    ) {
       changedFields.push(
         "senha"
       );
@@ -589,7 +945,9 @@ export async function updateUser(
     );
   }
 
-  if (roleChanged) {
+  if (
+    roleChanged
+  ) {
     createUserHistory({
       userId:
         id,
@@ -615,7 +973,9 @@ export async function updateUser(
     );
   }
 
-  if (statusChanged) {
+  if (
+    statusChanged
+  ) {
     const userWasActivated =
       updatedUser.status ===
       "Ativo";
@@ -670,6 +1030,10 @@ export async function changeUserStatus(
       "Usuário não encontrado."
     );
   }
+
+  validateStatus(
+    status
+  );
 
   const updatedUser =
     await updateUser(
@@ -726,7 +1090,9 @@ export function deleteUser(
       id
     );
 
-  if (deleted) {
+  if (
+    deleted
+  ) {
     registerUserAudit(
       currentUser.id,
       "Exclusão",

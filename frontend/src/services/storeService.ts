@@ -9,6 +9,7 @@ import {
 
 import type {
   Store,
+  StoreStatus,
 } from "../types/Store";
 
 import {
@@ -30,6 +31,54 @@ export type UpdateStoreData = Partial<
   CreateStoreData
 >;
 
+const MAXIMUM_CODE_LENGTH =
+  20;
+
+const MINIMUM_NAME_LENGTH =
+  3;
+
+const MAXIMUM_NAME_LENGTH =
+  100;
+
+const MAXIMUM_ADDRESS_LENGTH =
+  200;
+
+const MAXIMUM_CITY_LENGTH =
+  100;
+
+const MAXIMUM_PHONE_LENGTH =
+  30;
+
+const MAXIMUM_EMAIL_LENGTH =
+  150;
+
+const MAXIMUM_MANAGER_LENGTH =
+  100;
+
+const MAXIMUM_NOTES_LENGTH =
+  2000;
+
+const CODE_PATTERN =
+  /^[A-Z0-9_-]+$/;
+
+const STATE_PATTERN =
+  /^[A-Z]{2}$/;
+
+const ZIP_CODE_PATTERN =
+  /^\d{5}-?\d{3}$/;
+
+const PHONE_PATTERN =
+  /^[0-9()+\-\s.]+$/;
+
+const EMAIL_PATTERN =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const VALID_STATUSES:
+  readonly StoreStatus[] = [
+    "Ativa",
+    "Inativa",
+  ];
+
 function normalizeCode(
   code: string
 ): string {
@@ -44,6 +93,279 @@ function normalizeText(
   return value.trim();
 }
 
+function validateMaximumLength(
+  value: string,
+  maximumLength: number,
+  fieldName: string
+): void {
+  if (
+    value.length >
+    maximumLength
+  ) {
+    throw new Error(
+      `${fieldName} deve possuir no máximo ${maximumLength} caracteres.`
+    );
+  }
+}
+
+function validateStoreCode(
+  code: string
+): void {
+  if (!code) {
+    throw new Error(
+      "Informe o código da loja."
+    );
+  }
+
+  validateMaximumLength(
+    code,
+    MAXIMUM_CODE_LENGTH,
+    "O código da loja"
+  );
+
+  if (
+    !CODE_PATTERN.test(
+      code
+    )
+  ) {
+    throw new Error(
+      "O código da loja pode conter apenas letras, números, hífen e sublinhado."
+    );
+  }
+}
+
+function validateStoreName(
+  name: string
+): void {
+  if (!name) {
+    throw new Error(
+      "Informe o nome da loja."
+    );
+  }
+
+  if (
+    name.length <
+    MINIMUM_NAME_LENGTH
+  ) {
+    throw new Error(
+      `O nome da loja deve possuir pelo menos ${MINIMUM_NAME_LENGTH} caracteres.`
+    );
+  }
+
+  validateMaximumLength(
+    name,
+    MAXIMUM_NAME_LENGTH,
+    "O nome da loja"
+  );
+}
+
+function validateAddress(
+  address: string
+): void {
+  validateMaximumLength(
+    address,
+    MAXIMUM_ADDRESS_LENGTH,
+    "O endereço"
+  );
+}
+
+function validateCity(
+  city: string
+): void {
+  validateMaximumLength(
+    city,
+    MAXIMUM_CITY_LENGTH,
+    "A cidade"
+  );
+}
+
+function validateState(
+  state: string
+): void {
+  if (!state) {
+    return;
+  }
+
+  if (
+    !STATE_PATTERN.test(
+      state
+    )
+  ) {
+    throw new Error(
+      "Informe a sigla do estado com 2 letras. Exemplo: SP."
+    );
+  }
+}
+
+function validateZipCode(
+  zipCode: string
+): void {
+  if (!zipCode) {
+    return;
+  }
+
+  if (
+    !ZIP_CODE_PATTERN.test(
+      zipCode
+    )
+  ) {
+    throw new Error(
+      "Informe um CEP válido. Exemplo: 01001-000."
+    );
+  }
+}
+
+function validatePhone(
+  phone: string
+): void {
+  if (!phone) {
+    return;
+  }
+
+  validateMaximumLength(
+    phone,
+    MAXIMUM_PHONE_LENGTH,
+    "O telefone"
+  );
+
+  if (
+    !PHONE_PATTERN.test(
+      phone
+    )
+  ) {
+    throw new Error(
+      "Informe um telefone válido."
+    );
+  }
+}
+
+function validateEmail(
+  email: string
+): void {
+  if (!email) {
+    return;
+  }
+
+  validateMaximumLength(
+    email,
+    MAXIMUM_EMAIL_LENGTH,
+    "O e-mail"
+  );
+
+  if (
+    !EMAIL_PATTERN.test(
+      email
+    )
+  ) {
+    throw new Error(
+      "Informe um e-mail válido."
+    );
+  }
+}
+
+function validateManager(
+  manager: string
+): void {
+  validateMaximumLength(
+    manager,
+    MAXIMUM_MANAGER_LENGTH,
+    "O gerente"
+  );
+}
+
+function validateNotes(
+  notes: string
+): void {
+  validateMaximumLength(
+    notes,
+    MAXIMUM_NOTES_LENGTH,
+    "As observações"
+  );
+}
+
+function validateStatus(
+  status: StoreStatus
+): void {
+  if (
+    !VALID_STATUSES.includes(
+      status
+    )
+  ) {
+    throw new Error(
+      "Selecione um status de loja válido."
+    );
+  }
+}
+
+function validateStoreData(
+  storeData:
+    CreateStoreData
+): void {
+  validateStoreCode(
+    storeData.code
+  );
+
+  validateStoreName(
+    storeData.name
+  );
+
+  validateStatus(
+    storeData.status
+  );
+
+  validateAddress(
+    storeData.address
+  );
+
+  validateCity(
+    storeData.city
+  );
+
+  validateState(
+    storeData.state
+  );
+
+  validateZipCode(
+    storeData.zipCode
+  );
+
+  validatePhone(
+    storeData.phone
+  );
+
+  validateEmail(
+    storeData.email
+  );
+
+  validateManager(
+    storeData.manager
+  );
+
+  validateNotes(
+    storeData.notes
+  );
+}
+
+function ensureUniqueCode(
+  code: string,
+  ignoredStoreId?: number
+): void {
+  const existingStore =
+    findStoreByCode(
+      code
+    );
+
+  if (
+    existingStore &&
+    existingStore.id !==
+      ignoredStoreId
+  ) {
+    throw new Error(
+      "Já existe uma loja cadastrada com esse código."
+    );
+  }
+}
+
 function getAuditUser(): {
   userId: number | null;
   userName: string;
@@ -53,8 +375,11 @@ function getAuditUser(): {
 
   if (!currentUser) {
     return {
-      userId: null,
-      userName: "Sistema",
+      userId:
+        null,
+
+      userName:
+        "Sistema",
     };
   }
 
@@ -99,98 +424,6 @@ function registerStoreAudit(
 
     details,
   });
-}
-
-function validateStoreCode(
-  code: string
-): void {
-  if (!code) {
-    throw new Error(
-      "Informe o código da loja."
-    );
-  }
-
-  if (
-    code.length >
-    20
-  ) {
-    throw new Error(
-      "O código da loja deve possuir no máximo 20 caracteres."
-    );
-  }
-
-  const validCodePattern =
-    /^[A-Z0-9_-]+$/;
-
-  if (
-    !validCodePattern.test(
-      code
-    )
-  ) {
-    throw new Error(
-      "O código da loja pode conter apenas letras, números, hífen e sublinhado."
-    );
-  }
-}
-
-function validateStoreName(
-  name: string
-): void {
-  if (!name) {
-    throw new Error(
-      "Informe o nome da loja."
-    );
-  }
-
-  if (
-    name.length >
-    100
-  ) {
-    throw new Error(
-      "O nome da loja deve possuir no máximo 100 caracteres."
-    );
-  }
-}
-
-function validateEmail(
-  email: string
-): void {
-  if (!email) {
-    return;
-  }
-
-  const emailPattern =
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (
-    !emailPattern.test(
-      email
-    )
-  ) {
-    throw new Error(
-      "Informe um e-mail válido."
-    );
-  }
-}
-
-function ensureUniqueCode(
-  code: string,
-  ignoredStoreId?: number
-): void {
-  const existingStore =
-    findStoreByCode(
-      code
-    );
-
-  if (
-    existingStore &&
-    existingStore.id !==
-      ignoredStoreId
-  ) {
-    throw new Error(
-      "Já existe uma loja cadastrada com esse código."
-    );
-  }
 }
 
 function registerStoreChanges(
@@ -362,7 +595,8 @@ export function getStoreById(
 }
 
 export function createStore(
-  storeData: CreateStoreData
+  storeData:
+    CreateStoreData
 ): Store {
   const normalizedData:
     CreateStoreData = {
@@ -420,16 +654,8 @@ export function createStore(
         ),
     };
 
-  validateStoreCode(
-    normalizedData.code
-  );
-
-  validateStoreName(
-    normalizedData.name
-  );
-
-  validateEmail(
-    normalizedData.email
+  validateStoreData(
+    normalizedData
   );
 
   ensureUniqueCode(
@@ -453,7 +679,8 @@ export function createStore(
 
 export function updateStore(
   storeId: number,
-  storeData: UpdateStoreData
+  storeData:
+    UpdateStoreData
 ): Store | undefined {
   const currentStore =
     getStoreById(
@@ -551,16 +778,8 @@ export function updateStore(
             ),
     };
 
-  validateStoreCode(
-    updatedData.code
-  );
-
-  validateStoreName(
-    updatedData.name
-  );
-
-  validateEmail(
-    updatedData.email
+  validateStoreData(
+    updatedData
   );
 
   ensureUniqueCode(
@@ -603,7 +822,9 @@ export function deleteStore(
       storeId
     );
 
-  if (deleted) {
+  if (
+    deleted
+  ) {
     registerStoreAudit(
       currentStore.id,
       "Exclusão",

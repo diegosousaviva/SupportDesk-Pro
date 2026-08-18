@@ -55,6 +55,36 @@ const VALID_CONDITIONS:
     "Sucata",
   ];
 
+const MAXIMUM_TAG_LENGTH =
+  50;
+
+const MAXIMUM_ASSET_NUMBER_LENGTH =
+  50;
+
+const MAXIMUM_LOCATION_LENGTH =
+  120;
+
+const MAXIMUM_CATEGORY_LENGTH =
+  80;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  3;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  200;
+
+const MAXIMUM_MANUFACTURER_LENGTH =
+  100;
+
+const MAXIMUM_MODEL_LENGTH =
+  100;
+
+const MAXIMUM_SERIAL_NUMBER_LENGTH =
+  100;
+
+const MAXIMUM_NOTES_LENGTH =
+  2000;
+
 function normalizeText(
   value: string
 ): string {
@@ -75,6 +105,23 @@ function normalizeAssetNumber(
   return assetNumber
     .trim()
     .toUpperCase();
+}
+
+function validateMaximumLength(
+  value: string,
+  maximumLength: number,
+  fieldName: string
+): void {
+  if (
+    value.length >
+    maximumLength
+  ) {
+    throw new Error(
+      `${fieldName} deve possuir no máximo ${maximumLength.toLocaleString(
+        "pt-BR"
+      )} caracteres.`
+    );
+  }
 }
 
 function getAuditUser(): {
@@ -182,14 +229,11 @@ function validateTagFormat(
     );
   }
 
-  if (
-    tag.length >
-    50
-  ) {
-    throw new Error(
-      "A etiqueta deve possuir no máximo 50 caracteres."
-    );
-  }
+  validateMaximumLength(
+    tag,
+    MAXIMUM_TAG_LENGTH,
+    "A etiqueta"
+  );
 
   const validTagPattern =
     /^[A-Z0-9_-]+$/;
@@ -212,14 +256,11 @@ function validateAssetNumberFormat(
     return;
   }
 
-  if (
-    assetNumber.length >
-    50
-  ) {
-    throw new Error(
-      "O patrimônio deve possuir no máximo 50 caracteres."
-    );
-  }
+  validateMaximumLength(
+    assetNumber,
+    MAXIMUM_ASSET_NUMBER_LENGTH,
+    "O patrimônio"
+  );
 
   const validAssetNumberPattern =
     /^[A-Z0-9_-]+$/;
@@ -282,6 +323,17 @@ function ensureUniqueAssetNumber(
 function validateStore(
   storeId: number
 ): void {
+  if (
+    !Number.isInteger(
+      storeId
+    ) ||
+    storeId <= 0
+  ) {
+    throw new Error(
+      "Selecione uma loja válida."
+    );
+  }
+
   const store =
     getStoreById(
       storeId
@@ -312,6 +364,17 @@ function validateResponsibleUser(
     null
   ) {
     return;
+  }
+
+  if (
+    !Number.isInteger(
+      responsibleUserId
+    ) ||
+    responsibleUserId <= 0
+  ) {
+    throw new Error(
+      "Selecione um responsável válido."
+    );
   }
 
   const user =
@@ -346,17 +409,75 @@ function validateRequiredFields(
     );
   }
 
+  if (
+    description.length <
+    MINIMUM_DESCRIPTION_LENGTH
+  ) {
+    throw new Error(
+      `A descrição deve possuir pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+    );
+  }
+
+  validateMaximumLength(
+    description,
+    MAXIMUM_DESCRIPTION_LENGTH,
+    "A descrição"
+  );
+
   if (!category) {
     throw new Error(
       "Informe a categoria do equipamento."
     );
   }
 
+  validateMaximumLength(
+    category,
+    MAXIMUM_CATEGORY_LENGTH,
+    "A categoria"
+  );
+
   if (!location) {
     throw new Error(
       "Informe a localização do equipamento."
     );
   }
+
+  validateMaximumLength(
+    location,
+    MAXIMUM_LOCATION_LENGTH,
+    "A localização"
+  );
+}
+
+function validateOptionalTextFields(
+  manufacturer: string,
+  model: string,
+  serialNumber: string,
+  notes: string
+): void {
+  validateMaximumLength(
+    manufacturer,
+    MAXIMUM_MANUFACTURER_LENGTH,
+    "O fabricante"
+  );
+
+  validateMaximumLength(
+    model,
+    MAXIMUM_MODEL_LENGTH,
+    "O modelo"
+  );
+
+  validateMaximumLength(
+    serialNumber,
+    MAXIMUM_SERIAL_NUMBER_LENGTH,
+    "O número de série"
+  );
+
+  validateMaximumLength(
+    notes,
+    MAXIMUM_NOTES_LENGTH,
+    "As observações"
+  );
 }
 
 function validateValue(
@@ -791,6 +912,26 @@ export function createInventoryItem(
       itemData.assetNumber
     );
 
+  const manufacturer =
+    normalizeText(
+      itemData.manufacturer
+    );
+
+  const model =
+    normalizeText(
+      itemData.model
+    );
+
+  const serialNumber =
+    normalizeText(
+      itemData.serialNumber
+    );
+
+  const notes =
+    normalizeText(
+      itemData.notes
+    );
+
   const acquisitionDate =
     normalizeText(
       itemData.acquisitionDate
@@ -837,6 +978,13 @@ export function createInventoryItem(
     location
   );
 
+  validateOptionalTextFields(
+    manufacturer,
+    model,
+    serialNumber,
+    notes
+  );
+
   validateValue(
     itemData.value
   );
@@ -866,20 +1014,11 @@ export function createInventoryItem(
 
       description,
 
-      manufacturer:
-        normalizeText(
-          itemData.manufacturer
-        ),
+      manufacturer,
 
-      model:
-        normalizeText(
-          itemData.model
-        ),
+      model,
 
-      serialNumber:
-        normalizeText(
-          itemData.serialNumber
-        ),
+      serialNumber,
 
       location,
 
@@ -899,10 +1038,7 @@ export function createInventoryItem(
       condition:
         itemData.condition,
 
-      notes:
-        normalizeText(
-          itemData.notes
-        ),
+      notes,
     });
 
   registerInventoryAudit(
@@ -1010,6 +1146,38 @@ export function updateInventoryItem(
           itemData.location
         );
 
+  const manufacturer =
+    itemData.manufacturer ===
+    undefined
+      ? currentItem.manufacturer
+      : normalizeText(
+          itemData.manufacturer
+        );
+
+  const model =
+    itemData.model ===
+    undefined
+      ? currentItem.model
+      : normalizeText(
+          itemData.model
+        );
+
+  const serialNumber =
+    itemData.serialNumber ===
+    undefined
+      ? currentItem.serialNumber
+      : normalizeText(
+          itemData.serialNumber
+        );
+
+  const notes =
+    itemData.notes ===
+    undefined
+      ? currentItem.notes
+      : normalizeText(
+          itemData.notes
+        );
+
   const value =
     itemData.value ??
     currentItem.value;
@@ -1050,6 +1218,13 @@ export function updateInventoryItem(
     location
   );
 
+  validateOptionalTextFields(
+    manufacturer,
+    model,
+    serialNumber,
+    notes
+  );
+
   validateValue(
     value
   );
@@ -1079,29 +1254,11 @@ export function updateInventoryItem(
 
         description,
 
-        manufacturer:
-          itemData.manufacturer ===
-          undefined
-            ? currentItem.manufacturer
-            : normalizeText(
-                itemData.manufacturer
-              ),
+        manufacturer,
 
-        model:
-          itemData.model ===
-          undefined
-            ? currentItem.model
-            : normalizeText(
-                itemData.model
-              ),
+        model,
 
-        serialNumber:
-          itemData.serialNumber ===
-          undefined
-            ? currentItem.serialNumber
-            : normalizeText(
-                itemData.serialNumber
-              ),
+        serialNumber,
 
         location,
 
@@ -1119,13 +1276,7 @@ export function updateInventoryItem(
 
         condition,
 
-        notes:
-          itemData.notes ===
-          undefined
-            ? currentItem.notes
-            : normalizeText(
-                itemData.notes
-              ),
+        notes,
       }
     );
 

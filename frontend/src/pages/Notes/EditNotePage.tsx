@@ -73,6 +73,18 @@ import type {
   NoteAttachment,
 } from "../../types/NoteAttachment";
 
+const MINIMUM_TITLE_LENGTH =
+  3;
+
+const MAXIMUM_TITLE_LENGTH =
+  150;
+
+const MINIMUM_DESCRIPTION_LENGTH =
+  10;
+
+const MAXIMUM_DESCRIPTION_LENGTH =
+  10000;
+
 const NOTE_CATEGORIES:
   NoteCategory[] = [
     "Geral",
@@ -197,6 +209,16 @@ function EditNotePage() {
     setErrorMessage,
   ] = useState("");
 
+  const [
+    titleError,
+    setTitleError,
+  ] = useState("");
+
+  const [
+    descriptionError,
+    setDescriptionError,
+  ] = useState("");
+
   const allowedExtensions =
     getAllowedNoteAttachmentExtensions();
 
@@ -219,6 +241,14 @@ function EditNotePage() {
 
       setDescription(
         note.description
+      );
+
+      setTitleError(
+        ""
+      );
+
+      setDescriptionError(
+        ""
       );
     },
     [
@@ -310,6 +340,106 @@ function EditNotePage() {
     navigate(
       "/notes"
     );
+  }
+
+  function handleTitleChange(
+    value: string
+  ): void {
+    setTitle(
+      value
+    );
+
+    setTitleError(
+      ""
+    );
+
+    setErrorMessage(
+      ""
+    );
+  }
+
+  function handleDescriptionChange(
+    value: string
+  ): void {
+    setDescription(
+      value
+    );
+
+    setDescriptionError(
+      ""
+    );
+
+    setErrorMessage(
+      ""
+    );
+  }
+
+  function validateForm():
+    boolean {
+    const normalizedTitle =
+      title.trim();
+
+    const normalizedDescription =
+      description.trim();
+
+    let valid =
+      true;
+
+    setTitleError(
+      ""
+    );
+
+    setDescriptionError(
+      ""
+    );
+
+    if (!normalizedTitle) {
+      setTitleError(
+        "Informe o título da nota."
+      );
+
+      valid =
+        false;
+    } else if (
+      normalizedTitle.length <
+      MINIMUM_TITLE_LENGTH
+    ) {
+      setTitleError(
+        `O título deve possuir pelo menos ${MINIMUM_TITLE_LENGTH} caracteres.`
+      );
+
+      valid =
+        false;
+    }
+
+    if (
+      !normalizedDescription
+    ) {
+      setDescriptionError(
+        "Informe a descrição da nota."
+      );
+
+      valid =
+        false;
+    } else if (
+      normalizedDescription.length <
+      MINIMUM_DESCRIPTION_LENGTH
+    ) {
+      setDescriptionError(
+        `A descrição deve possuir pelo menos ${MINIMUM_DESCRIPTION_LENGTH} caracteres.`
+      );
+
+      valid =
+        false;
+    }
+
+    if (!valid) {
+      setErrorMessage(
+        "Revise os campos destacados antes de continuar."
+      );
+    }
+
+    return valid;
   }
 
   function handleFileSelection(
@@ -406,6 +536,12 @@ function EditNotePage() {
   function handleRemoveSelectedFile(
     indexToRemove: number
   ): void {
+    if (
+      isSubmitting
+    ) {
+      return;
+    }
+
     setSelectedFiles(
       (
         currentFiles
@@ -548,6 +684,12 @@ function EditNotePage() {
   ): Promise<void> {
     event.preventDefault();
 
+    if (
+      isSubmitting
+    ) {
+      return;
+    }
+
     setErrorMessage("");
 
     if (
@@ -558,24 +700,8 @@ function EditNotePage() {
     }
 
     if (
-      !title.trim() ||
-      !description.trim()
+      !validateForm()
     ) {
-      const message =
-        "Preencha o título e a descrição da nota.";
-
-      setErrorMessage(
-        message
-      );
-
-      showSnackbar(
-        message,
-        {
-          severity:
-            "warning",
-        }
-      );
-
       return;
     }
 
@@ -677,9 +803,7 @@ function EditNotePage() {
     }
   }
 
-  if (
-    !user
-  ) {
+  if (!user) {
     return (
       <MainLayout title="Editar nota">
         <Alert severity="error">
@@ -713,7 +837,8 @@ function EditNotePage() {
             )
           }
           sx={{
-            mt: 2,
+            mt:
+              2,
           }}
         >
           Voltar para notas
@@ -726,7 +851,8 @@ function EditNotePage() {
     <MainLayout title="Editar nota">
       <Box
         sx={{
-          maxWidth: 900,
+          maxWidth:
+            900,
         }}
       >
         <Button
@@ -741,7 +867,8 @@ function EditNotePage() {
             isSubmitting
           }
           sx={{
-            mb: 1,
+            mb:
+              1,
           }}
         >
           Voltar para nota
@@ -758,8 +885,11 @@ function EditNotePage() {
         <Typography
           color="text.secondary"
           sx={{
-            mt: 0.5,
-            mb: 3,
+            mt:
+              0.5,
+
+            mb:
+              3,
           }}
         >
           Atualize as informações e os anexos da nota #{note.id}.
@@ -769,12 +899,16 @@ function EditNotePage() {
           <Alert
             severity="error"
             sx={{
-              mb: 3,
+              mb:
+                3,
             }}
-            onClose={() =>
-              setErrorMessage(
-                ""
-              )
+            onClose={
+              isSubmitting
+                ? undefined
+                : () =>
+                    setErrorMessage(
+                      ""
+                    )
             }
           >
             {errorMessage}
@@ -785,8 +919,11 @@ function EditNotePage() {
           variant="outlined"
           sx={{
             p: {
-              xs: 2.5,
-              md: 4,
+              xs:
+                2.5,
+
+              md:
+                4,
             },
           }}
         >
@@ -795,23 +932,34 @@ function EditNotePage() {
             onSubmit={
               handleSubmit
             }
+            noValidate
           >
             <Stack spacing={3}>
               <TextField
                 label="Título"
-                value={title}
+                value={
+                  title
+                }
                 onChange={(event) =>
-                  setTitle(
+                  handleTitleChange(
                     event.target.value
                   )
+                }
+                error={
+                  Boolean(
+                    titleError
+                  )
+                }
+                helperText={
+                  titleError ||
+                  `${title.length}/${MAXIMUM_TITLE_LENGTH} caracteres — mínimo ${MINIMUM_TITLE_LENGTH}`
                 }
                 slotProps={{
                   htmlInput: {
                     maxLength:
-                      150,
+                      MAXIMUM_TITLE_LENGTH,
                   },
                 }}
-                helperText={`${title.length}/150 caracteres`}
                 required
                 fullWidth
                 disabled={
@@ -870,17 +1018,27 @@ function EditNotePage() {
                   description
                 }
                 onChange={(event) =>
-                  setDescription(
+                  handleDescriptionChange(
                     event.target.value
                   )
+                }
+                error={
+                  Boolean(
+                    descriptionError
+                  )
+                }
+                helperText={
+                  descriptionError ||
+                  `${description.length}/${MAXIMUM_DESCRIPTION_LENGTH.toLocaleString(
+                    "pt-BR"
+                  )} caracteres — mínimo ${MINIMUM_DESCRIPTION_LENGTH}`
                 }
                 slotProps={{
                   htmlInput: {
                     maxLength:
-                      10000,
+                      MAXIMUM_DESCRIPTION_LENGTH,
                   },
                 }}
-                helperText={`${description.length}/10.000 caracteres`}
                 multiline
                 minRows={8}
                 required
@@ -893,7 +1051,8 @@ function EditNotePage() {
               <Paper
                 variant="outlined"
                 sx={{
-                  p: 2.5,
+                  p:
+                    2.5,
                 }}
               >
                 <Stack spacing={2}>
@@ -954,7 +1113,8 @@ function EditNotePage() {
                             justifyContent="space-between"
                             alignItems="center"
                             sx={{
-                              py: 1.5,
+                              py:
+                                1.5,
                             }}
                           >
                             <Box
@@ -1055,9 +1215,12 @@ function EditNotePage() {
               <Paper
                 variant="outlined"
                 sx={{
-                  p: 2.5,
+                  p:
+                    2.5,
+
                   borderStyle:
                     "dashed",
+
                   backgroundColor:
                     "background.default",
                 }}
@@ -1133,7 +1296,8 @@ function EditNotePage() {
                             key={`${file.name}-${file.size}-${file.lastModified}`}
                             variant="outlined"
                             sx={{
-                              p: 1.5,
+                              p:
+                                1.5,
                             }}
                           >
                             <Stack
@@ -1193,8 +1357,11 @@ function EditNotePage() {
 
               <Stack
                 direction={{
-                  xs: "column",
-                  sm: "row",
+                  xs:
+                    "column",
+
+                  sm:
+                    "row",
                 }}
                 spacing={1}
                 justifyContent="flex-end"

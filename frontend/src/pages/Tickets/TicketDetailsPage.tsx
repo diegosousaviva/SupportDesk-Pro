@@ -7,7 +7,11 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Typography,
 } from "@mui/material";
@@ -24,6 +28,10 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+
+import {
+  Permissions,
+} from "../../auth/permissions";
 
 import {
   canDeleteTicket,
@@ -64,6 +72,7 @@ import {
 import {
   deleteTicket,
   getTicketById,
+  updateTicket,
 } from "../../services/ticketService";
 
 import {
@@ -73,6 +82,10 @@ import {
 import {
   getUserById,
 } from "../../services/userService";
+
+import type {
+  TicketStatus,
+} from "../../types/Ticket";
 
 export default function TicketDetailsPage() {
   const navigate =
@@ -124,6 +137,33 @@ export default function TicketDetailsPage() {
     setRefreshKey,
   ] = useState(0);
 
+  const [
+    statusDialogOpen,
+    setStatusDialogOpen,
+  ] = useState(false);
+
+  const [
+    selectedStatus,
+    setSelectedStatus,
+  ] = useState<TicketStatus>(
+    "Aberto"
+  );
+
+  const [
+    isUpdatingStatus,
+    setIsUpdatingStatus,
+  ] = useState(false);
+
+  const [
+    closeDialogOpen,
+    setCloseDialogOpen,
+  ] = useState(false);
+
+  const [
+    isClosingTicket,
+    setIsClosingTicket,
+  ] = useState(false);
+
   const ticketId =
     Number(id);
 
@@ -133,7 +173,11 @@ export default function TicketDetailsPage() {
     );
 
   function handleBack(): void {
-    if (isDeleting) {
+    if (
+      isDeleting ||
+      isUpdatingStatus ||
+      isClosingTicket
+    ) {
       return;
     }
 
@@ -167,17 +211,26 @@ export default function TicketDetailsPage() {
     );
   }
 
+  /*
+   * A partir deste ponto sabemos que o chamado existe.
+   *
+   * Criamos uma referência estável para que o TypeScript
+   * preserve corretamente o tipo dentro dos handlers.
+   */
+  const currentTicket =
+    ticket;
+
   const mayViewTicket =
     canViewTicket(
       user,
-      ticket,
+      currentTicket,
       can
     );
 
   const mayEditTicket =
     canEditTicket(
       user,
-      ticket,
+      currentTicket,
       can
     );
 
@@ -185,6 +238,21 @@ export default function TicketDetailsPage() {
     canDeleteTicket(
       user,
       can
+    );
+
+  const mayUpdateStatus =
+    can(
+      Permissions.tickets.updateStatus
+    );
+
+  const mayCloseTicket =
+    can(
+      Permissions.tickets.close
+    );
+
+  const mayComment =
+    can(
+      Permissions.tickets.comment
     );
 
   if (!mayViewTicket) {
@@ -214,40 +282,45 @@ export default function TicketDetailsPage() {
   }
 
   const currentTicketId =
-    ticket.id;
+    currentTicket.id;
 
   void refreshKey;
 
   const assignedTechnician =
-    ticket.assignedTechnicianId ===
+    currentTicket.assignedTechnicianId ===
     null
       ? undefined
       : getUserById(
-          ticket.assignedTechnicianId
+          currentTicket.assignedTechnicianId
         );
 
   let technicianName =
     "Não atribuído";
 
   if (
-    ticket.assignedTechnicianId !==
+    currentTicket.assignedTechnicianId !==
     null
   ) {
     technicianName =
       assignedTechnician
         ? assignedTechnician.name
-        : `Técnico não encontrado (#${ticket.assignedTechnicianId})`;
+        : `Técnico não encontrado (#${currentTicket.assignedTechnicianId})`;
   }
 
   const sla =
     calculateTicketSla(
-      ticket
+      currentTicket
     );
+
+  const actionInProgress =
+    isDeleting ||
+    isUpdatingStatus ||
+    isClosingTicket;
 
   function handleEdit(): void {
     if (
       !mayEditTicket ||
-      isDeleting
+      actionInProgress
     ) {
       return;
     }
@@ -257,10 +330,258 @@ export default function TicketDetailsPage() {
     );
   }
 
+  function handleOpenStatusDialog():
+    void {
+    if (
+      !mayUpdateStatus ||
+      actionInProgress
+    ) {
+      return;
+    }
+
+    setSelectedStatus(
+      currentTicket.status ===
+        "Resolvido"
+        ? "Em andamento"
+        : currentTicket.status
+    );
+
+    setStatusDialogOpen(
+      true
+    );
+  }
+
+  function handleCloseStatusDialog():
+    void {
+    if (
+      isUpdatingStatus
+    ) {
+      return;
+    }
+
+    setStatusDialogOpen(
+      false
+    );
+  }
+
+  async function handleConfirmStatusChange():
+    Promise<void> {
+    if (
+      !user ||
+      !mayUpdateStatus ||
+      isUpdatingStatus
+    ) {
+      return;
+    }
+
+    if (
+      selectedStatus ===
+      currentTicket.status
+    ) {
+      setStatusDialogOpen(
+        false
+      );
+
+      return;
+    }
+
+    setIsUpdatingStatus(
+      true
+    );
+
+    try {
+      const previousStatus =
+        currentTicket.status;
+
+      const updatedTicket =
+        await Promise.resolve(
+          updateTicket(
+            currentTicketId,
+            {
+              status:
+                selectedStatus,
+            }
+          )
+        );
+
+      if (!updatedTicket) {
+        throw new Error(
+          "Não foi possível atualizar o status do chamado."
+        );
+      }
+
+      createTicketHistoryEntry({
+        ticketId:
+          currentTicketId,
+
+        eventType:
+          "status_changed",
+
+        description:
+          `${user.name} alterou o status de "${previousStatus}" para "${selectedStatus}".`,
+      });
+
+      setStatusDialogOpen(
+        false
+      );
+
+      setRefreshKey(
+        (currentValue) =>
+          currentValue + 1
+      );
+
+      showSnackbar(
+        `Status alterado para "${selectedStatus}".`,
+        {
+          severity:
+            "success",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Não foi possível atualizar o status do chamado.",
+        error
+      );
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar o status do chamado.";
+
+      showSnackbar(
+        message,
+        {
+          severity:
+            "error",
+        }
+      );
+    } finally {
+      setIsUpdatingStatus(
+        false
+      );
+    }
+  }
+
+  function handleOpenCloseDialog():
+    void {
+    if (
+      !mayCloseTicket ||
+      currentTicket.status ===
+        "Resolvido" ||
+      actionInProgress
+    ) {
+      return;
+    }
+
+    setCloseDialogOpen(
+      true
+    );
+  }
+
+  function handleCloseCloseDialog():
+    void {
+    if (
+      isClosingTicket
+    ) {
+      return;
+    }
+
+    setCloseDialogOpen(
+      false
+    );
+  }
+
+  async function handleResolveTicket():
+    Promise<void> {
+    if (
+      !user ||
+      !mayCloseTicket ||
+      isClosingTicket
+    ) {
+      return;
+    }
+
+    setIsClosingTicket(
+      true
+    );
+
+    try {
+      const previousStatus =
+        currentTicket.status;
+
+      const updatedTicket =
+        await Promise.resolve(
+          updateTicket(
+            currentTicketId,
+            {
+              status:
+                "Resolvido",
+            }
+          )
+        );
+
+      if (!updatedTicket) {
+        throw new Error(
+          "Não foi possível resolver o chamado."
+        );
+      }
+
+      createTicketHistoryEntry({
+        ticketId:
+          currentTicketId,
+
+        eventType:
+          "status_changed",
+
+        description:
+          `${user.name} alterou o status de "${previousStatus}" para "Resolvido".`,
+      });
+
+      setCloseDialogOpen(
+        false
+      );
+
+      setRefreshKey(
+        (currentValue) =>
+          currentValue + 1
+      );
+
+      showSnackbar(
+        "Chamado resolvido com sucesso.",
+        {
+          severity:
+            "success",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Não foi possível resolver o chamado.",
+        error
+      );
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível resolver o chamado.";
+
+      showSnackbar(
+        message,
+        {
+          severity:
+            "error",
+        }
+      );
+    } finally {
+      setIsClosingTicket(
+        false
+      );
+    }
+  }
+
   function handleOpenDeleteDialog(): void {
     if (
       !mayDeleteTicket ||
-      isDeleting
+      actionInProgress
     ) {
       return;
     }
@@ -283,6 +604,7 @@ export default function TicketDetailsPage() {
   ): void {
     if (
       !user ||
+      !mayComment ||
       isAddingComment
     ) {
       return;
@@ -344,7 +666,7 @@ export default function TicketDetailsPage() {
       );
 
       showSnackbar(
-        "Não foi possível adicionar o comentário.",
+        failureMessage,
         {
           severity:
             "error",
@@ -417,7 +739,7 @@ export default function TicketDetailsPage() {
       );
 
       showSnackbar(
-        "Não foi possível excluir o chamado.",
+        failureMessage,
         {
           severity:
             "error",
@@ -435,7 +757,7 @@ export default function TicketDetailsPage() {
       <Stack spacing={3}>
         <TicketHeader
           ticket={
-            ticket
+            currentTicket
           }
         />
 
@@ -475,13 +797,13 @@ export default function TicketDetailsPage() {
                 Meta de{" "}
                 {sla.targetHours}h para
                 prioridade{" "}
-                {ticket.priority}
+                {currentTicket.priority}
               </Typography>
             </Stack>
 
             <SlaProgress
               ticket={
-                ticket
+                currentTicket
               }
             />
           </Stack>
@@ -489,13 +811,13 @@ export default function TicketDetailsPage() {
 
         <TicketDescriptionCard
           description={
-            ticket.description
+            currentTicket.description
           }
         />
 
         <TicketEquipmentCard
           ticket={
-            ticket
+            currentTicket
           }
         />
 
@@ -508,10 +830,10 @@ export default function TicketDetailsPage() {
             "Inativo"
           }
           createdAt={
-            ticket.createdAt
+            currentTicket.createdAt
           }
           updatedAt={
-            ticket.updatedAt
+            currentTicket.updatedAt
           }
         />
 
@@ -531,7 +853,8 @@ export default function TicketDetailsPage() {
               currentTicketId
             }
             onAddComment={
-              user
+              user &&
+              mayComment
                 ? handleAddComment
                 : undefined
             }
@@ -553,20 +876,200 @@ export default function TicketDetailsPage() {
           onBack={
             handleBack
           }
+          onUpdateStatus={
+            mayUpdateStatus &&
+            currentTicket.status !==
+              "Resolvido"
+              ? handleOpenStatusDialog
+              : undefined
+          }
+          onClose={
+            mayCloseTicket &&
+            currentTicket.status !==
+              "Resolvido"
+              ? handleOpenCloseDialog
+              : undefined
+          }
           onEdit={
             mayEditTicket &&
-            !isDeleting
+            !actionInProgress
               ? handleEdit
               : undefined
           }
           onDelete={
             mayDeleteTicket &&
-            !isDeleting
+            !actionInProgress
               ? handleOpenDeleteDialog
               : undefined
           }
+          disabled={
+            actionInProgress
+          }
         />
       </Stack>
+
+      <Dialog
+        open={
+          statusDialogOpen &&
+          mayUpdateStatus
+        }
+        onClose={
+          isUpdatingStatus
+            ? undefined
+            : handleCloseStatusDialog
+        }
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>
+          Alterar status
+        </DialogTitle>
+
+        <DialogContent>
+          <Stack
+            spacing={2}
+            sx={{
+              pt: 1,
+            }}
+          >
+            <DialogContentText>
+              Selecione o novo status do chamado #
+              {currentTicketId}.
+            </DialogContentText>
+
+            <FormControl
+              fullWidth
+              disabled={
+                isUpdatingStatus
+              }
+            >
+              <InputLabel id="ticket-status-label">
+                Status
+              </InputLabel>
+
+              <Select
+                labelId="ticket-status-label"
+                label="Status"
+                value={
+                  selectedStatus
+                }
+                onChange={(event) =>
+                  setSelectedStatus(
+                    event.target
+                      .value as TicketStatus
+                  )
+                }
+              >
+                <MenuItem value="Aberto">
+                  Aberto
+                </MenuItem>
+
+                <MenuItem value="Em andamento">
+                  Em andamento
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={
+              handleCloseStatusDialog
+            }
+            disabled={
+              isUpdatingStatus
+            }
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={() =>
+              void handleConfirmStatusChange()
+            }
+            disabled={
+              isUpdatingStatus ||
+              selectedStatus ===
+                currentTicket.status
+            }
+            startIcon={
+              isUpdatingStatus ? (
+                <CircularProgress
+                  size={18}
+                  color="inherit"
+                />
+              ) : undefined
+            }
+          >
+            {isUpdatingStatus
+              ? "Salvando..."
+              : "Salvar status"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={
+          closeDialogOpen &&
+          mayCloseTicket
+        }
+        onClose={
+          isClosingTicket
+            ? undefined
+            : handleCloseCloseDialog
+        }
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>
+          Resolver chamado
+        </DialogTitle>
+
+        <DialogContent>
+          <DialogContentText>
+            Deseja marcar o chamado #{currentTicketId} como
+            Resolvido?
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={
+              handleCloseCloseDialog
+            }
+            disabled={
+              isClosingTicket
+            }
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            color="success"
+            variant="contained"
+            onClick={() =>
+              void handleResolveTicket()
+            }
+            disabled={
+              isClosingTicket
+            }
+            startIcon={
+              isClosingTicket ? (
+                <CircularProgress
+                  size={18}
+                  color="inherit"
+                />
+              ) : undefined
+            }
+          >
+            {isClosingTicket
+              ? "Resolvendo..."
+              : "Resolver chamado"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={

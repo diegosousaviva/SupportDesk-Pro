@@ -4,7 +4,7 @@ import {
 
 import type {
   UserRole,
-} from "../auth/roles";
+} from "../types/User";
 
 import {
   navigationSections,

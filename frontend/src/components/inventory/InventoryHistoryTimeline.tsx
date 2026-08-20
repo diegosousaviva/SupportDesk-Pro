@@ -76,6 +76,9 @@ function getEventColor(
 
     case "Observação":
       return "default";
+
+    default:
+      return "default";
   }
 }
 
@@ -149,6 +152,13 @@ function getEventIcon(
     case "Observação":
       return (
         <NoteAddOutlined
+          fontSize="small"
+        />
+      );
+
+    default:
+      return (
+        <HistoryOutlined
           fontSize="small"
         />
       );

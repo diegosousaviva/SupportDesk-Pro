@@ -1,6 +1,9 @@
-import type { User } from "../types/User";
+import type {
+  User,
+} from "../types/User";
 
-const STORAGE_KEY = "supportdesk-pro-users";
+const STORAGE_KEY =
+  "supportdesk-pro-users";
 
 /*
  * Senhas iniciais de demonstração:
@@ -27,73 +30,306 @@ const STORAGE_KEY = "supportdesk-pro-users";
 const initialUsers: User[] = [
   {
     id: 1,
-    name: "Administrador",
-    email: "admin@supportdesk.com",
-    password: "Admin@123",
-    phone: "(11) 99999-0001",
-    department: "TI",
-    role: "Administrador",
-    status: "Ativo",
-    createdAt: new Date().toISOString(),
+
+    name:
+      "Administrador",
+
+    email:
+      "admin@supportdesk.com",
+
+    password:
+      "Admin@123",
+
+    phone:
+      "(11) 99999-0001",
+
+    department:
+      "TI",
+
+    role:
+      "Administrador",
+
+    status:
+      "Ativo",
+
+    createdAt:
+      new Date().toISOString(),
   },
+
   {
     id: 2,
-    name: "Carlos Oliveira",
-    email: "carlos@supportdesk.com",
-    password: "Tecnico@123",
-    phone: "(11) 99999-0002",
-    department: "Suporte",
-    role: "Técnico",
-    status: "Ativo",
-    createdAt: new Date().toISOString(),
+
+    name:
+      "Carlos Oliveira",
+
+    email:
+      "carlos@supportdesk.com",
+
+    password:
+      "Tecnico@123",
+
+    phone:
+      "(11) 99999-0002",
+
+    department:
+      "Suporte",
+
+    role:
+      "Técnico",
+
+    status:
+      "Ativo",
+
+    createdAt:
+      new Date().toISOString(),
   },
+
   {
     id: 3,
-    name: "Mariana Souza",
-    email: "mariana@supportdesk.com",
-    password: "Solicitante@123",
-    phone: "(11) 99999-0003",
-    department: "Financeiro",
-    role: "Solicitante",
-    status: "Ativo",
-    createdAt: new Date().toISOString(),
+
+    name:
+      "Mariana Souza",
+
+    email:
+      "mariana@supportdesk.com",
+
+    password:
+      "Solicitante@123",
+
+    phone:
+      "(11) 99999-0003",
+
+    department:
+      "Financeiro",
+
+    role:
+      "Solicitante",
+
+    status:
+      "Ativo",
+
+    createdAt:
+      new Date().toISOString(),
   },
 ];
 
-function saveUsers(users: User[]): void {
+function saveUsers(
+  users: User[]
+): void {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify(users)
+    JSON.stringify(
+      users
+    )
   );
 }
 
-function loadUsers(): User[] {
-  const data = localStorage.getItem(STORAGE_KEY);
+function getInitialPasswordByEmail(
+  email: string
+): string | undefined {
+  const normalizedEmail =
+    email
+      .trim()
+      .toLowerCase();
+
+  const initialUser =
+    initialUsers.find(
+      (user) =>
+        user.email
+          .trim()
+          .toLowerCase() ===
+        normalizedEmail
+    );
+
+  return initialUser?.password;
+}
+
+function normalizeStoredUser(
+  storedUser: unknown
+): User | undefined {
+  if (
+    !storedUser ||
+    typeof storedUser !==
+      "object"
+  ) {
+    return undefined;
+  }
+
+  const candidate =
+    storedUser as Partial<User>;
+
+  if (
+    typeof candidate.id !==
+      "number" ||
+    !Number.isInteger(
+      candidate.id
+    ) ||
+    candidate.id <= 0
+  ) {
+    return undefined;
+  }
+
+  if (
+    typeof candidate.name !==
+      "string" ||
+    typeof candidate.email !==
+      "string" ||
+    typeof candidate.role !==
+      "string" ||
+    typeof candidate.status !==
+      "string"
+  ) {
+    return undefined;
+  }
+
+  let password =
+    typeof candidate.password ===
+      "string"
+      ? candidate.password
+      : "";
+
+  /*
+   * Migração de registros antigos.
+   *
+   * Algumas versões anteriores do sistema podiam manter
+   * usuários de demonstração sem o campo password.
+   *
+   * Como conhecemos as senhas iniciais dessas contas,
+   * conseguimos restaurá-las automaticamente.
+   */
+  if (
+    !password
+  ) {
+    const initialPassword =
+      getInitialPasswordByEmail(
+        candidate.email
+      );
+
+    if (
+      initialPassword
+    ) {
+      password =
+        initialPassword;
+    }
+  }
+
+  return {
+    id:
+      candidate.id,
+
+    name:
+      candidate.name,
+
+    email:
+      candidate.email,
+
+    password,
+
+    phone:
+      typeof candidate.phone ===
+        "string"
+        ? candidate.phone
+        : "",
+
+    department:
+      typeof candidate.department ===
+        "string"
+        ? candidate.department
+        : "",
+
+    role:
+      candidate.role as User["role"],
+
+    status:
+      candidate.status as User["status"],
+
+    createdAt:
+      typeof candidate.createdAt ===
+        "string"
+        ? candidate.createdAt
+        : new Date().toISOString(),
+  };
+}
+
+function loadUsers():
+  User[] {
+  const data =
+    localStorage.getItem(
+      STORAGE_KEY
+    );
 
   if (!data) {
-    saveUsers(initialUsers);
+    saveUsers(
+      initialUsers
+    );
 
     return initialUsers;
   }
 
   try {
-    const storedUsers = JSON.parse(data) as User[];
+    const parsedData =
+      JSON.parse(
+        data
+      ) as unknown;
 
-    if (!Array.isArray(storedUsers)) {
-      saveUsers(initialUsers);
+    if (
+      !Array.isArray(
+        parsedData
+      )
+    ) {
+      saveUsers(
+        initialUsers
+      );
 
       return initialUsers;
     }
 
-    return storedUsers;
+    const normalizedUsers =
+      parsedData
+        .map(
+          normalizeStoredUser
+        )
+        .filter(
+          (
+            user
+          ): user is User =>
+            user !==
+            undefined
+        );
+
+    if (
+      normalizedUsers.length ===
+      0
+    ) {
+      saveUsers(
+        initialUsers
+      );
+
+      return initialUsers;
+    }
+
+    /*
+     * Salvamos novamente os dados normalizados.
+     *
+     * Assim a migração acontece apenas uma vez e o
+     * localStorage passa a usar o formato atual.
+     */
+    saveUsers(
+      normalizedUsers
+    );
+
+    return normalizedUsers;
   } catch {
-    saveUsers(initialUsers);
+    saveUsers(
+      initialUsers
+    );
 
     return initialUsers;
   }
 }
 
-export function findAllUsers(): User[] {
+export function findAllUsers():
+  User[] {
   return loadUsers();
 }
 
@@ -101,75 +337,120 @@ export function findUserById(
   id: number
 ): User | undefined {
   return loadUsers().find(
-    (user) => user.id === id
+    (user) =>
+      user.id === id
   );
 }
 
 export function createUserRepository(
-  user: Omit<User, "id">
+  user: Omit<
+    User,
+    "id"
+  >
 ): User {
-  const users = loadUsers();
+  const users =
+    loadUsers();
 
   const nextId =
     users.length > 0
       ? Math.max(
           ...users.map(
-            (currentUser) => currentUser.id
+            (
+              currentUser
+            ) =>
+              currentUser.id
           )
         ) + 1
       : 1;
 
-  const newUser: User = {
-    id: nextId,
-    ...user,
-  };
+  const newUser:
+    User = {
+      id:
+        nextId,
 
-  users.push(newUser);
+      ...user,
+    };
 
-  saveUsers(users);
+  users.push(
+    newUser
+  );
+
+  saveUsers(
+    users
+  );
 
   return newUser;
 }
 
 export function updateUserById(
   id: number,
-  updatedData: Partial<User>
+  updatedData:
+    Partial<User>
 ): User | undefined {
-  const users = loadUsers();
+  const users =
+    loadUsers();
 
-  const index = users.findIndex(
-    (user) => user.id === id
-  );
+  const index =
+    users.findIndex(
+      (user) =>
+        user.id === id
+    );
 
-  if (index === -1) {
+  if (
+    index === -1
+  ) {
     return undefined;
   }
 
-  users[index] = {
-    ...users[index],
-    ...updatedData,
-    id: users[index].id,
-  };
+  const currentUser =
+    users[index];
 
-  saveUsers(users);
+  if (!currentUser) {
+    return undefined;
+  }
 
-  return users[index];
+  const updatedUser:
+    User = {
+      ...currentUser,
+
+      ...updatedData,
+
+      id:
+        currentUser.id,
+    };
+
+  users[index] =
+    updatedUser;
+
+  saveUsers(
+    users
+  );
+
+  return updatedUser;
 }
 
 export function deleteUserById(
   id: number
 ): boolean {
-  const users = loadUsers();
+  const users =
+    loadUsers();
 
-  const filteredUsers = users.filter(
-    (user) => user.id !== id
-  );
+  const filteredUsers =
+    users.filter(
+      (user) =>
+        user.id !== id
+    );
 
-  if (filteredUsers.length === users.length) {
+  if (
+    filteredUsers.length ===
+    users.length
+  ) {
     return false;
   }
 
-  saveUsers(filteredUsers);
+  saveUsers(
+    filteredUsers
+  );
 
   return true;
 }

@@ -17,18 +17,15 @@ const MINIMUM_PASSWORD_LENGTH =
   8;
 
 export interface PasswordValidationResult {
-  valid:
-    boolean;
+  valid: boolean;
 
-  errors:
-    string[];
+  errors: string[];
 }
 
 function bytesToBase64(
   bytes: Uint8Array
 ): string {
-  let binary =
-    "";
+  let binary = "";
 
   for (
     const byte of bytes
@@ -52,15 +49,43 @@ function base64ToBytes(
       value
     );
 
-  return Uint8Array.from(
-    binary,
-    (
-      character
-    ) =>
-      character.charCodeAt(
-        0
-      )
+  const bytes =
+    new Uint8Array(
+      binary.length
+    );
+
+  for (
+    let index = 0;
+    index < binary.length;
+    index += 1
+  ) {
+    bytes[index] =
+      binary.charCodeAt(
+        index
+      );
+  }
+
+  return bytes;
+}
+
+function bytesToArrayBuffer(
+  bytes: Uint8Array
+): ArrayBuffer {
+  const buffer =
+    new ArrayBuffer(
+      bytes.byteLength
+    );
+
+  const target =
+    new Uint8Array(
+      buffer
+    );
+
+  target.set(
+    bytes
   );
+
+  return buffer;
 }
 
 async function derivePasswordHash(
@@ -73,10 +98,20 @@ async function derivePasswordHash(
       password
     );
 
+  const passwordBuffer =
+    bytesToArrayBuffer(
+      passwordBytes
+    );
+
+  const saltBuffer =
+    bytesToArrayBuffer(
+      salt
+    );
+
   const passwordKey =
     await window.crypto.subtle.importKey(
       "raw",
-      passwordBytes,
+      passwordBuffer,
       {
         name:
           "PBKDF2",
@@ -96,7 +131,8 @@ async function derivePasswordHash(
         hash:
           HASH_ALGORITHM,
 
-        salt,
+        salt:
+          saltBuffer,
 
         iterations,
       },

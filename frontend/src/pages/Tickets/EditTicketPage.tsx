@@ -22,11 +22,27 @@ import {
   useParams,
 } from "react-router-dom";
 
+import {
+  Permissions,
+} from "../../auth/permissions";
+
+import {
+  canEditTicket,
+} from "../../auth/ticketAuthorization";
+
 import MainLayout from "../../components/layout/MainLayout";
+
+import {
+  useAuth,
+} from "../../contexts/AuthContext";
 
 import {
   useNotifications,
 } from "../../contexts/NotificationContext";
+
+import {
+  usePermissions,
+} from "../../hooks/usePermissions";
 
 import {
   useSnackbar,
@@ -78,6 +94,14 @@ export default function EditTicketPage() {
   } = useParams();
 
   const {
+    user,
+  } = useAuth();
+
+  const {
+    can,
+  } = usePermissions();
+
+  const {
     showSnackbar,
   } = useSnackbar();
 
@@ -87,9 +111,7 @@ export default function EditTicketPage() {
   } = useNotifications();
 
   const ticketId =
-    Number(
-      id
-    );
+    Number(id);
 
   const ticket =
     getTicketById(
@@ -98,13 +120,13 @@ export default function EditTicketPage() {
 
   const technicians =
     getUsers().filter(
-      (user) =>
-        user.role ===
+      (currentUser) =>
+        currentUser.role ===
           "Técnico" &&
         (
-          user.status ===
+          currentUser.status ===
             "Ativo" ||
-          user.id ===
+          currentUser.id ===
             ticket?.assignedTechnicianId
         )
     );
@@ -113,24 +135,21 @@ export default function EditTicketPage() {
     title,
     setTitle,
   ] = useState(
-    ticket?.title ??
-      ""
+    ticket?.title ?? ""
   );
 
   const [
     description,
     setDescription,
   ] = useState(
-    ticket?.description ??
-      ""
+    ticket?.description ?? ""
   );
 
   const [
     category,
     setCategory,
   ] = useState(
-    ticket?.category ??
-      ""
+    ticket?.category ?? ""
   );
 
   const [
@@ -202,8 +221,76 @@ export default function EditTicketPage() {
     );
   }
 
+  /*
+   * A partir deste ponto sabemos que o chamado existe.
+   *
+   * Mantemos uma referência explicitamente válida para
+   * que o TypeScript preserve essa informação também
+   * dentro das funções internas da página.
+   */
+  const currentTicket: Ticket =
+    ticket;
+
+  const mayEditTicket =
+    canEditTicket(
+      user,
+      currentTicket,
+      can
+    );
+
+  const mayAssignTechnician =
+    can(
+      Permissions.tickets.assign
+    );
+
+  const mayUpdateStatus =
+    can(
+      Permissions.tickets.updateStatus
+    );
+
+  /*
+   * O administrador possui tickets.edit.
+   *
+   * O solicitante possui somente tickets.editOwn.
+   *
+   * Usamos essa diferença para impedir que o
+   * solicitante altere campos administrativos.
+   */
+  const mayEditAdministrativeFields =
+    can(
+      Permissions.tickets.edit
+    );
+
+  if (!mayEditTicket) {
+    return (
+      <MainLayout title="Editar Chamado">
+        <Alert severity="warning">
+          Você não possui permissão para editar este
+          chamado.
+        </Alert>
+
+        <Button
+          sx={{
+            mt: 2,
+          }}
+          variant="outlined"
+          startIcon={
+            <ArrowBack />
+          }
+          onClick={() =>
+            navigate(
+              "/tickets"
+            )
+          }
+        >
+          Voltar para chamados
+        </Button>
+      </MainLayout>
+    );
+  }
+
   const currentTicketId =
-    ticket.id;
+    currentTicket.id;
 
   const ticketDetailsPath =
     `/tickets/${currentTicketId}`;
@@ -270,8 +357,8 @@ export default function EditTicketPage() {
 
     const technician =
       getUsers().find(
-        (user) =>
-          user.id ===
+        (currentUser) =>
+          currentUser.id ===
           technicianId
       );
 
@@ -299,7 +386,10 @@ export default function EditTicketPage() {
 
   function handleSave():
     void {
-    if (isSaving) {
+    if (
+      isSaving ||
+      !mayEditTicket
+    ) {
       return;
     }
 
@@ -375,6 +465,7 @@ export default function EditTicketPage() {
     }
 
     if (
+      mayAssignTechnician &&
       assignedTechnicianNumber !==
         null &&
       (
@@ -393,6 +484,7 @@ export default function EditTicketPage() {
     }
 
     if (
+      mayAssignTechnician &&
       assignedTechnicianNumber !==
         null &&
       !assignedTechnicianExists
@@ -410,10 +502,10 @@ export default function EditTicketPage() {
       );
 
       const previousStatus =
-        ticket.status;
+        currentTicket.status;
 
       const previousTechnicianId =
-        ticket.assignedTechnicianId;
+        currentTicket.assignedTechnicianId;
 
       const updatedTicket =
         updateTicket(
@@ -430,10 +522,25 @@ export default function EditTicketPage() {
 
             priority,
 
-            status,
+            /*
+             * Somente quem possui permissão operacional
+             * pode alterar o status por esta tela.
+             */
+            status:
+              mayUpdateStatus &&
+              mayEditAdministrativeFields
+                ? status
+                : currentTicket.status,
 
+            /*
+             * Somente quem possui tickets.assign pode
+             * trocar o técnico responsável.
+             */
             assignedTechnicianId:
-              assignedTechnicianNumber,
+              mayAssignTechnician &&
+              mayEditAdministrativeFields
+                ? assignedTechnicianNumber
+                : currentTicket.assignedTechnicianId,
           }
         );
 
@@ -785,104 +892,110 @@ export default function EditTicketPage() {
               </MenuItem>
             </TextField>
 
-            <TextField
-              select
-              label="Status"
-              value={
-                status
-              }
-              onChange={(event) =>
-                setStatus(
-                  event.target
-                    .value as TicketStatus
-                )
-              }
-              fullWidth
-              disabled={
-                isSaving
-              }
-            >
-              <MenuItem value="Aberto">
-                Aberto
-              </MenuItem>
-
-              <MenuItem value="Em andamento">
-                Em andamento
-              </MenuItem>
-
-              <MenuItem value="Resolvido">
-                Resolvido
-              </MenuItem>
-            </TextField>
-
-            <TextField
-              select
-              label="Técnico responsável"
-              value={
-                assignedTechnicianId
-              }
-              onChange={(event) =>
-                setAssignedTechnicianId(
-                  event.target
-                    .value
-                )
-              }
-              helperText={
-                technicians.length ===
-                0
-                  ? "Não há técnicos ativos cadastrados."
-                  : "Selecione o técnico responsável pelo chamado."
-              }
-              fullWidth
-              disabled={
-                isSaving
-              }
-            >
-              <MenuItem
-                value={
-                  UNASSIGNED_TECHNICIAN_VALUE
-                }
-              >
-                Não atribuído
-              </MenuItem>
-
-              {!assignedTechnicianExists &&
-                assignedTechnicianNumber !==
-                  null && (
-                  <MenuItem
-                    value={String(
-                      assignedTechnicianNumber
-                    )}
-                    disabled
-                  >
-                    Técnico não encontrado (#
-                    {assignedTechnicianNumber})
+            {mayUpdateStatus &&
+              mayEditAdministrativeFields && (
+                <TextField
+                  select
+                  label="Status"
+                  value={
+                    status
+                  }
+                  onChange={(event) =>
+                    setStatus(
+                      event.target
+                        .value as TicketStatus
+                    )
+                  }
+                  fullWidth
+                  disabled={
+                    isSaving
+                  }
+                >
+                  <MenuItem value="Aberto">
+                    Aberto
                   </MenuItem>
-                )}
 
-              {technicians.map(
-                (
-                  technician
-                ) => (
-                  <MenuItem
-                    key={
-                      technician.id
-                    }
-                    value={String(
-                      technician.id
-                    )}
-                  >
-                    {
-                      technician.name
-                    }
-                    {technician.status ===
-                    "Inativo"
-                      ? " — Inativo"
-                      : ""}
+                  <MenuItem value="Em andamento">
+                    Em andamento
                   </MenuItem>
-                )
+
+                  <MenuItem value="Resolvido">
+                    Resolvido
+                  </MenuItem>
+                </TextField>
               )}
-            </TextField>
+
+            {mayAssignTechnician &&
+              mayEditAdministrativeFields && (
+                <TextField
+                  select
+                  label="Técnico responsável"
+                  value={
+                    assignedTechnicianId
+                  }
+                  onChange={(event) =>
+                    setAssignedTechnicianId(
+                      event.target
+                        .value
+                    )
+                  }
+                  helperText={
+                    technicians.length ===
+                      0
+                      ? "Não há técnicos ativos cadastrados."
+                      : "Selecione o técnico responsável pelo chamado."
+                  }
+                  fullWidth
+                  disabled={
+                    isSaving
+                  }
+                >
+                  <MenuItem
+                    value={
+                      UNASSIGNED_TECHNICIAN_VALUE
+                    }
+                  >
+                    Não atribuído
+                  </MenuItem>
+
+                  {!assignedTechnicianExists &&
+                    assignedTechnicianNumber !==
+                      null && (
+                      <MenuItem
+                        value={String(
+                          assignedTechnicianNumber
+                        )}
+                        disabled
+                      >
+                        Técnico não encontrado (#
+                        {assignedTechnicianNumber})
+                      </MenuItem>
+                    )}
+
+                  {technicians.map(
+                    (
+                      technician
+                    ) => (
+                      <MenuItem
+                        key={
+                          technician.id
+                        }
+                        value={String(
+                          technician.id
+                        )}
+                      >
+                        {
+                          technician.name
+                        }
+                        {technician.status ===
+                        "Inativo"
+                          ? " — Inativo"
+                          : ""}
+                      </MenuItem>
+                    )
+                  )}
+                </TextField>
+              )}
 
             <Stack
               direction={{

@@ -43,7 +43,8 @@ import type {
 
 interface HeaderProps {
   title?: string;
-  onMenuClick?: () => void;
+
+  onToggleSidebar?: () => void;
 }
 
 function getUserInitials(
@@ -85,8 +86,8 @@ function getUserInitials(
 }
 
 function Header({
-  title = "SupportDesk Pro",
-  onMenuClick,
+  title = "Suporte Droga Viva",
+  onToggleSidebar,
 }: HeaderProps) {
   const navigate =
     useNavigate();
@@ -216,14 +217,14 @@ function Header({
             },
           }}
         >
-          {onMenuClick && (
+          {onToggleSidebar && (
             <Tooltip title="Abrir menu">
               <IconButton
                 edge="start"
                 color="inherit"
                 aria-label="Abrir menu lateral"
                 onClick={
-                  onMenuClick
+                  onToggleSidebar
                 }
                 sx={{
                   mr: 2,

@@ -30,6 +30,16 @@ export interface SnackbarContextValue {
     options?: SnackbarOptions
   ) => void;
 
+  showSuccess: (
+    message: string,
+    duration?: number
+  ) => void;
+
+  showError: (
+    message: string,
+    duration?: number
+  ) => void;
+
   closeSnackbar: () => void;
 }
 
@@ -54,7 +64,10 @@ export const SnackbarContext =
 export function SnackbarProvider({
   children,
 }: SnackbarProviderProps) {
-  const [snackbar, setSnackbar] =
+  const [
+    snackbar,
+    setSnackbar,
+  ] =
     useState<SnackbarState>({
       open: false,
       message: "",
@@ -62,97 +75,186 @@ export function SnackbarProvider({
       duration: DEFAULT_DURATION,
     });
 
-  const showSnackbar = useCallback(
-    (
-      message: string,
-      options?: SnackbarOptions
-    ): void => {
-      const normalizedMessage = message.trim();
+  const showSnackbar =
+    useCallback(
+      (
+        message: string,
+        options?: SnackbarOptions
+      ): void => {
+        const normalizedMessage =
+          message.trim();
 
-      if (!normalizedMessage) {
-        return;
-      }
+        if (!normalizedMessage) {
+          return;
+        }
 
-      setSnackbar({
-        open: true,
-        message: normalizedMessage,
-        severity:
-          options?.severity ?? "success",
-        duration:
-          options?.duration ??
-          DEFAULT_DURATION,
-      });
-    },
-    []
-  );
+        setSnackbar({
+          open: true,
+          message:
+            normalizedMessage,
+          severity:
+            options?.severity ??
+            "success",
+          duration:
+            options?.duration ??
+            DEFAULT_DURATION,
+        });
+      },
+      []
+    );
+
+  const showSuccess =
+    useCallback(
+      (
+        message: string,
+        duration?: number
+      ): void => {
+        showSnackbar(
+          message,
+          {
+            severity:
+              "success",
+
+            duration,
+          }
+        );
+      },
+      [
+        showSnackbar,
+      ]
+    );
+
+  const showError =
+    useCallback(
+      (
+        message: string,
+        duration?: number
+      ): void => {
+        showSnackbar(
+          message,
+          {
+            severity:
+              "error",
+
+            duration,
+          }
+        );
+      },
+      [
+        showSnackbar,
+      ]
+    );
 
   const closeSnackbar =
-    useCallback((): void => {
-      setSnackbar((currentSnackbar) => ({
-        ...currentSnackbar,
-        open: false,
-      }));
-    }, []);
+    useCallback(
+      (): void => {
+        setSnackbar(
+          (
+            currentSnackbar
+          ) => ({
+            ...currentSnackbar,
 
-  const handleClose = useCallback(
-    (
-      _event:
-        | React.SyntheticEvent
-        | Event,
-      reason?: SnackbarCloseReason
-    ): void => {
-      if (reason === "clickaway") {
-        return;
-      }
+            open:
+              false,
+          })
+        );
+      },
+      []
+    );
 
-      closeSnackbar();
-    },
-    [closeSnackbar]
-  );
+  const handleClose =
+    useCallback(
+      (
+        _event:
+          | React.SyntheticEvent
+          | Event,
+        reason?:
+          SnackbarCloseReason
+      ): void => {
+        if (
+          reason ===
+          "clickaway"
+        ) {
+          return;
+        }
+
+        closeSnackbar();
+      },
+      [
+        closeSnackbar,
+      ]
+    );
 
   const contextValue =
     useMemo<SnackbarContextValue>(
       () => ({
         showSnackbar,
+
+        showSuccess,
+
+        showError,
+
         closeSnackbar,
       }),
       [
         showSnackbar,
+        showSuccess,
+        showError,
         closeSnackbar,
       ]
     );
 
   return (
     <SnackbarContext.Provider
-      value={contextValue}
+      value={
+        contextValue
+      }
     >
       {children}
 
       <Snackbar
-        open={snackbar.open}
+        open={
+          snackbar.open
+        }
         autoHideDuration={
           snackbar.duration
         }
-        onClose={handleClose}
+        onClose={
+          handleClose
+        }
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
+          vertical:
+            "bottom",
+
+          horizontal:
+            "right",
         }}
       >
         <Alert
-          onClose={handleClose}
-          severity={snackbar.severity}
+          onClose={
+            handleClose
+          }
+          severity={
+            snackbar.severity
+          }
           variant="filled"
           elevation={6}
           sx={{
-            width: "100%",
+            width:
+              "100%",
+
             minWidth: {
-              xs: "auto",
-              sm: 320,
+              xs:
+                "auto",
+
+              sm:
+                320,
             },
           }}
         >
-          {snackbar.message}
+          {
+            snackbar.message
+          }
         </Alert>
       </Snackbar>
     </SnackbarContext.Provider>

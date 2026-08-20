@@ -117,7 +117,7 @@ function LoginPage() {
               color="primary"
               fontWeight={700}
             >
-              SupportDesk Pro
+              Suporte Droga Viva
             </Typography>
 
             <Typography

@@ -6,7 +6,9 @@ import DataTablePagination from "../common/DataTablePagination";
 
 interface TicketPaginationProps {
   count: number;
+
   page: number;
+
   rowsPerPage: number;
 
   onPageChange: (
@@ -15,10 +17,7 @@ interface TicketPaginationProps {
   ) => void;
 
   onRowsPerPageChange: (
-    event: ChangeEvent<
-      HTMLInputElement |
-      HTMLTextAreaElement
-    >
+    event: ChangeEvent<HTMLInputElement>
   ) => void;
 }
 
@@ -35,7 +34,9 @@ export default function TicketPagination({
       page={page}
       rowsPerPage={rowsPerPage}
       label="Chamados por página:"
-      onPageChange={onPageChange}
+      onPageChange={
+        onPageChange
+      }
       onRowsPerPageChange={
         onRowsPerPageChange
       }

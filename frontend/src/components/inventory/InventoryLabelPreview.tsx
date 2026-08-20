@@ -172,7 +172,7 @@ function InventoryLabelPreview({
                 fontWeight={900}
                 letterSpacing={0.8}
               >
-                SUPPORTDESK PRO
+                DROGA VIVA
               </Typography>
             </Stack>
 

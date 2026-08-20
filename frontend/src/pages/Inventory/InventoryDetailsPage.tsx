@@ -199,11 +199,12 @@ function formatDate(
     .split("-")
     .map(Number);
 
-  const date = new Date(
-    year,
-    month - 1,
-    day
-  );
+  const date =
+    new Date(
+      year,
+      month - 1,
+      day
+    );
 
   if (
     Number.isNaN(
@@ -243,8 +244,11 @@ function formatCurrency(
   return value.toLocaleString(
     "pt-BR",
     {
-      style: "currency",
-      currency: "BRL",
+      style:
+        "currency",
+
+      currency:
+        "BRL",
     }
   );
 }
@@ -293,6 +297,9 @@ function InventoryDetailsPage() {
     );
   }
 
+  const equipmentId =
+    equipment.id;
+
   const store =
     getStoreById(
       equipment.storeId
@@ -311,7 +318,7 @@ function InventoryDetailsPage() {
       .filter(
         (ticket) =>
           ticket.inventoryItemId ===
-          equipment.id
+          equipmentId
       )
       .sort(
         (
@@ -328,7 +335,7 @@ function InventoryDetailsPage() {
 
   const historyEvents =
     getInventoryHistory(
-      equipment.id
+      equipmentId
     );
 
   const timelineEvents =
@@ -338,7 +345,7 @@ function InventoryDetailsPage() {
 
   function handleCreateTicket(): void {
     navigate(
-      `/tickets/new?inventoryItemId=${equipment.id}`
+      `/tickets/new?inventoryItemId=${equipmentId}`
     );
   }
 
@@ -355,14 +362,20 @@ function InventoryDetailsPage() {
       <Stack spacing={3}>
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+
+            md:
+              "row",
           }}
           spacing={2}
           justifyContent="space-between"
           alignItems={{
-            xs: "flex-start",
-            md: "center",
+            xs:
+              "flex-start",
+
+            md:
+              "center",
           }}
         >
           <Box>
@@ -388,7 +401,9 @@ function InventoryDetailsPage() {
               component="h1"
               fontWeight={700}
             >
-              {equipment.description}
+              {
+                equipment.description
+              }
             </Typography>
 
             <Typography
@@ -399,20 +414,28 @@ function InventoryDetailsPage() {
             >
               Etiqueta:{" "}
               <strong>
-                {equipment.tag}
+                {
+                  equipment.tag
+                }
               </strong>
             </Typography>
           </Box>
 
           <Stack
             direction={{
-              xs: "column",
-              sm: "row",
+              xs:
+                "column",
+
+              sm:
+                "row",
             }}
             spacing={1}
             width={{
-              xs: "100%",
-              md: "auto",
+              xs:
+                "100%",
+
+              md:
+                "auto",
             }}
           >
             <Chip
@@ -439,7 +462,7 @@ function InventoryDetailsPage() {
               }
               onClick={() =>
                 navigate(
-                  `/inventory/${equipment.id}/label`
+                  `/inventory/${equipmentId}/label`
                 )
               }
             >
@@ -456,7 +479,7 @@ function InventoryDetailsPage() {
                 }
                 onClick={() =>
                   navigate(
-                    `/inventory/${equipment.id}/edit`
+                    `/inventory/${equipmentId}/edit`
                   )
                 }
               >
@@ -475,8 +498,11 @@ function InventoryDetailsPage() {
           <Stack spacing={3}>
             <Stack
               direction={{
-                xs: "column",
-                md: "row",
+                xs:
+                  "column",
+
+                md:
+                  "row",
               }}
               spacing={4}
             >
@@ -491,7 +517,9 @@ function InventoryDetailsPage() {
                 <Typography
                   fontWeight={700}
                 >
-                  {equipment.tag}
+                  {
+                    equipment.tag
+                  }
                 </Typography>
               </Box>
 
@@ -506,7 +534,9 @@ function InventoryDetailsPage() {
                 <Typography
                   fontWeight={700}
                 >
-                  {equipment.tagMode}
+                  {
+                    equipment.tagMode
+                  }
                 </Typography>
               </Box>
 
@@ -529,8 +559,11 @@ function InventoryDetailsPage() {
 
             <Stack
               direction={{
-                xs: "column",
-                md: "row",
+                xs:
+                  "column",
+
+                md:
+                  "row",
               }}
               spacing={4}
             >
@@ -543,7 +576,9 @@ function InventoryDetailsPage() {
                 </Typography>
 
                 <Typography>
-                  {equipment.category}
+                  {
+                    equipment.category
+                  }
                 </Typography>
               </Box>
 
@@ -603,8 +638,11 @@ function InventoryDetailsPage() {
         >
           <Stack
             direction={{
-              xs: "column",
-              md: "row",
+              xs:
+                "column",
+
+              md:
+                "row",
             }}
             spacing={4}
           >
@@ -660,8 +698,11 @@ function InventoryDetailsPage() {
         >
           <Stack
             direction={{
-              xs: "column",
-              md: "row",
+              xs:
+                "column",
+
+              md:
+                "row",
             }}
             spacing={4}
           >
@@ -717,7 +758,9 @@ function InventoryDetailsPage() {
                 variant="body2"
                 color="text.secondary"
               >
-                {responsible.email}
+                {
+                  responsible.email
+                }
               </Typography>
             )}
           </Stack>
@@ -731,8 +774,11 @@ function InventoryDetailsPage() {
         >
           <Stack
             direction={{
-              xs: "column",
-              md: "row",
+              xs:
+                "column",
+
+              md:
+                "row",
             }}
             spacing={4}
           >
@@ -851,42 +897,64 @@ function InventoryDetailsPage() {
                       ticket.id
                     }
                     direction={{
-                      xs: "column",
-                      md: "row",
+                      xs:
+                        "column",
+
+                      md:
+                        "row",
                     }}
                     spacing={2}
                     justifyContent="space-between"
                     alignItems={{
-                      xs: "flex-start",
-                      md: "center",
+                      xs:
+                        "flex-start",
+
+                      md:
+                        "center",
                     }}
                     sx={{
                       py: 2,
-                      "&:first-of-type": {
-                        pt: 0,
-                      },
-                      "&:last-of-type": {
-                        pb: 0,
-                      },
+
+                      "&:first-of-type":
+                        {
+                          pt: 0,
+                        },
+
+                      "&:last-of-type":
+                        {
+                          pb: 0,
+                        },
                     }}
                   >
                     <Stack spacing={1}>
                       <Stack
                         direction={{
-                          xs: "column",
-                          sm: "row",
+                          xs:
+                            "column",
+
+                          sm:
+                            "row",
                         }}
                         spacing={1}
                         alignItems={{
-                          xs: "flex-start",
-                          sm: "center",
+                          xs:
+                            "flex-start",
+
+                          sm:
+                            "center",
                         }}
                       >
                         <Typography
                           fontWeight={700}
                         >
-                          #{ticket.id} —{" "}
-                          {ticket.title}
+                          #
+                          {
+                            ticket.id
+                          }{" "}
+                          —{" "}
+                          {
+                            ticket.title
+                          }
                         </Typography>
 
                         <Chip
@@ -916,7 +984,9 @@ function InventoryDetailsPage() {
                         color="text.secondary"
                       >
                         Categoria:{" "}
-                        {ticket.category}
+                        {
+                          ticket.category
+                        }
                         {" • "}
                         Criado em{" "}
                         {formatDateTime(
@@ -953,7 +1023,9 @@ function InventoryDetailsPage() {
         <Timeline
           title="Histórico do equipamento"
           subtitle="Acompanhe todas as alterações realizadas neste ativo."
-          events={timelineEvents}
+          events={
+            timelineEvents
+          }
           filterOptions={
             inventoryTimelineFilters
           }

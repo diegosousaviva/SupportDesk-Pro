@@ -146,6 +146,9 @@ function TicketEquipmentCard({
     );
   }
 
+  const inventoryItemId =
+    inventoryItem.id;
+
   const store =
     getStoreById(
       inventoryItem.storeId
@@ -153,7 +156,7 @@ function TicketEquipmentCard({
 
   function handleOpenEquipment(): void {
     navigate(
-      `/inventory/${inventoryItem.id}`
+      `/inventory/${inventoryItemId}`
     );
   }
 

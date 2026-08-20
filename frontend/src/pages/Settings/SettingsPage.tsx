@@ -78,7 +78,7 @@ const STORAGE_KEY =
 
 const defaultSettings: SettingsFormData = {
   companyName:
-    "SupportDesk Pro",
+    "Suporte Droga Viva",
 
   supportEmail:
     "suporte@supportdesk.com",
@@ -439,7 +439,7 @@ function SettingsPage() {
     void {
     const backupData = {
       application:
-        "SupportDesk Pro",
+        "Suporte Droga Viva",
 
       version:
         "1.0.0",
@@ -645,7 +645,7 @@ function SettingsPage() {
     void {
     const confirmed =
       window.confirm(
-        "Esta ação apagará os dados locais do SupportDesk Pro, incluindo chamados, usuários, categorias e configurações. Deseja continuar?"
+        "Esta ação apagará os dados locais do Suporte Droga Viva, incluindo chamados, usuários, categorias e configurações. Deseja continuar?"
       );
 
     if (!confirmed) {

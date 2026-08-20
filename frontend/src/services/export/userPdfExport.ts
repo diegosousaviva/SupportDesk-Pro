@@ -37,7 +37,7 @@ export function exportUsersToPdf(
   pdf.setFontSize(18);
 
   pdf.text(
-    "SupportDesk Pro",
+    "Suporte Droga Viva",
     14,
     18
   );

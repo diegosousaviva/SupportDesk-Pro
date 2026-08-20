@@ -6,24 +6,41 @@ import {
 
 import {
   ArrowBack,
+  CheckCircleOutline,
   DeleteOutline,
   EditOutlined,
+  SyncAltOutlined,
 } from "@mui/icons-material";
 
 interface TicketActionsProps {
   onBack: () => void;
+
   onEdit?: () => void;
+
+  onUpdateStatus?: () => void;
+
+  onClose?: () => void;
+
   onDelete?: () => void;
+
+  disabled?: boolean;
 }
 
 export default function TicketActions({
   onBack,
   onEdit,
+  onUpdateStatus,
+  onClose,
   onDelete,
+  disabled = false,
 }: TicketActionsProps) {
-  const hasTicketActions = Boolean(
-    onEdit || onDelete
-  );
+  const hasTicketActions =
+    Boolean(
+      onEdit ||
+      onUpdateStatus ||
+      onClose ||
+      onDelete
+    );
 
   return (
     <Paper
@@ -44,8 +61,15 @@ export default function TicketActions({
       >
         <Button
           variant="outlined"
-          startIcon={<ArrowBack />}
-          onClick={onBack}
+          startIcon={
+            <ArrowBack />
+          }
+          onClick={
+            onBack
+          }
+          disabled={
+            disabled
+          }
         >
           Voltar
         </Button>
@@ -57,12 +81,57 @@ export default function TicketActions({
               sm: "row",
             }}
             spacing={1.5}
+            flexWrap="wrap"
+            useFlexGap
           >
+            {onUpdateStatus && (
+              <Button
+                variant="outlined"
+                color="info"
+                startIcon={
+                  <SyncAltOutlined />
+                }
+                onClick={
+                  onUpdateStatus
+                }
+                disabled={
+                  disabled
+                }
+              >
+                Alterar status
+              </Button>
+            )}
+
+            {onClose && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={
+                  <CheckCircleOutline />
+                }
+                onClick={
+                  onClose
+                }
+                disabled={
+                  disabled
+                }
+              >
+                Resolver chamado
+              </Button>
+            )}
+
             {onEdit && (
               <Button
                 variant="contained"
-                startIcon={<EditOutlined />}
-                onClick={onEdit}
+                startIcon={
+                  <EditOutlined />
+                }
+                onClick={
+                  onEdit
+                }
+                disabled={
+                  disabled
+                }
               >
                 Editar chamado
               </Button>
@@ -72,8 +141,15 @@ export default function TicketActions({
               <Button
                 variant="outlined"
                 color="error"
-                startIcon={<DeleteOutline />}
-                onClick={onDelete}
+                startIcon={
+                  <DeleteOutline />
+                }
+                onClick={
+                  onDelete
+                }
+                disabled={
+                  disabled
+                }
               >
                 Excluir chamado
               </Button>

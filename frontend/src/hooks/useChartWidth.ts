@@ -8,42 +8,64 @@ const MINIMUM_CHART_WIDTH = 320;
 
 function useChartWidth() {
   const containerRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<HTMLDivElement | null>(
+      null
+    );
 
-  const [chartWidth, setChartWidth] =
-    useState(0);
+  const [
+    chartWidth,
+    setChartWidth,
+  ] = useState(0);
 
   useEffect(() => {
-    const container = containerRef.current;
+    const container =
+      containerRef.current;
 
     if (!container) {
       return;
     }
 
+    const activeContainer =
+      container;
+
     function updateWidth() {
       const measuredWidth =
-        container.getBoundingClientRect().width;
+        activeContainer
+          .getBoundingClientRect()
+          .width;
 
       const safeWidth =
-        Number.isFinite(measuredWidth) &&
-        measuredWidth >= MINIMUM_CHART_WIDTH
-          ? Math.floor(measuredWidth)
+        Number.isFinite(
+          measuredWidth
+        ) &&
+        measuredWidth >=
+          MINIMUM_CHART_WIDTH
+          ? Math.floor(
+              measuredWidth
+            )
           : 0;
 
-      setChartWidth((currentWidth) =>
-        currentWidth === safeWidth
-          ? currentWidth
-          : safeWidth
+      setChartWidth(
+        (
+          currentWidth
+        ) =>
+          currentWidth ===
+          safeWidth
+            ? currentWidth
+            : safeWidth
       );
     }
 
     updateWidth();
 
-    const resizeObserver = new ResizeObserver(
-      updateWidth
-    );
+    const resizeObserver =
+      new ResizeObserver(
+        updateWidth
+      );
 
-    resizeObserver.observe(container);
+    resizeObserver.observe(
+      activeContainer
+    );
 
     window.addEventListener(
       "resize",
@@ -62,9 +84,12 @@ function useChartWidth() {
 
   return {
     containerRef,
+
     chartWidth,
+
     hasValidChartWidth:
-      chartWidth >= MINIMUM_CHART_WIDTH,
+      chartWidth >=
+      MINIMUM_CHART_WIDTH,
   };
 }
 

@@ -239,7 +239,7 @@ export function exportTicketsToPdf({
   );
 
   document.text(
-    "SupportDesk Pro",
+    "Suporte Droga Viva",
     horizontalMargin,
     11
   );
@@ -724,7 +724,7 @@ export function exportTicketsToPdf({
           );
 
           document.text(
-            "Gerado automaticamente pelo SupportDesk Pro",
+            "Gerado automaticamente pelo Suporte Droga Viva",
             horizontalMargin,
             pageHeight - 7
           );
@@ -782,7 +782,7 @@ export function exportTicketsToPdf({
   );
 
   document.text(
-    "SupportDesk Pro",
+    "Suporte Droga Viva",
     horizontalMargin,
     11
   );
@@ -1048,7 +1048,7 @@ export function exportTicketsToPdf({
           );
 
           document.text(
-            "Gerado automaticamente pelo SupportDesk Pro",
+            "Gerado automaticamente pelo Suporte Droga Viva",
             horizontalMargin,
             pageHeight - 7
           );
@@ -1106,7 +1106,7 @@ export function exportTicketsToPdf({
   );
 
   document.text(
-    "SupportDesk Pro",
+    "Suporte Droga Viva",
     horizontalMargin,
     11
   );
@@ -1397,7 +1397,7 @@ export function exportTicketsToPdf({
           );
 
           document.text(
-            "Gerado automaticamente pelo SupportDesk Pro",
+            "Gerado automaticamente pelo Suporte Droga Viva",
             horizontalMargin,
             pageHeight - 7
           );
@@ -1455,7 +1455,7 @@ export function exportTicketsToPdf({
   );
 
   document.text(
-    "SupportDesk Pro",
+    "Suporte Droga Viva",
     horizontalMargin,
     11
   );
@@ -1735,7 +1735,7 @@ export function exportTicketsToPdf({
           );
 
           document.text(
-            "Gerado automaticamente pelo SupportDesk Pro",
+            "Gerado automaticamente pelo Suporte Droga Viva",
             horizontalMargin,
             pageHeight - 7
           );

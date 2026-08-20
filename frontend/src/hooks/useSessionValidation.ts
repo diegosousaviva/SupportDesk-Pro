@@ -72,11 +72,14 @@ export function useSessionValidation():
         return;
       }
 
+      const activeUser =
+        user;
+
       function validateSession():
         void {
         const registeredUser =
           getUserById(
-            user.id
+            activeUser.id
           );
 
         if (
@@ -134,7 +137,7 @@ export function useSessionValidation():
 
         if (
           haveUserDataChanged(
-            user,
+            activeUser,
             registeredUser
           )
         ) {

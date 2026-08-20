@@ -10,9 +10,15 @@ import {
 
 interface StatCardProps {
   title: string;
-  value: number;
+
+  value:
+    | number
+    | string;
+
   suffix?: string;
+
   color?: string;
+
   icon?: ReactNode;
 }
 
@@ -35,18 +41,26 @@ export default function StatCard({
         borderRadius: 2,
         transition:
           "transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
+
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: 4,
-          borderColor: color,
+          transform:
+            "translateY(-4px)",
+
+          boxShadow:
+            4,
+
+          borderColor:
+            color,
         },
       }}
     >
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
+          alignItems:
+            "flex-start",
+          justifyContent:
+            "space-between",
           gap: 2,
         }}
       >
@@ -62,7 +76,9 @@ export default function StatCard({
           <Typography
             variant="h4"
             fontWeight={800}
-            sx={{ mt: 1 }}
+            sx={{
+              mt: 1,
+            }}
           >
             {value}
             {suffix}
@@ -76,11 +92,15 @@ export default function StatCard({
               height: 48,
               borderRadius: 2,
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems:
+                "center",
+              justifyContent:
+                "center",
               flexShrink: 0,
               color,
-              backgroundColor: `${color}18`,
+              backgroundColor:
+                `${color}18`,
+
               "& svg": {
                 fontSize: 28,
               },

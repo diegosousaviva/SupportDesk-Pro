@@ -35,11 +35,16 @@ import {
 } from "../../services/categoryService";
 
 function EditCategoryPage() {
-  const navigate = useNavigate();
-  const { id } = useParams();
+  const navigate =
+    useNavigate();
 
-  const { showSnackbar } =
-    useSnackbar();
+  const {
+    id,
+  } = useParams();
+
+  const {
+    showSnackbar,
+  } = useSnackbar();
 
   const [
     saving,
@@ -51,18 +56,30 @@ function EditCategoryPage() {
     setErrorMessage,
   ] = useState("");
 
-  const categoryId = Number(id);
+  const categoryId =
+    Number(id);
 
-  const category = useMemo(() => {
-    if (!Number.isInteger(categoryId)) {
-      return undefined;
-    }
+  const category =
+    useMemo(() => {
+      if (
+        !Number.isInteger(
+          categoryId
+        )
+      ) {
+        return undefined;
+      }
 
-    return getCategoryById(categoryId);
-  }, [categoryId]);
+      return getCategoryById(
+        categoryId
+      );
+    }, [
+      categoryId,
+    ]);
 
   if (
-    !Number.isInteger(categoryId) ||
+    !Number.isInteger(
+      categoryId
+    ) ||
     !category
   ) {
     return (
@@ -73,32 +90,55 @@ function EditCategoryPage() {
     );
   }
 
-  const initialValues: CategoryFormData = {
-    name: category.name,
-    description:
-      category.description,
-    color: category.color,
-    active: category.active,
-  };
+  const activeCategory =
+    category;
+
+  const activeCategoryId =
+    activeCategory.id;
+
+  const initialValues:
+    CategoryFormData = {
+      name:
+        activeCategory.name,
+
+      description:
+        activeCategory.description,
+
+      color:
+        activeCategory.color,
+
+      active:
+        activeCategory.active,
+    };
 
   async function handleSubmit(
-    values: CategoryFormData
+    values:
+      CategoryFormData
   ): Promise<void> {
-    if (saving) {
+    if (
+      saving
+    ) {
       return;
     }
 
-    setSaving(true);
-    setErrorMessage("");
+    setSaving(
+      true
+    );
+
+    setErrorMessage(
+      ""
+    );
 
     try {
       const updated =
         await updateCategory(
-          category.id,
+          activeCategoryId,
           values
         );
 
-      if (!updated) {
+      if (
+        !updated
+      ) {
         throw new Error(
           "Categoria não encontrada."
         );
@@ -107,38 +147,52 @@ function EditCategoryPage() {
       showSnackbar(
         "Categoria atualizada com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
 
       navigate(
-        `/categories/${category.id}`
+        `/categories/${activeCategoryId}`
       );
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       const message =
         error instanceof Error
           ? error.message
           : "Não foi possível atualizar a categoria.";
 
-      setErrorMessage(message);
+      setErrorMessage(
+        message
+      );
 
-      showSnackbar(message, {
-        severity: "error",
-      });
+      showSnackbar(
+        message,
+        {
+          severity:
+            "error",
+        }
+      );
     } finally {
-      setSaving(false);
+      setSaving(
+        false
+      );
     }
   }
 
-  function handleBack(): void {
-    if (saving) {
+  function handleBack():
+    void {
+    if (
+      saving
+    ) {
       return;
     }
 
     navigate(
-      `/categories/${category.id}`
+      `/categories/${activeCategoryId}`
     );
   }
 
@@ -146,7 +200,7 @@ function EditCategoryPage() {
     <MainLayout title="Editar Categoria">
       <PageHeader
         title="Editar Categoria"
-        subtitle={`Atualize as informações de "${category.name}".`}
+        subtitle={`Atualize as informações de "${activeCategory.name}".`}
       />
 
       <Box
@@ -157,8 +211,12 @@ function EditCategoryPage() {
       >
         <Button
           variant="outlined"
-          disabled={saving}
-          onClick={handleBack}
+          disabled={
+            saving
+          }
+          onClick={
+            handleBack
+          }
         >
           Voltar aos detalhes
         </Button>
@@ -191,9 +249,13 @@ function EditCategoryPage() {
         {errorMessage && (
           <Alert
             severity="error"
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+            }}
             onClose={() =>
-              setErrorMessage("")
+              setErrorMessage(
+                ""
+              )
             }
           >
             {errorMessage}
@@ -202,8 +264,12 @@ function EditCategoryPage() {
 
         <CategoryForm
           isEdit
-          initialValues={initialValues}
-          onSubmit={handleSubmit}
+          initialValues={
+            initialValues
+          }
+          onSubmit={
+            handleSubmit
+          }
           submitLabel={
             saving
               ? "Salvando..."

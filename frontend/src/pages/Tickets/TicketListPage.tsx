@@ -30,6 +30,10 @@ import TicketPagination from "../../components/tickets/TicketPagination";
 import TicketStatistics from "../../components/tickets/TicketStatistics";
 
 import {
+  useAuth,
+} from "../../contexts/AuthContext";
+
+import {
   usePermissions,
   useTicketFilters,
   useTicketPagination,
@@ -50,9 +54,17 @@ import {
   getUsers,
 } from "../../services/userService";
 
+import type {
+  Ticket,
+} from "../../types/Ticket";
+
 export default function TicketListPage() {
   const navigate =
     useNavigate();
+
+  const {
+    user,
+  } = useAuth();
 
   const {
     can,
@@ -62,21 +74,45 @@ export default function TicketListPage() {
     showSnackbar,
   } = useSnackbar();
 
-  const canCreate = can(
-    Permissions.tickets.create
-  );
+  const canCreate =
+    can(
+      Permissions.tickets.create
+    );
 
-  const canView = can(
-    Permissions.tickets.view
-  );
+  const canView =
+    can(
+      Permissions.tickets.view
+    );
 
-  const canEdit = can(
-    Permissions.tickets.edit
-  );
+  const canViewAll =
+    can(
+      Permissions.tickets.viewAll
+    );
 
-  const canDelete = can(
-    Permissions.tickets.delete
-  );
+  const canViewAssigned =
+    can(
+      Permissions.tickets.viewAssigned
+    );
+
+  const canViewOwn =
+    can(
+      Permissions.tickets.viewOwn
+    );
+
+  const canEdit =
+    can(
+      Permissions.tickets.edit
+    );
+
+  const canEditOwn =
+    can(
+      Permissions.tickets.editOwn
+    );
+
+  const canDelete =
+    can(
+      Permissions.tickets.delete
+    );
 
   const [
     tickets,
@@ -91,12 +127,67 @@ export default function TicketListPage() {
     getUsers()
   );
 
+  /*
+   * Define quais chamados o usuário atual pode
+   * realmente visualizar.
+   *
+   * Administrador:
+   *   viewAll -> todos os chamados.
+   *
+   * Técnico:
+   *   viewAssigned -> somente chamados atribuídos a ele.
+   *
+   * Solicitante:
+   *   viewOwn -> somente chamados criados por ele.
+   */
+  const accessibleTickets =
+    useMemo<Ticket[]>(() => {
+      if (
+        !user ||
+        !canView
+      ) {
+        return [];
+      }
+
+      if (
+        canViewAll
+      ) {
+        return tickets;
+      }
+
+      return tickets.filter(
+        (ticket) => {
+          const isAssignedToCurrentUser =
+            canViewAssigned &&
+            ticket.assignedTechnicianId ===
+              user.id;
+
+          const isOwnedByCurrentUser =
+            canViewOwn &&
+            ticket.requesterUserId ===
+              user.id;
+
+          return (
+            isAssignedToCurrentUser ||
+            isOwnedByCurrentUser
+          );
+        }
+      );
+    }, [
+      tickets,
+      user,
+      canView,
+      canViewAll,
+      canViewAssigned,
+      canViewOwn,
+    ]);
+
   const technicians =
     useMemo(() => {
       return users
         .filter(
-          (user) =>
-            user.role ===
+          (currentUser) =>
+            currentUser.role ===
             "Técnico"
         )
         .sort(
@@ -109,7 +200,9 @@ export default function TicketListPage() {
               "pt-BR"
             )
         );
-    }, [users]);
+    }, [
+      users,
+    ]);
 
   const getTechnicianName =
     useCallback(
@@ -126,12 +219,14 @@ export default function TicketListPage() {
 
         const technician =
           users.find(
-            (user) =>
-              user.id ===
+            (currentUser) =>
+              currentUser.id ===
               technicianId
           );
 
-        if (!technician) {
+        if (
+          !technician
+        ) {
           return `Técnico não encontrado (#${technicianId})`;
         }
 
@@ -144,7 +239,9 @@ export default function TicketListPage() {
 
         return technician.name;
       },
-      [users]
+      [
+        users,
+      ]
     );
 
   const {
@@ -167,7 +264,7 @@ export default function TicketListPage() {
 
     clearFilters,
   } = useTicketFilters(
-    tickets
+    accessibleTickets
   );
 
   const {
@@ -197,13 +294,92 @@ export default function TicketListPage() {
     inProgressTickets,
     resolvedTickets,
   } = useTicketStatistics(
-    tickets
+    accessibleTickets
   );
+
+  function canAccessTicket(
+    ticket:
+      Ticket
+  ): boolean {
+    if (
+      !user ||
+      !canView
+    ) {
+      return false;
+    }
+
+    if (
+      canViewAll
+    ) {
+      return true;
+    }
+
+    if (
+      canViewAssigned &&
+      ticket.assignedTechnicianId ===
+        user.id
+    ) {
+      return true;
+    }
+
+    if (
+      canViewOwn &&
+      ticket.requesterUserId ===
+        user.id
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function canEditTicket(
+    ticket:
+      Ticket
+  ): boolean {
+    if (
+      canEdit
+    ) {
+      return true;
+    }
+
+    if (
+      !user
+    ) {
+      return false;
+    }
+
+    return (
+      canEditOwn &&
+      ticket.requesterUserId ===
+        user.id
+    );
+  }
 
   function handleViewTicket(
     ticketId: number
   ): void {
-    if (!canView) {
+    const ticket =
+      tickets.find(
+        (currentTicket) =>
+          currentTicket.id ===
+          ticketId
+      );
+
+    if (
+      !ticket ||
+      !canAccessTicket(
+        ticket
+      )
+    ) {
+      showSnackbar(
+        "Você não possui permissão para visualizar este chamado.",
+        {
+          severity:
+            "warning",
+        }
+      );
+
       return;
     }
 
@@ -215,7 +391,27 @@ export default function TicketListPage() {
   function handleEditTicket(
     ticketId: number
   ): void {
-    if (!canEdit) {
+    const ticket =
+      tickets.find(
+        (currentTicket) =>
+          currentTicket.id ===
+          ticketId
+      );
+
+    if (
+      !ticket ||
+      !canEditTicket(
+        ticket
+      )
+    ) {
+      showSnackbar(
+        "Você não possui permissão para editar este chamado.",
+        {
+          severity:
+            "warning",
+        }
+      );
+
       return;
     }
 
@@ -227,7 +423,9 @@ export default function TicketListPage() {
   function handleDeleteTicket(
     ticketId: number
   ): void {
-    if (!canDelete) {
+    if (
+      !canDelete
+    ) {
       return;
     }
 
@@ -238,7 +436,9 @@ export default function TicketListPage() {
           ticketId
       );
 
-    if (!ticket) {
+    if (
+      !ticket
+    ) {
       showSnackbar(
         "O chamado não foi encontrado.",
         {
@@ -255,7 +455,9 @@ export default function TicketListPage() {
         `Deseja realmente excluir o chamado #${ticket.id} — ${ticket.title}?`
       );
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
@@ -265,7 +467,9 @@ export default function TicketListPage() {
           ticketId
         );
 
-      if (!deleted) {
+      if (
+        !deleted
+      ) {
         throw new Error(
           "Não foi possível excluir o chamado."
         );
@@ -303,12 +507,24 @@ export default function TicketListPage() {
     }
   }
 
+  const canShowEditAction =
+    canEdit ||
+    canEditOwn;
+
   return (
     <MainLayout title="Chamados">
       <Stack spacing={3}>
         <PageHeader
           title="Lista de chamados"
-          subtitle="Gerencie, acompanhe e consulte os chamados cadastrados."
+          subtitle={
+            canViewAll
+              ? "Gerencie, acompanhe e consulte os chamados cadastrados."
+              : canViewAssigned
+                ? "Acompanhe os chamados atribuídos a você."
+                : canViewOwn
+                  ? "Acompanhe os chamados abertos por você."
+                  : "Consulte os chamados disponíveis."
+          }
           buttonLabel={
             canCreate
               ? "Novo chamado"
@@ -416,7 +632,7 @@ export default function TicketListPage() {
                   : undefined
               }
               onEdit={
-                canEdit
+                canShowEditAction
                   ? handleEditTicket
                   : undefined
               }
@@ -441,7 +657,9 @@ export default function TicketListPage() {
                   sx={{
                     alignSelf:
                       "center",
-                    my: 2,
+
+                    my:
+                      2,
                   }}
                 >
                   Limpar filtros

@@ -35,10 +35,16 @@ import {
 } from "../../services/userService";
 
 function EditUserPage() {
-  const navigate = useNavigate();
-  const { id } = useParams();
+  const navigate =
+    useNavigate();
 
-  const { showSnackbar } = useSnackbar();
+  const {
+    id,
+  } = useParams();
+
+  const {
+    showSnackbar,
+  } = useSnackbar();
 
   const [
     errorMessage,
@@ -50,47 +56,98 @@ function EditUserPage() {
     setSaving,
   ] = useState(false);
 
-  const userId = Number(id);
+  const userId =
+    Number(id);
 
-  const user = useMemo(() => {
-    if (!Number.isInteger(userId)) {
-      return undefined;
-    }
+  const user =
+    useMemo(() => {
+      if (
+        !Number.isInteger(
+          userId
+        )
+      ) {
+        return undefined;
+      }
 
-    return getUserById(userId);
-  }, [userId]);
+      return getUserById(
+        userId
+      );
+    }, [
+      userId,
+    ]);
 
-  if (!Number.isInteger(userId) || !user) {
-    return <Navigate to="/users" replace />;
+  if (
+    !Number.isInteger(
+      userId
+    ) ||
+    !user
+  ) {
+    return (
+      <Navigate
+        to="/users"
+        replace
+      />
+    );
   }
 
-  const initialValues: UserFormData = {
-    name: user.name,
-    email: user.email,
-    password: "",
-    phone: user.phone,
-    department: user.department,
-    role: user.role,
-    status: user.status,
-  };
+  const currentUser =
+    user;
+
+  const currentUserId =
+    currentUser.id;
+
+  const initialValues:
+    UserFormData = {
+      name:
+        currentUser.name,
+
+      email:
+        currentUser.email,
+
+      password:
+        "",
+
+      phone:
+        currentUser.phone,
+
+      department:
+        currentUser.department,
+
+      role:
+        currentUser.role,
+
+      status:
+        currentUser.status,
+    };
 
   async function handleSubmit(
-    values: UserFormData
+    values:
+      UserFormData
   ): Promise<void> {
-    if (saving) {
+    if (
+      saving
+    ) {
       return;
     }
 
-    setErrorMessage("");
-    setSaving(true);
+    setErrorMessage(
+      ""
+    );
+
+    setSaving(
+      true
+    );
 
     try {
-      const updatedUser = await updateUser(
-        user.id,
-        values
-      );
+      const updatedUser =
+        await updateUser(
+          currentUserId,
+          values
+        );
 
-      if (!updatedUser) {
+      if (
+        !updatedUser
+      ) {
         throw new Error(
           "Não foi possível localizar o usuário para atualização."
         );
@@ -99,11 +156,14 @@ function EditUserPage() {
       showSnackbar(
         "Usuário atualizado com sucesso.",
         {
-          severity: "success",
+          severity:
+            "success",
         }
       );
 
-      navigate(`/users/${user.id}`);
+      navigate(
+        `/users/${currentUserId}`
+      );
     } catch (error) {
       console.error(
         "Não foi possível atualizar o usuário.",
@@ -115,29 +175,42 @@ function EditUserPage() {
           ? error.message
           : "Não foi possível atualizar o usuário. Tente novamente.";
 
-      setErrorMessage(message);
+      setErrorMessage(
+        message
+      );
 
-      showSnackbar(message, {
-        severity: "error",
-      });
+      showSnackbar(
+        message,
+        {
+          severity:
+            "error",
+        }
+      );
     } finally {
-      setSaving(false);
+      setSaving(
+        false
+      );
     }
   }
 
-  function handleBack(): void {
-    if (saving) {
+  function handleBack():
+    void {
+    if (
+      saving
+    ) {
       return;
     }
 
-    navigate(`/users/${user.id}`);
+    navigate(
+      `/users/${currentUserId}`
+    );
   }
 
   return (
     <MainLayout title="Editar Usuário">
       <PageHeader
         title="Editar Usuário"
-        subtitle={`Atualize as informações de ${user.name}.`}
+        subtitle={`Atualize as informações de ${currentUser.name}.`}
       />
 
       <Box
@@ -148,8 +221,12 @@ function EditUserPage() {
       >
         <Button
           variant="outlined"
-          disabled={saving}
-          onClick={handleBack}
+          disabled={
+            saving
+          }
+          onClick={
+            handleBack
+          }
         >
           Voltar aos detalhes
         </Button>
@@ -183,9 +260,13 @@ function EditUserPage() {
         {errorMessage && (
           <Alert
             severity="error"
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+            }}
             onClose={() =>
-              setErrorMessage("")
+              setErrorMessage(
+                ""
+              )
             }
           >
             {errorMessage}
@@ -194,8 +275,12 @@ function EditUserPage() {
 
         <UserForm
           isEdit
-          initialValues={initialValues}
-          onSubmit={handleSubmit}
+          initialValues={
+            initialValues
+          }
+          onSubmit={
+            handleSubmit
+          }
           submitLabel={
             saving
               ? "Salvando..."

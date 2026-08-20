@@ -9,7 +9,9 @@ export type TicketHistoryEventType =
   | "comment_added"
   | "equipment_linked"
   | "equipment_unlinked"
-  | "equipment_changed";
+  | "equipment_changed"
+  | "ticket_closed"
+  | "ticket_reopened";
 
 export interface TicketHistoryEntry {
   id: number;

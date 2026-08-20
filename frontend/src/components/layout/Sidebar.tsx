@@ -211,7 +211,7 @@ function SidebarContent({
                 lineHeight={1.25}
                 noWrap
               >
-                SupportDesk Pro
+                Suporte Droga Viva
               </Typography>
 
               <Typography

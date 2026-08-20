@@ -8,8 +8,11 @@ import type {
 
 interface DataTablePaginationProps {
   count: number;
+
   page: number;
+
   rowsPerPage: number;
+
   label?: string;
 
   onPageChange: (
@@ -18,10 +21,7 @@ interface DataTablePaginationProps {
   ) => void;
 
   onRowsPerPageChange: (
-    event: ChangeEvent<
-      HTMLInputElement |
-      HTMLTextAreaElement
-    >
+    event: ChangeEvent<HTMLInputElement>
   ) => void;
 }
 
@@ -37,22 +37,37 @@ export default function DataTablePagination({
     return null;
   }
 
+  function handleRowsPerPageChange(
+    event: ChangeEvent<
+      HTMLInputElement |
+      HTMLTextAreaElement
+    >
+  ): void {
+    onRowsPerPageChange(
+      event as ChangeEvent<HTMLInputElement>
+    );
+  }
+
   return (
     <TablePagination
       component="div"
       count={count}
       page={page}
       rowsPerPage={rowsPerPage}
-      onPageChange={onPageChange}
+      onPageChange={
+        onPageChange
+      }
       onRowsPerPageChange={
-        onRowsPerPageChange
+        handleRowsPerPageChange
       }
       rowsPerPageOptions={[
         5,
         10,
         25,
       ]}
-      labelRowsPerPage={label}
+      labelRowsPerPage={
+        label
+      }
       labelDisplayedRows={({
         from,
         to,
@@ -62,7 +77,8 @@ export default function DataTablePagination({
       }
       sx={{
         borderTop: 1,
-        borderColor: "divider",
+        borderColor:
+          "divider",
       }}
     />
   );

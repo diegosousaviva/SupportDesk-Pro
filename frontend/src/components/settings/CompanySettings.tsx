@@ -9,6 +9,10 @@ import {
   Typography,
 } from "@mui/material";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 export interface CompanySettingsData {
   companyName: string;
   supportEmail: string;
@@ -18,9 +22,12 @@ export interface CompanySettingsData {
 
 interface CompanySettingsProps {
   settings: CompanySettingsData;
+
   onChange: (
-    field: keyof CompanySettingsData,
-    value: string
+    field:
+      keyof CompanySettingsData,
+    value:
+      string
   ) => void;
 }
 
@@ -28,21 +35,37 @@ function CompanySettings({
   settings,
   onChange,
 }: CompanySettingsProps) {
+  const {
+    t,
+  } =
+    useLanguage();
+
   return (
     <Paper
       variant="outlined"
       sx={{
         p: {
-          xs: 2.5,
-          md: 3,
+          xs:
+            2.5,
+
+          md:
+            3,
         },
-        height: "100%",
+
+        height:
+          "100%",
       }}
     >
-      <Stack spacing={2.5}>
+      <Stack
+        spacing={
+          2.5
+        }
+      >
         <Stack
           direction="row"
-          spacing={1.5}
+          spacing={
+            1.5
+          }
           alignItems="center"
         >
           <BusinessOutlined
@@ -51,9 +74,13 @@ function CompanySettings({
 
           <Typography
             variant="h6"
-            fontWeight={700}
+            fontWeight={
+              700
+            }
           >
-            Dados da empresa
+            {t(
+              "company.title"
+            )}
           </Typography>
         </Stack>
 
@@ -61,15 +88,22 @@ function CompanySettings({
           variant="body2"
           color="text.secondary"
         >
-          Informações institucionais utilizadas no
-          sistema e nos relatórios.
+          {t(
+            "company.description"
+          )}
         </Typography>
 
         <TextField
-          label="Nome da empresa"
+          label={t(
+            "company.name"
+          )}
           fullWidth
-          value={settings.companyName}
-          onChange={(event) =>
+          value={
+            settings.companyName
+          }
+          onChange={(
+            event
+          ) =>
             onChange(
               "companyName",
               event.target.value
@@ -78,11 +112,17 @@ function CompanySettings({
         />
 
         <TextField
-          label="E-mail de suporte"
+          label={t(
+            "company.supportEmail"
+          )}
           type="email"
           fullWidth
-          value={settings.supportEmail}
-          onChange={(event) =>
+          value={
+            settings.supportEmail
+          }
+          onChange={(
+            event
+          ) =>
             onChange(
               "supportEmail",
               event.target.value
@@ -91,10 +131,16 @@ function CompanySettings({
         />
 
         <TextField
-          label="Telefone de suporte"
+          label={t(
+            "company.supportPhone"
+          )}
           fullWidth
-          value={settings.supportPhone}
-          onChange={(event) =>
+          value={
+            settings.supportPhone
+          }
+          onChange={(
+            event
+          ) =>
             onChange(
               "supportPhone",
               event.target.value
@@ -103,12 +149,20 @@ function CompanySettings({
         />
 
         <TextField
-          label="Site da empresa"
+          label={t(
+            "company.website"
+          )}
           type="url"
           fullWidth
-          placeholder="https://www.exemplo.com.br"
-          value={settings.website}
-          onChange={(event) =>
+          placeholder={t(
+            "company.websitePlaceholder"
+          )}
+          value={
+            settings.website
+          }
+          onChange={(
+            event
+          ) =>
             onChange(
               "website",
               event.target.value

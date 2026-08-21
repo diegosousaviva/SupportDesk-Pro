@@ -18,26 +18,40 @@ import {
   Typography,
 } from "@mui/material";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 export interface AppearanceSettingsData {
   compactMode: boolean;
+
   preferredTheme:
     | "light"
     | "dark"
     | "system";
-  language: "pt-BR" | "en-US";
+
+  language:
+    | "pt-BR"
+    | "en-US";
 }
 
 interface AppearanceSettingsProps {
-  settings: AppearanceSettingsData;
+  settings:
+    AppearanceSettingsData;
+
   onSwitchChange: (
-    field: "compactMode",
-    checked: boolean
+    field:
+      "compactMode",
+    checked:
+      boolean
   ) => void;
+
   onSelectChange: (
     field:
       | "preferredTheme"
       | "language",
-    value: string
+    value:
+      string
   ) => void;
 }
 
@@ -46,21 +60,37 @@ function AppearanceSettings({
   onSwitchChange,
   onSelectChange,
 }: AppearanceSettingsProps) {
+  const {
+    t,
+  } =
+    useLanguage();
+
   return (
     <Paper
       variant="outlined"
       sx={{
         p: {
-          xs: 2.5,
-          md: 3,
+          xs:
+            2.5,
+
+          md:
+            3,
         },
-        height: "100%",
+
+        height:
+          "100%",
       }}
     >
-      <Stack spacing={2.5}>
+      <Stack
+        spacing={
+          2.5
+        }
+      >
         <Stack
           direction="row"
-          spacing={1.5}
+          spacing={
+            1.5
+          }
           alignItems="center"
         >
           <PaletteOutlined
@@ -69,9 +99,13 @@ function AppearanceSettings({
 
           <Typography
             variant="h6"
-            fontWeight={700}
+            fontWeight={
+              700
+            }
           >
-            Aparência
+            {t(
+              "appearance.title"
+            )}
           </Typography>
         </Stack>
 
@@ -79,71 +113,115 @@ function AppearanceSettings({
           variant="body2"
           color="text.secondary"
         >
-          Defina o tema, a densidade visual e o idioma da interface.
+          {t(
+            "appearance.description"
+          )}
         </Typography>
 
-        <FormControl fullWidth>
-          <InputLabel id="preferred-theme-label">
-            Tema preferido
+        <FormControl
+          fullWidth
+        >
+          <InputLabel
+            id="preferred-theme-label"
+          >
+            {t(
+              "appearance.theme"
+            )}
           </InputLabel>
 
           <Select
             labelId="preferred-theme-label"
-            label="Tema preferido"
+            label={t(
+              "appearance.theme"
+            )}
             value={
               settings.preferredTheme
             }
-            onChange={(event) =>
+            onChange={(
+              event
+            ) =>
               onSelectChange(
                 "preferredTheme",
                 event.target.value
               )
             }
           >
-            <MenuItem value="light">
+            <MenuItem
+              value="light"
+            >
               <Stack
                 direction="row"
-                spacing={1}
+                spacing={
+                  1
+                }
                 alignItems="center"
               >
                 <LightModeOutlined
                   fontSize="small"
                 />
 
-                <span>Claro</span>
+                <span>
+                  {t(
+                    "appearance.theme.light"
+                  )}
+                </span>
               </Stack>
             </MenuItem>
 
-            <MenuItem value="dark">
+            <MenuItem
+              value="dark"
+            >
               <Stack
                 direction="row"
-                spacing={1}
+                spacing={
+                  1
+                }
                 alignItems="center"
               >
                 <DarkModeOutlined
                   fontSize="small"
                 />
 
-                <span>Escuro</span>
+                <span>
+                  {t(
+                    "appearance.theme.dark"
+                  )}
+                </span>
               </Stack>
             </MenuItem>
 
-            <MenuItem value="system">
-              Sistema
+            <MenuItem
+              value="system"
+            >
+              {t(
+                "appearance.theme.system"
+              )}
             </MenuItem>
           </Select>
         </FormControl>
 
-        <FormControl fullWidth>
-          <InputLabel id="language-label">
-            Idioma
+        <FormControl
+          fullWidth
+        >
+          <InputLabel
+            id="language-label"
+          >
+            {t(
+              "appearance.language"
+            )}
           </InputLabel>
 
           <Select
             labelId="language-label"
-            label="Idioma"
-            value={settings.language}
-            onChange={(event) =>
+            label={t(
+              "appearance.language"
+            )}
+            value={
+              settings.language
+            }
+            onChange={(
+              event
+            ) =>
               onSelectChange(
                 "language",
                 event.target.value
@@ -153,18 +231,24 @@ function AppearanceSettings({
               <LanguageOutlined
                 fontSize="small"
                 sx={{
-                  mr: 1,
+                  mr:
+                    1,
+
                   color:
                     "text.secondary",
                 }}
               />
             }
           >
-            <MenuItem value="pt-BR">
+            <MenuItem
+              value="pt-BR"
+            >
               Português (Brasil)
             </MenuItem>
 
-            <MenuItem value="en-US">
+            <MenuItem
+              value="en-US"
+            >
               English (United States)
             </MenuItem>
           </Select>
@@ -176,7 +260,9 @@ function AppearanceSettings({
               checked={
                 settings.compactMode
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 onSwitchChange(
                   "compactMode",
                   event.target.checked
@@ -187,7 +273,9 @@ function AppearanceSettings({
           label={
             <Stack
               direction="row"
-              spacing={1}
+              spacing={
+                1
+              }
               alignItems="center"
             >
               <FormatSizeOutlined
@@ -195,7 +283,9 @@ function AppearanceSettings({
               />
 
               <span>
-                Usar modo compacto
+                {t(
+                  "appearance.compact"
+                )}
               </span>
             </Stack>
           }

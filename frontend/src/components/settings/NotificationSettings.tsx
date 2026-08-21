@@ -10,19 +10,31 @@ import {
   Typography,
 } from "@mui/material";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 export interface NotificationSettingsData {
   notifyNewTicket: boolean;
+
   notifyStatusChange: boolean;
+
   notifyCriticalTicket: boolean;
+
   notifyAssignedTicket: boolean;
+
   notifySlaExpired: boolean;
 }
 
 interface NotificationSettingsProps {
-  settings: NotificationSettingsData;
+  settings:
+    NotificationSettingsData;
+
   onChange: (
-    field: keyof NotificationSettingsData,
-    checked: boolean
+    field:
+      keyof NotificationSettingsData,
+    checked:
+      boolean
   ) => void;
 }
 
@@ -30,21 +42,37 @@ function NotificationSettings({
   settings,
   onChange,
 }: NotificationSettingsProps) {
+  const {
+    t,
+  } =
+    useLanguage();
+
   return (
     <Paper
       variant="outlined"
       sx={{
         p: {
-          xs: 2.5,
-          md: 3,
+          xs:
+            2.5,
+
+          md:
+            3,
         },
-        height: "100%",
+
+        height:
+          "100%",
       }}
     >
-      <Stack spacing={2.5}>
+      <Stack
+        spacing={
+          2.5
+        }
+      >
         <Stack
           direction="row"
-          spacing={1.5}
+          spacing={
+            1.5
+          }
           alignItems="center"
         >
           <NotificationsOutlined
@@ -53,9 +81,13 @@ function NotificationSettings({
 
           <Typography
             variant="h6"
-            fontWeight={700}
+            fontWeight={
+              700
+            }
           >
-            Notificações
+            {t(
+              "notifications.title"
+            )}
           </Typography>
         </Stack>
 
@@ -63,7 +95,9 @@ function NotificationSettings({
           variant="body2"
           color="text.secondary"
         >
-          Escolha quais eventos devem gerar alertas no sistema.
+          {t(
+            "notifications.description"
+          )}
         </Typography>
 
         <FormControlLabel
@@ -72,7 +106,9 @@ function NotificationSettings({
               checked={
                 settings.notifyNewTicket
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 onChange(
                   "notifyNewTicket",
                   event.target.checked
@@ -80,7 +116,9 @@ function NotificationSettings({
               }
             />
           }
-          label="Notificar novos chamados"
+          label={t(
+            "notifications.newTicket"
+          )}
         />
 
         <FormControlLabel
@@ -89,7 +127,9 @@ function NotificationSettings({
               checked={
                 settings.notifyStatusChange
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 onChange(
                   "notifyStatusChange",
                   event.target.checked
@@ -97,7 +137,9 @@ function NotificationSettings({
               }
             />
           }
-          label="Notificar mudanças de status"
+          label={t(
+            "notifications.statusChange"
+          )}
         />
 
         <FormControlLabel
@@ -106,7 +148,9 @@ function NotificationSettings({
               checked={
                 settings.notifyCriticalTicket
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 onChange(
                   "notifyCriticalTicket",
                   event.target.checked
@@ -114,7 +158,9 @@ function NotificationSettings({
               }
             />
           }
-          label="Notificar chamados críticos"
+          label={t(
+            "notifications.criticalTicket"
+          )}
         />
 
         <FormControlLabel
@@ -123,7 +169,9 @@ function NotificationSettings({
               checked={
                 settings.notifyAssignedTicket
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 onChange(
                   "notifyAssignedTicket",
                   event.target.checked
@@ -131,7 +179,9 @@ function NotificationSettings({
               }
             />
           }
-          label="Notificar chamados atribuídos"
+          label={t(
+            "notifications.assignedTicket"
+          )}
         />
 
         <FormControlLabel
@@ -140,7 +190,9 @@ function NotificationSettings({
               checked={
                 settings.notifySlaExpired
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 onChange(
                   "notifySlaExpired",
                   event.target.checked
@@ -148,7 +200,9 @@ function NotificationSettings({
               }
             />
           }
-          label="Notificar chamados com SLA vencido"
+          label={t(
+            "notifications.slaExpired"
+          )}
         />
       </Stack>
     </Paper>

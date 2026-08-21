@@ -12,93 +12,19 @@ import {
 } from "../contexts/AuthContext";
 
 import {
+  getSettings,
+} from "../services/settingsService";
+
+import {
+  getSessionElapsedMilliseconds,
+} from "../services/sessionService";
+
+import {
   useSnackbar,
 } from "./useSnackbar";
 
-const SETTINGS_STORAGE_KEY =
-  "supportdesk-pro-settings";
-
-const DEFAULT_SESSION_TIMEOUT_MINUTES =
-  60;
-
 const CHECK_INTERVAL_MILLISECONDS =
   15 * 1000;
-
-interface SecuritySettings {
-  automaticLogout:
-    boolean;
-
-  sessionTimeoutMinutes:
-    number;
-}
-
-function loadSecuritySettings():
-  SecuritySettings {
-  try {
-    const storedSettings =
-      localStorage.getItem(
-        SETTINGS_STORAGE_KEY
-      );
-
-    if (!storedSettings) {
-      return {
-        automaticLogout:
-          false,
-
-        sessionTimeoutMinutes:
-          DEFAULT_SESSION_TIMEOUT_MINUTES,
-      };
-    }
-
-    const parsedSettings =
-      JSON.parse(
-        storedSettings
-      ) as {
-        automaticLogout?:
-          unknown;
-
-        sessionTimeoutMinutes?:
-          unknown;
-      };
-
-    const automaticLogout =
-      parsedSettings.automaticLogout ===
-      true;
-
-    const storedTimeout =
-      parsedSettings.sessionTimeoutMinutes;
-
-    const sessionTimeoutMinutes =
-      typeof storedTimeout ===
-        "number" &&
-      Number.isFinite(
-        storedTimeout
-      ) &&
-      storedTimeout >
-        0
-        ? storedTimeout
-        : DEFAULT_SESSION_TIMEOUT_MINUTES;
-
-    return {
-      automaticLogout,
-
-      sessionTimeoutMinutes,
-    };
-  } catch (error) {
-    console.error(
-      "Não foi possível carregar as configurações de segurança da sessão.",
-      error
-    );
-
-    return {
-      automaticLogout:
-        false,
-
-      sessionTimeoutMinutes:
-        DEFAULT_SESSION_TIMEOUT_MINUTES,
-    };
-  }
-}
 
 export function useSessionTimeout():
   void {
@@ -150,38 +76,14 @@ export function useSessionTimeout():
           Date.now();
       }
 
-      function checkSession():
-        void {
+      function expireSession(
+        reason:
+          | "inactivity"
+          | "maximum_duration",
+        message: string
+      ): void {
         if (
           sessionExpiredRef.current
-        ) {
-          return;
-        }
-
-        const settings =
-          loadSecuritySettings();
-
-        if (
-          !settings.automaticLogout
-        ) {
-          lastActivityRef.current =
-            Date.now();
-
-          return;
-        }
-
-        const timeoutMilliseconds =
-          settings.sessionTimeoutMinutes *
-          60 *
-          1000;
-
-        const elapsedMilliseconds =
-          Date.now() -
-          lastActivityRef.current;
-
-        if (
-          elapsedMilliseconds <
-          timeoutMilliseconds
         ) {
           return;
         }
@@ -190,7 +92,7 @@ export function useSessionTimeout():
           true;
 
         logout(
-          "inactivity"
+          reason
         );
 
         navigate(
@@ -202,11 +104,115 @@ export function useSessionTimeout():
         );
 
         showSnackbar(
-          "Sua sessão expirou por inatividade. Faça login novamente.",
+          message,
           {
             severity:
               "warning",
           }
+        );
+      }
+
+      function checkMaximumSessionDuration(
+        maximumSessionDurationMinutes:
+          number
+      ): boolean {
+        const elapsedMilliseconds =
+          getSessionElapsedMilliseconds();
+
+        if (
+          elapsedMilliseconds ===
+          null
+        ) {
+          return false;
+        }
+
+        const maximumDurationMilliseconds =
+          maximumSessionDurationMinutes *
+          60 *
+          1000;
+
+        if (
+          elapsedMilliseconds <
+          maximumDurationMilliseconds
+        ) {
+          return false;
+        }
+
+        expireSession(
+          "maximum_duration",
+          "Sua sessão atingiu a duração máxima permitida. Faça login novamente."
+        );
+
+        return true;
+      }
+
+      function checkInactivity(
+        sessionTimeoutMinutes:
+          number
+      ): boolean {
+        const timeoutMilliseconds =
+          sessionTimeoutMinutes *
+          60 *
+          1000;
+
+        const elapsedMilliseconds =
+          Date.now() -
+          lastActivityRef.current;
+
+        if (
+          elapsedMilliseconds <
+          timeoutMilliseconds
+        ) {
+          return false;
+        }
+
+        expireSession(
+          "inactivity",
+          "Sua sessão expirou por inatividade. Faça login novamente."
+        );
+
+        return true;
+      }
+
+      function checkSession():
+        void {
+        if (
+          sessionExpiredRef.current
+        ) {
+          return;
+        }
+
+        const settings =
+          getSettings();
+
+        /*
+         * A duração máxima da sessão é sempre aplicada,
+         * independentemente de haver ou não atividade
+         * do usuário.
+         */
+        const maximumDurationExpired =
+          checkMaximumSessionDuration(
+            settings.maximumSessionDurationMinutes
+          );
+
+        if (
+          maximumDurationExpired
+        ) {
+          return;
+        }
+
+        /*
+         * O controle por inatividade só é aplicado
+         * quando o logout automático estiver ativado.
+         */
+        if (
+          !settings.automaticLogout
+        ) {
+          return;
+        }
+
+        checkInactivity(
+          settings.sessionTimeoutMinutes
         );
       }
 
@@ -219,7 +225,9 @@ export function useSessionTimeout():
       ] as const;
 
       activityEvents.forEach(
-        (eventName) => {
+        (
+          eventName
+        ) => {
           window.addEventListener(
             eventName,
             registerActivity,
@@ -237,9 +245,19 @@ export function useSessionTimeout():
           CHECK_INTERVAL_MILLISECONDS
         );
 
+      /*
+       * Fazemos também uma verificação imediata.
+       *
+       * Isso é importante caso o usuário volte para uma
+       * sessão antiga que já ultrapassou o tempo máximo.
+       */
+      checkSession();
+
       return () => {
         activityEvents.forEach(
-          (eventName) => {
+          (
+            eventName
+          ) => {
             window.removeEventListener(
               eventName,
               registerActivity

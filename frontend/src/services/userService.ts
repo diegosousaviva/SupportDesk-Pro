@@ -27,6 +27,10 @@ import {
 } from "./sessionService";
 
 import {
+  getSettings,
+} from "./settingsService";
+
+import {
   createUserHistory,
 } from "./userHistoryService";
 
@@ -34,9 +38,6 @@ export type CreateUserData = Omit<
   User,
   "id"
 >;
-
-const SETTINGS_STORAGE_KEY =
-  "supportdesk-pro-settings";
 
 const MINIMUM_NAME_LENGTH =
   3;
@@ -222,31 +223,8 @@ function validateStatus(
 
 function isStrongPasswordRequired():
   boolean {
-  try {
-    const storedSettings =
-      localStorage.getItem(
-        SETTINGS_STORAGE_KEY
-      );
-
-    if (!storedSettings) {
-      return true;
-    }
-
-    const parsedSettings =
-      JSON.parse(
-        storedSettings
-      ) as {
-        requireStrongPassword?:
-          unknown;
-      };
-
-    return (
-      parsedSettings.requireStrongPassword !==
-      false
-    );
-  } catch {
-    return true;
-  }
+  return getSettings()
+    .requireStrongPassword;
 }
 
 function validatePasswordPolicy(

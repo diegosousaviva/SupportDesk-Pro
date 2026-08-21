@@ -37,6 +37,10 @@ import {
   useAuth,
 } from "../../contexts/AuthContext";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 import type {
   AppNotification,
 } from "../../types/Notification";
@@ -95,19 +99,29 @@ function Header({
   const {
     user,
     logout,
-  } = useAuth();
+  } =
+    useAuth();
+
+  const {
+    t,
+  } =
+    useLanguage();
 
   const [
     menuAnchorElement,
     setMenuAnchorElement,
-  ] = useState<HTMLElement | null>(
-    null
-  );
+  ] =
+    useState<HTMLElement | null>(
+      null
+    );
 
   const [
     notificationOpen,
     setNotificationOpen,
-  ] = useState(false);
+  ] =
+    useState(
+      false
+    );
 
   const isUserMenuOpen =
     Boolean(
@@ -115,33 +129,38 @@ function Header({
     );
 
   function handleOpenUserMenu(
-    event: MouseEvent<HTMLElement>
+    event:
+      MouseEvent<HTMLElement>
   ): void {
     setMenuAnchorElement(
       event.currentTarget
     );
   }
 
-  function handleCloseUserMenu(): void {
+  function handleCloseUserMenu():
+    void {
     setMenuAnchorElement(
       null
     );
   }
 
-  function handleOpenNotifications(): void {
+  function handleOpenNotifications():
+    void {
     setNotificationOpen(
       true
     );
   }
 
-  function handleCloseNotifications(): void {
+  function handleCloseNotifications():
+    void {
     setNotificationOpen(
       false
     );
   }
 
   function handleNotificationClick(
-    notification: AppNotification
+    notification:
+      AppNotification
   ): void {
     if (
       notification.ticketId !==
@@ -153,7 +172,8 @@ function Header({
     }
   }
 
-  function handleProfile(): void {
+  function handleProfile():
+    void {
     handleCloseUserMenu();
 
     if (!user) {
@@ -165,7 +185,8 @@ function Header({
     );
   }
 
-  function handleLogout(): void {
+  function handleLogout():
+    void {
     handleCloseUserMenu();
 
     logout();
@@ -173,14 +194,17 @@ function Header({
     navigate(
       "/login",
       {
-        replace: true,
+        replace:
+          true,
       }
     );
   }
 
   const userName =
     user?.name ??
-    "Usuário";
+    t(
+      "header.defaultUser"
+    );
 
   const userRole =
     user?.role ??
@@ -198,9 +222,12 @@ function Header({
         elevation={0}
         color="default"
         sx={{
-          borderBottom: 1,
+          borderBottom:
+            1,
+
           borderColor:
             "divider",
+
           backgroundColor:
             "background.paper",
         }}
@@ -208,26 +235,40 @@ function Header({
         <Toolbar
           sx={{
             minHeight: {
-              xs: 64,
-              sm: 72,
+              xs:
+                64,
+
+              sm:
+                72,
             },
+
             px: {
-              xs: 2,
-              sm: 3,
+              xs:
+                2,
+
+              sm:
+                3,
             },
           }}
         >
           {onToggleSidebar && (
-            <Tooltip title="Abrir menu">
+            <Tooltip
+              title={t(
+                "header.openMenu"
+              )}
+            >
               <IconButton
                 edge="start"
                 color="inherit"
-                aria-label="Abrir menu lateral"
+                aria-label={t(
+                  "header.openSidebar"
+                )}
                 onClick={
                   onToggleSidebar
                 }
                 sx={{
-                  mr: 2,
+                  mr:
+                    2,
                 }}
               >
                 <MenuIcon />
@@ -241,7 +282,8 @@ function Header({
             fontWeight={700}
             noWrap
             sx={{
-              flexGrow: 1,
+              flexGrow:
+                1,
             }}
           >
             {title}
@@ -259,14 +301,20 @@ function Header({
             />
 
             <Box>
-              <Tooltip title="Opções do usuário">
+              <Tooltip
+                title={t(
+                  "header.userOptions"
+                )}
+              >
                 <Box
                   component="button"
                   type="button"
                   onClick={
                     handleOpenUserMenu
                   }
-                  aria-label="Abrir opções do usuário"
+                  aria-label={t(
+                    "header.openUserOptions"
+                  )}
                   aria-controls={
                     isUserMenuOpen
                       ? "user-menu"
@@ -279,20 +327,39 @@ function Header({
                       : undefined
                   }
                   sx={{
-                    display: "flex",
+                    display:
+                      "flex",
+
                     alignItems:
                       "center",
-                    gap: 1.25,
-                    minWidth: 0,
-                    p: 0.75,
-                    border: 0,
-                    borderRadius: 2,
+
+                    gap:
+                      1.25,
+
+                    minWidth:
+                      0,
+
+                    p:
+                      0.75,
+
+                    border:
+                      0,
+
+                    borderRadius:
+                      2,
+
                     color:
                       "text.primary",
+
                     backgroundColor:
                       "transparent",
-                    cursor: "pointer",
-                    font: "inherit",
+
+                    cursor:
+                      "pointer",
+
+                    font:
+                      "inherit",
+
                     transition:
                       "background-color 0.2s",
 
@@ -304,15 +371,23 @@ function Header({
                 >
                   <Avatar
                     sx={{
-                      width: 40,
-                      height: 40,
+                      width:
+                        40,
+
+                      height:
+                        40,
+
                       bgcolor:
                         "primary.main",
+
                       color:
                         "primary.contrastText",
+
                       fontSize:
                         "0.875rem",
-                      fontWeight: 700,
+
+                      fontWeight:
+                        700,
                     }}
                   >
                     {userInitials}
@@ -322,10 +397,16 @@ function Header({
                     spacing={0}
                     sx={{
                       display: {
-                        xs: "none",
-                        sm: "flex",
+                        xs:
+                          "none",
+
+                        sm:
+                          "flex",
                       },
-                      minWidth: 0,
+
+                      minWidth:
+                        0,
+
                       textAlign:
                         "left",
                     }}
@@ -335,7 +416,8 @@ function Header({
                       fontWeight={700}
                       noWrap
                       sx={{
-                        maxWidth: 180,
+                        maxWidth:
+                          180,
                       }}
                     >
                       {userName}
@@ -354,13 +436,18 @@ function Header({
                     fontSize="small"
                     sx={{
                       display: {
-                        xs: "none",
-                        sm: "block",
+                        xs:
+                          "none",
+
+                        sm:
+                          "block",
                       },
+
                       transform:
                         isUserMenuOpen
                           ? "rotate(180deg)"
                           : "rotate(0deg)",
+
                       transition:
                         "transform 0.2s",
                     }}
@@ -382,29 +469,39 @@ function Header({
                 anchorOrigin={{
                   vertical:
                     "bottom",
+
                   horizontal:
                     "right",
                 }}
                 transformOrigin={{
                   vertical:
                     "top",
+
                   horizontal:
                     "right",
                 }}
                 slotProps={{
                   paper: {
                     sx: {
-                      mt: 1,
-                      minWidth: 220,
-                      borderRadius: 2,
+                      mt:
+                        1,
+
+                      minWidth:
+                        220,
+
+                      borderRadius:
+                        2,
                     },
                   },
                 }}
               >
                 <Box
                   sx={{
-                    px: 2,
-                    py: 1.5,
+                    px:
+                      2,
+
+                    py:
+                      1.5,
                   }}
                 >
                   <Typography
@@ -430,13 +527,19 @@ function Header({
                   onClick={
                     handleProfile
                   }
-                  disabled={!user}
+                  disabled={
+                    !user
+                  }
                 >
                   <ListItemIcon>
-                    <PersonIcon fontSize="small" />
+                    <PersonIcon
+                      fontSize="small"
+                    />
                   </ListItemIcon>
 
-                  Meu perfil
+                  {t(
+                    "header.myProfile"
+                  )}
                 </MenuItem>
 
                 <Divider />
@@ -457,7 +560,9 @@ function Header({
                     />
                   </ListItemIcon>
 
-                  Sair
+                  {t(
+                    "header.logout"
+                  )}
                 </MenuItem>
               </Menu>
             </Box>

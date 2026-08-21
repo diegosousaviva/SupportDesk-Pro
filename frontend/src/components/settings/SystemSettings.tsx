@@ -16,11 +16,22 @@ import {
   Typography,
 } from "@mui/material";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 interface SystemSettingsProps {
-  onExportBackup: () => void;
-  onImportBackup: () => void;
-  onRestoreDefaults: () => void;
-  onResetSystem: () => void;
+  onExportBackup:
+    () => void;
+
+  onImportBackup:
+    () => void;
+
+  onRestoreDefaults:
+    () => void;
+
+  onResetSystem:
+    () => void;
 }
 
 function SystemSettings({
@@ -29,32 +40,54 @@ function SystemSettings({
   onRestoreDefaults,
   onResetSystem,
 }: SystemSettingsProps) {
+  const {
+    t,
+  } =
+    useLanguage();
+
   return (
     <Paper
       variant="outlined"
       sx={{
         p: {
-          xs: 2.5,
-          md: 3,
+          xs:
+            2.5,
+
+          md:
+            3,
         },
       }}
     >
-      <Stack spacing={2.5}>
+      <Stack
+        spacing={
+          2.5
+        }
+      >
         <Stack
           direction={{
-            xs: "column",
-            sm: "row",
+            xs:
+              "column",
+
+            sm:
+              "row",
           }}
-          spacing={1.5}
+          spacing={
+            1.5
+          }
           alignItems={{
-            xs: "flex-start",
-            sm: "center",
+            xs:
+              "flex-start",
+
+            sm:
+              "center",
           }}
           justifyContent="space-between"
         >
           <Stack
             direction="row"
-            spacing={1.5}
+            spacing={
+              1.5
+            }
             alignItems="center"
           >
             <SettingsBackupRestoreOutlined
@@ -63,14 +96,20 @@ function SystemSettings({
 
             <Typography
               variant="h6"
-              fontWeight={700}
+              fontWeight={
+                700
+              }
             >
-              Sistema
+              {t(
+                "system.title"
+              )}
             </Typography>
           </Stack>
 
           <Chip
-            label="Versão 1.0.0"
+            label={t(
+              "system.version"
+            )}
             color="primary"
             variant="outlined"
             size="small"
@@ -81,27 +120,35 @@ function SystemSettings({
           variant="body2"
           color="text.secondary"
         >
-          Faça backup, restaure preferências ou redefina
-          os dados locais do sistema.
+          {t(
+            "system.description"
+          )}
         </Typography>
 
         <Alert
           severity="info"
-          icon={<InfoOutlined />}
+          icon={
+            <InfoOutlined />
+          }
         >
-          Nesta versão, os dados são armazenados no
-          navegador. O backup completo com banco de dados
-          será implementado na fase de backend.
+          {t(
+            "system.info"
+          )}
         </Alert>
 
         <Divider />
 
         <Stack
           direction={{
-            xs: "column",
-            md: "row",
+            xs:
+              "column",
+
+            md:
+              "row",
           }}
-          spacing={1.5}
+          spacing={
+            1.5
+          }
           flexWrap="wrap"
           useFlexGap
         >
@@ -110,9 +157,13 @@ function SystemSettings({
             startIcon={
               <BackupOutlined />
             }
-            onClick={onExportBackup}
+            onClick={
+              onExportBackup
+            }
           >
-            Exportar configurações
+            {t(
+              "system.export"
+            )}
           </Button>
 
           <Button
@@ -120,9 +171,13 @@ function SystemSettings({
             startIcon={
               <RestoreOutlined />
             }
-            onClick={onImportBackup}
+            onClick={
+              onImportBackup
+            }
           >
-            Importar configurações
+            {t(
+              "system.import"
+            )}
           </Button>
 
           <Button
@@ -131,9 +186,13 @@ function SystemSettings({
             startIcon={
               <SettingsBackupRestoreOutlined />
             }
-            onClick={onRestoreDefaults}
+            onClick={
+              onRestoreDefaults
+            }
           >
-            Restaurar padrões
+            {t(
+              "system.restore"
+            )}
           </Button>
 
           <Button
@@ -142,9 +201,13 @@ function SystemSettings({
             startIcon={
               <DeleteForeverOutlined />
             }
-            onClick={onResetSystem}
+            onClick={
+              onResetSystem
+            }
           >
-            Resetar dados locais
+            {t(
+              "system.reset"
+            )}
           </Button>
         </Stack>
       </Stack>

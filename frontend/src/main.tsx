@@ -32,6 +32,10 @@ import {
 } from "./contexts/AuthContext";
 
 import {
+  LanguageProvider,
+} from "./contexts/LanguageContext";
+
+import {
   NotificationProvider,
 } from "./contexts/NotificationContext";
 
@@ -41,15 +45,18 @@ import {
 
 import GlobalErrorBoundary from "./components/common/GlobalErrorBoundary";
 
+import {
+  getSettings,
+  saveSettings,
+} from "./services/settingsService";
+
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-const COLOR_MODE_STORAGE_KEY =
-  "supportdesk-pro-color-mode";
-
-function getSystemMode(): PaletteMode {
+function getSystemMode():
+  PaletteMode {
   return window.matchMedia(
     "(prefers-color-scheme: dark)"
   ).matches
@@ -59,20 +66,8 @@ function getSystemMode(): PaletteMode {
 
 function loadColorModePreference():
   ColorModePreference {
-  const savedPreference =
-    localStorage.getItem(
-      COLOR_MODE_STORAGE_KEY
-    );
-
-  if (
-    savedPreference === "light" ||
-    savedPreference === "dark" ||
-    savedPreference === "system"
-  ) {
-    return savedPreference;
-  }
-
-  return "light";
+  return getSettings()
+    .preferredTheme;
 }
 
 function Root() {
@@ -90,6 +85,14 @@ function Root() {
   ] =
     useState<PaletteMode>(
       getSystemMode
+    );
+
+  const [
+    settingsVersion,
+    setSettingsVersion,
+  ] =
+    useState(
+      0
     );
 
   useEffect(() => {
@@ -129,10 +132,21 @@ function Root() {
         ? systemMode
         : preference;
 
+  const compactMode =
+    useMemo(
+      () =>
+        getSettings()
+          .compactMode,
+      [
+        settingsVersion,
+      ]
+    );
+
   const colorMode =
     useMemo(
       () => ({
         mode,
+
         preference,
 
         setColorMode: (
@@ -143,9 +157,22 @@ function Root() {
             newPreference
           );
 
-          localStorage.setItem(
-            COLOR_MODE_STORAGE_KEY,
-            newPreference
+          const currentSettings =
+            getSettings();
+
+          saveSettings({
+            ...currentSettings,
+
+            preferredTheme:
+              newPreference,
+          });
+
+          setSettingsVersion(
+            (
+              currentVersion
+            ) =>
+              currentVersion +
+              1
           );
         },
 
@@ -162,9 +189,22 @@ function Root() {
               newPreference
             );
 
-            localStorage.setItem(
-              COLOR_MODE_STORAGE_KEY,
-              newPreference
+            const currentSettings =
+              getSettings();
+
+            saveSettings({
+              ...currentSettings,
+
+              preferredTheme:
+                newPreference,
+            });
+
+            setSettingsVersion(
+              (
+                currentVersion
+              ) =>
+                currentVersion +
+                1
             );
           },
       }),
@@ -178,10 +218,12 @@ function Root() {
     useMemo(
       () =>
         createAppTheme(
-          mode
+          mode,
+          compactMode
         ),
       [
         mode,
+        compactMode,
       ]
     );
 
@@ -201,9 +243,11 @@ function Root() {
         <GlobalErrorBoundary>
           <SnackbarProvider>
             <AuthProvider>
-              <NotificationProvider>
-                <App />
-              </NotificationProvider>
+              <LanguageProvider>
+                <NotificationProvider>
+                  <App />
+                </NotificationProvider>
+              </LanguageProvider>
             </AuthProvider>
           </SnackbarProvider>
         </GlobalErrorBoundary>

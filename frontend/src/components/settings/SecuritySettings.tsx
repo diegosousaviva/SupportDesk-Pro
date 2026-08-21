@@ -17,6 +17,10 @@ import {
   Typography,
 } from "@mui/material";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 export interface SecuritySettingsData {
   sessionTimeoutMinutes: number;
   maximumSessionDurationMinutes: number;
@@ -49,6 +53,11 @@ function SecuritySettings({
   onSessionTimeoutChange,
   onMaximumSessionDurationChange,
 }: SecuritySettingsProps) {
+  const {
+    t,
+  } =
+    useLanguage();
+
   return (
     <Paper
       variant="outlined"
@@ -75,7 +84,9 @@ function SecuritySettings({
             variant="h6"
             fontWeight={700}
           >
-            Segurança
+            {t(
+              "security.title"
+            )}
           </Typography>
         </Stack>
 
@@ -83,17 +94,23 @@ function SecuritySettings({
           variant="body2"
           color="text.secondary"
         >
-          Defina regras de sessão e políticas básicas de segurança.
+          {t(
+            "security.description"
+          )}
         </Typography>
 
         <FormControl fullWidth>
           <InputLabel id="session-timeout-label">
-            Tempo de inatividade
+            {t(
+              "security.inactivityTimeout"
+            )}
           </InputLabel>
 
           <Select
             labelId="session-timeout-label"
-            label="Tempo de inatividade"
+            label={t(
+              "security.inactivityTimeout"
+            )}
             value={
               settings.sessionTimeoutMinutes
             }
@@ -116,39 +133,55 @@ function SecuritySettings({
             }
           >
             <MenuItem value={1}>
-              1 minuto
+              {t(
+                "security.oneMinute"
+              )}
             </MenuItem>
 
             <MenuItem value={15}>
-              15 minutos
+              {t(
+                "security.fifteenMinutes"
+              )}
             </MenuItem>
 
             <MenuItem value={30}>
-              30 minutos
+              {t(
+                "security.thirtyMinutes"
+              )}
             </MenuItem>
 
             <MenuItem value={60}>
-              1 hora
+              {t(
+                "security.oneHour"
+              )}
             </MenuItem>
 
             <MenuItem value={120}>
-              2 horas
+              {t(
+                "security.twoHours"
+              )}
             </MenuItem>
 
             <MenuItem value={480}>
-              8 horas
+              {t(
+                "security.eightHours"
+              )}
             </MenuItem>
           </Select>
         </FormControl>
 
         <FormControl fullWidth>
           <InputLabel id="maximum-session-duration-label">
-            Duração máxima da sessão
+            {t(
+              "security.maximumSessionDuration"
+            )}
           </InputLabel>
 
           <Select
             labelId="maximum-session-duration-label"
-            label="Duração máxima da sessão"
+            label={t(
+              "security.maximumSessionDuration"
+            )}
             value={
               settings.maximumSessionDurationMinutes
             }
@@ -171,27 +204,39 @@ function SecuritySettings({
             }
           >
             <MenuItem value={1}>
-              1 minuto
+              {t(
+                "security.oneMinute"
+              )}
             </MenuItem>
 
             <MenuItem value={60}>
-              1 hora
+              {t(
+                "security.oneHour"
+              )}
             </MenuItem>
 
             <MenuItem value={240}>
-              4 horas
+              {t(
+                "security.fourHours"
+              )}
             </MenuItem>
 
             <MenuItem value={480}>
-              8 horas
+              {t(
+                "security.eightHours"
+              )}
             </MenuItem>
 
             <MenuItem value={720}>
-              12 horas
+              {t(
+                "security.twelveHours"
+              )}
             </MenuItem>
 
             <MenuItem value={1440}>
-              24 horas
+              {t(
+                "security.twentyFourHours"
+              )}
             </MenuItem>
           </Select>
         </FormControl>
@@ -221,7 +266,9 @@ function SecuritySettings({
               />
 
               <span>
-                Exigir senha forte
+                {t(
+                  "security.strongPassword"
+                )}
               </span>
             </Stack>
           }
@@ -241,14 +288,18 @@ function SecuritySettings({
               }
             />
           }
-          label="Encerrar a sessão automaticamente após o período de inatividade"
+          label={t(
+            "security.automaticLogout"
+          )}
         />
 
         <Typography
           variant="caption"
           color="text.secondary"
         >
-          O tempo de inatividade controla o logout automático sem interação. A duração máxima limita o tempo total da sessão, mesmo com o usuário ativo.
+          {t(
+            "security.help"
+          )}
         </Typography>
       </Stack>
     </Paper>

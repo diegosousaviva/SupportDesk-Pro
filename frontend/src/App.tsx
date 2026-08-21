@@ -9,10 +9,6 @@ import {
 import AppRoutes from "./routes";
 
 import {
-  useMaximumSessionDuration,
-} from "./hooks/useMaximumSessionDuration";
-
-import {
   useSessionTimeout,
 } from "./hooks/useSessionTimeout";
 
@@ -53,8 +49,6 @@ function AppContent() {
   useSlaMonitor();
 
   useSessionTimeout();
-
-  useMaximumSessionDuration();
 
   useSessionValidation();
 

@@ -51,13 +51,13 @@ import type {
   NotificationSettingsData,
 } from "../../components/settings/NotificationSettings";
 
-import type {
-  SecuritySettingsData,
-} from "../../components/settings/SecuritySettings";
-
 import {
   useColorMode,
 } from "../../contexts/ColorModeContext";
+
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
 
 import {
   usePermissions,
@@ -67,95 +67,20 @@ import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
 
-interface SettingsFormData
-  extends CompanySettingsData,
-    NotificationSettingsData,
-    AppearanceSettingsData,
-    SecuritySettingsData {}
+import {
+  getSettings,
+  importSettings,
+  restoreDefaultSettings,
+  saveSettings,
+} from "../../services/settingsService";
 
-const STORAGE_KEY =
-  "supportdesk-pro-settings";
+import type {
+  SettingsData,
+  SystemLanguage,
+} from "../../services/settingsService";
 
-const defaultSettings: SettingsFormData = {
-  companyName:
-    "Suporte Droga Viva",
-
-  supportEmail:
-    "suporte@supportdesk.com",
-
-  supportPhone:
-    "(11) 99999-0000",
-
-  website:
-    "",
-
-  notifyNewTicket:
-    true,
-
-  notifyStatusChange:
-    true,
-
-  notifyCriticalTicket:
-    true,
-
-  notifyAssignedTicket:
-    true,
-
-  notifySlaExpired:
-    true,
-
-  compactMode:
-    false,
-
-  preferredTheme:
-    "light",
-
-  language:
-    "pt-BR",
-
-  sessionTimeoutMinutes:
-    60,
-
-  maximumSessionDurationMinutes:
-    480,
-
-  requireStrongPassword:
-    true,
-
-  automaticLogout:
-    false,
-};
-
-function loadSettings():
-  SettingsFormData {
-  const storedSettings =
-    localStorage.getItem(
-      STORAGE_KEY
-    );
-
-  if (!storedSettings) {
-    return defaultSettings;
-  }
-
-  try {
-    const parsedSettings =
-      JSON.parse(
-        storedSettings
-      ) as Partial<SettingsFormData>;
-
-    return {
-      ...defaultSettings,
-      ...parsedSettings,
-    };
-  } catch (error) {
-    console.error(
-      "Não foi possível carregar as configurações.",
-      error
-    );
-
-    return defaultSettings;
-  }
-}
+type SettingsFormData =
+  SettingsData;
 
 function SettingsPage() {
   const navigate =
@@ -163,16 +88,26 @@ function SettingsPage() {
 
   const {
     can,
-  } = usePermissions();
+  } =
+    usePermissions();
 
   const {
     showSnackbar,
-  } = useSnackbar();
+  } =
+    useSnackbar();
 
   const {
     preference,
     setColorMode,
-  } = useColorMode();
+  } =
+    useColorMode();
+
+  const {
+    language,
+    setLanguage,
+    t,
+  } =
+    useLanguage();
 
   const importInputRef =
     useRef<HTMLInputElement | null>(
@@ -185,10 +120,12 @@ function SettingsPage() {
   ] =
     useState<SettingsFormData>(
       () => ({
-        ...loadSettings(),
+        ...getSettings(),
 
         preferredTheme:
           preference,
+
+        language,
       })
     );
 
@@ -220,9 +157,25 @@ function SettingsPage() {
     preference,
   ]);
 
+  useEffect(() => {
+    setSettings(
+      (
+        currentSettings
+      ) => ({
+        ...currentSettings,
+
+        language,
+      })
+    );
+  }, [
+    language,
+  ]);
+
   function markAsChanged():
     void {
-    if (saved) {
+    if (
+      saved
+    ) {
       setSaved(
         false
       );
@@ -323,6 +276,13 @@ function SettingsPage() {
       return;
     }
 
+    const newLanguage =
+      value as SystemLanguage;
+
+    setLanguage(
+      newLanguage
+    );
+
     setSettings(
       (
         currentSettings
@@ -330,7 +290,7 @@ function SettingsPage() {
         ...currentSettings,
 
         language:
-          value as AppearanceSettingsData["language"],
+          newLanguage,
       })
     );
 
@@ -397,15 +357,21 @@ function SettingsPage() {
   function handleSave():
     void {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(
+      const savedSettings =
+        saveSettings(
           settings
-        )
+        );
+
+      setSettings(
+        savedSettings
       );
 
       setColorMode(
-        settings.preferredTheme
+        savedSettings.preferredTheme
+      );
+
+      setLanguage(
+        savedSettings.language
       );
 
       setSaved(
@@ -413,7 +379,9 @@ function SettingsPage() {
       );
 
       showSnackbar(
-        "Configurações salvas com sucesso.",
+        t(
+          "settings.saved"
+        ),
         {
           severity:
             "success",
@@ -426,7 +394,9 @@ function SettingsPage() {
       );
 
       showSnackbar(
-        "Não foi possível salvar as configurações.",
+        t(
+          "settings.saveError"
+        ),
         {
           severity:
             "error",
@@ -504,7 +474,9 @@ function SettingsPage() {
     );
 
     showSnackbar(
-      "Backup das configurações exportado.",
+      t(
+        "settings.backupExported"
+      ),
       {
         severity:
           "success",
@@ -535,30 +507,38 @@ function SettingsPage() {
       const fileContent =
         await file.text();
 
-      const parsedBackup =
-        JSON.parse(
-          fileContent
-        ) as {
-          settings?:
-            Partial<SettingsFormData>;
-        };
+      const parsedBackup:
+        unknown =
+          JSON.parse(
+            fileContent
+          );
 
       if (
-        !parsedBackup.settings ||
-        typeof parsedBackup.settings !==
-          "object"
+        typeof parsedBackup !==
+          "object" ||
+        parsedBackup ===
+          null ||
+        !(
+          "settings" in
+          parsedBackup
+        )
       ) {
         throw new Error(
-          "O arquivo não contém configurações válidas."
+          t(
+            "settings.backupMissingSettings"
+          )
         );
       }
 
-      const restoredSettings:
-        SettingsFormData = {
-          ...defaultSettings,
-
-          ...parsedBackup.settings,
-        };
+      const restoredSettings =
+        importSettings(
+          (
+            parsedBackup as {
+              settings:
+                unknown;
+            }
+          ).settings
+        );
 
       setSettings(
         restoredSettings
@@ -568,11 +548,8 @@ function SettingsPage() {
         restoredSettings.preferredTheme
       );
 
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(
-          restoredSettings
-        )
+      setLanguage(
+        restoredSettings.language
       );
 
       setSaved(
@@ -580,7 +557,9 @@ function SettingsPage() {
       );
 
       showSnackbar(
-        "Configurações importadas com sucesso.",
+        t(
+          "settings.backupImported"
+        ),
         {
           severity:
             "success",
@@ -593,7 +572,9 @@ function SettingsPage() {
       );
 
       showSnackbar(
-        "O arquivo de backup é inválido.",
+        t(
+          "settings.backupInvalid"
+        ),
         {
           severity:
             "error",
@@ -606,49 +587,76 @@ function SettingsPage() {
     void {
     const confirmed =
       window.confirm(
-        "Deseja restaurar todas as configurações para os valores padrão?"
+        t(
+          "settings.restoreConfirm"
+        )
       );
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
-    setSettings(
-      defaultSettings
-    );
+    try {
+      const restoredSettings =
+        restoreDefaultSettings();
 
-    setColorMode(
-      defaultSettings.preferredTheme
-    );
+      setSettings(
+        restoredSettings
+      );
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        defaultSettings
-      )
-    );
+      setColorMode(
+        restoredSettings.preferredTheme
+      );
 
-    setSaved(
-      true
-    );
+      setLanguage(
+        restoredSettings.language
+      );
 
-    showSnackbar(
-      "Configurações padrão restauradas.",
-      {
-        severity:
-          "success",
-      }
-    );
+      setSaved(
+        true
+      );
+
+      showSnackbar(
+        t(
+          "settings.restoreSuccess"
+        ),
+        {
+          severity:
+            "success",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Não foi possível restaurar as configurações padrão.",
+        error
+      );
+
+      showSnackbar(
+        t(
+          "settings.restoreError"
+        ),
+        {
+          severity:
+            "error",
+        }
+      );
+    }
   }
 
   function handleResetSystem():
     void {
     const confirmed =
       window.confirm(
-        "Esta ação apagará os dados locais do Suporte Droga Viva, incluindo chamados, usuários, categorias e configurações. Deseja continuar?"
+        t(
+          "settings.resetConfirm"
+        )
       );
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
@@ -698,27 +706,48 @@ function SettingsPage() {
   }
 
   return (
-    <MainLayout title="Configurações">
-      <Stack spacing={3}>
+    <MainLayout
+      title={t(
+        "settings.title"
+      )}
+    >
+      <Stack
+        spacing={
+          3
+        }
+      >
         <PageHeader
-          title="Configurações"
-          subtitle="Gerencie as preferências institucionais, visuais e administrativas do sistema."
+          title={t(
+            "settings.title"
+          )}
+          subtitle={t(
+            "settings.subtitle"
+          )}
         />
 
         {saved && (
-          <Alert severity="success">
-            Configurações salvas com sucesso.
+          <Alert
+            severity="success"
+          >
+            {t(
+              "settings.saved"
+            )}
           </Alert>
         )}
 
         <Grid
           container
-          spacing={3}
+          spacing={
+            3
+          }
         >
           <Grid
             size={{
-              xs: 12,
-              lg: 6,
+              xs:
+                12,
+
+              lg:
+                6,
             }}
           >
             <CompanySettings
@@ -743,8 +772,11 @@ function SettingsPage() {
 
           <Grid
             size={{
-              xs: 12,
-              lg: 6,
+              xs:
+                12,
+
+              lg:
+                6,
             }}
           >
             <NotificationSettings
@@ -772,8 +804,11 @@ function SettingsPage() {
 
           <Grid
             size={{
-              xs: 12,
-              lg: 6,
+              xs:
+                12,
+
+              lg:
+                6,
             }}
           >
             <AppearanceSettings
@@ -798,8 +833,11 @@ function SettingsPage() {
 
           <Grid
             size={{
-              xs: 12,
-              lg: 6,
+              xs:
+                12,
+
+              lg:
+                6,
             }}
           >
             <SecuritySettings
@@ -831,33 +869,47 @@ function SettingsPage() {
           {canViewAudit && (
             <Grid
               size={{
-                xs: 12,
+                xs:
+                  12,
               }}
             >
               <Paper
                 variant="outlined"
                 sx={{
                   p: {
-                    xs: 2.5,
-                    md: 3,
+                    xs:
+                      2.5,
+
+                    md:
+                      3,
                   },
                 }}
               >
                 <Stack
                   direction={{
-                    xs: "column",
-                    sm: "row",
+                    xs:
+                      "column",
+
+                    sm:
+                      "row",
                   }}
-                  spacing={2}
+                  spacing={
+                    2
+                  }
                   justifyContent="space-between"
                   alignItems={{
-                    xs: "flex-start",
-                    sm: "center",
+                    xs:
+                      "flex-start",
+
+                    sm:
+                      "center",
                   }}
                 >
                   <Stack
                     direction="row"
-                    spacing={2}
+                    spacing={
+                      2
+                    }
                     alignItems="center"
                   >
                     <HistoryOutlined
@@ -868,19 +920,29 @@ function SettingsPage() {
                       }}
                     />
 
-                    <Stack spacing={0.5}>
+                    <Stack
+                      spacing={
+                        0.5
+                      }
+                    >
                       <Typography
                         variant="h6"
-                        fontWeight={700}
+                        fontWeight={
+                          700
+                        }
                       >
-                        Auditoria
+                        {t(
+                          "settings.audit.title"
+                        )}
                       </Typography>
 
                       <Typography
                         variant="body2"
                         color="text.secondary"
                       >
-                        Consulte o histórico de acessos, alterações e ações administrativas realizadas no sistema.
+                        {t(
+                          "settings.audit.description"
+                        )}
                       </Typography>
                     </Stack>
                   </Stack>
@@ -898,7 +960,9 @@ function SettingsPage() {
                         0,
                     }}
                   >
-                    Ver auditoria
+                    {t(
+                      "settings.audit.button"
+                    )}
                   </Button>
                 </Stack>
               </Paper>
@@ -907,7 +971,8 @@ function SettingsPage() {
 
           <Grid
             size={{
-              xs: 12,
+              xs:
+                12,
             }}
           >
             <SystemSettings
@@ -953,7 +1018,9 @@ function SettingsPage() {
               handleSave
             }
           >
-            Salvar configurações
+            {t(
+              "settings.saveButton"
+            )}
           </Button>
         </Stack>
       </Stack>

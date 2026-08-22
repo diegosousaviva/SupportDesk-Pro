@@ -25,12 +25,17 @@ import {
   useNotifications,
 } from "../../contexts/NotificationContext";
 
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
 import type {
   AppNotification,
 } from "../../types/Notification";
 
 interface NotificationDrawerProps {
   open: boolean;
+
   onClose: () => void;
 
   onNotificationClick?: (
@@ -50,12 +55,22 @@ function NotificationDrawer({
     markAllAsRead,
     removeNotification,
     clearNotifications,
-  } = useNotifications();
+  } =
+    useNotifications();
 
-  function handleClearAll(): void {
+  const {
+    language,
+    t,
+  } =
+    useLanguage();
+
+  function handleClearAll():
+    void {
     const confirmed =
       window.confirm(
-        "Deseja apagar todas as notificações?"
+        t(
+          "notifications.deleteAllConfirm"
+        )
       );
 
     if (!confirmed) {
@@ -66,9 +81,12 @@ function NotificationDrawer({
   }
 
   function handleNotificationClick(
-    notification: AppNotification
+    notification:
+      AppNotification
   ): void {
-    if (!notification.read) {
+    if (
+      !notification.read
+    ) {
       markAsRead(
         notification.id
       );
@@ -79,6 +97,15 @@ function NotificationDrawer({
     onNotificationClick?.(
       notification
     );
+  }
+
+  function getDeleteNotificationLabel(
+    notification:
+      AppNotification
+  ): string {
+    return `${t(
+      "notifications.delete"
+    )}: ${notification.title}`;
   }
 
   return (
@@ -93,9 +120,15 @@ function NotificationDrawer({
             xs: 320,
             sm: 380,
           },
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
+
+          display:
+            "flex",
+
+          flexDirection:
+            "column",
+
+          height:
+            "100%",
         }}
       >
         <Stack
@@ -125,20 +158,31 @@ function NotificationDrawer({
               variant="h6"
               fontWeight={700}
             >
-              Notificações
+              {t(
+                "notifications.title"
+              )}
             </Typography>
           </Stack>
 
-          <Stack direction="row">
-            <Tooltip title="Marcar todas como lidas">
+          <Stack
+            direction="row"
+          >
+            <Tooltip
+              title={t(
+                "notifications.markAllAsRead"
+              )}
+            >
               <span>
                 <IconButton
                   onClick={
                     markAllAsRead
                   }
-                  aria-label="Marcar todas como lidas"
+                  aria-label={t(
+                    "notifications.markAllAsRead"
+                  )}
                   disabled={
-                    unreadCount === 0
+                    unreadCount ===
+                    0
                   }
                 >
                   <DoneAllOutlined />
@@ -146,13 +190,19 @@ function NotificationDrawer({
               </span>
             </Tooltip>
 
-            <Tooltip title="Apagar todas">
+            <Tooltip
+              title={t(
+                "notifications.deleteAll"
+              )}
+            >
               <span>
                 <IconButton
                   onClick={
                     handleClearAll
                   }
-                  aria-label="Apagar todas as notificações"
+                  aria-label={t(
+                    "notifications.deleteAllAria"
+                  )}
                   disabled={
                     notifications.length ===
                     0
@@ -164,10 +214,16 @@ function NotificationDrawer({
               </span>
             </Tooltip>
 
-            <Tooltip title="Fechar">
+            <Tooltip
+              title={t(
+                "notifications.close"
+              )}
+            >
               <IconButton
                 onClick={onClose}
-                aria-label="Fechar notificações"
+                aria-label={t(
+                  "notifications.closeAria"
+                )}
               >
                 <CloseOutlined />
               </IconButton>
@@ -181,7 +237,8 @@ function NotificationDrawer({
           disablePadding
           sx={{
             flex: 1,
-            overflowY: "auto",
+            overflowY:
+              "auto",
           }}
         >
           {notifications.length ===
@@ -189,7 +246,8 @@ function NotificationDrawer({
             <Box
               sx={{
                 p: 4,
-                textAlign: "center",
+                textAlign:
+                  "center",
               }}
             >
               <NotificationsOutlined
@@ -204,7 +262,9 @@ function NotificationDrawer({
               <Typography
                 fontWeight={700}
               >
-                Nenhuma notificação
+                {t(
+                  "notifications.empty"
+                )}
               </Typography>
 
               <Typography
@@ -214,12 +274,16 @@ function NotificationDrawer({
                   mt: 0.5,
                 }}
               >
-                Os novos avisos aparecerão aqui.
+                {t(
+                  "notifications.emptyDescription"
+                )}
               </Typography>
             </Box>
           ) : (
             notifications.map(
-              (notification) => (
+              (
+                notification
+              ) => (
                 <ListItem
                   key={
                     notification.id
@@ -227,10 +291,16 @@ function NotificationDrawer({
                   disablePadding
                   divider
                   secondaryAction={
-                    <Tooltip title="Apagar notificação">
+                    <Tooltip
+                      title={t(
+                        "notifications.delete"
+                      )}
+                    >
                       <IconButton
                         edge="end"
-                        aria-label={`Apagar notificação ${notification.title}`}
+                        aria-label={getDeleteNotificationLabel(
+                          notification
+                        )}
                         color="error"
                         onClick={(
                           event
@@ -259,14 +329,16 @@ function NotificationDrawer({
                     sx={{
                       alignItems:
                         "flex-start",
+
                       px: 2,
                       py: 1.75,
                       pr: 7,
 
-                      "&.Mui-selected": {
-                        backgroundColor:
-                          "action.selected",
-                      },
+                      "&.Mui-selected":
+                        {
+                          backgroundColor:
+                            "action.selected",
+                        },
 
                       "&.Mui-selected:hover":
                         {
@@ -289,9 +361,12 @@ function NotificationDrawer({
                                 height: 8,
                                 borderRadius:
                                   "50%",
+
                                 backgroundColor:
                                   "primary.main",
-                                flexShrink: 0,
+
+                                flexShrink:
+                                  0,
                               }}
                             />
                           )}
@@ -333,7 +408,7 @@ function NotificationDrawer({
                             {new Date(
                               notification.createdAt
                             ).toLocaleString(
-                              "pt-BR"
+                              language
                             )}
                           </Typography>
                         </Stack>

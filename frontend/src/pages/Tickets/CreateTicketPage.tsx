@@ -35,6 +35,10 @@ import {
 } from "../../contexts/AuthContext";
 
 import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
+import {
   useNotifications,
 } from "../../contexts/NotificationContext";
 
@@ -97,58 +101,78 @@ function CreateTicketPage() {
 
   const [
     searchParams,
-  ] = useSearchParams();
+  ] =
+    useSearchParams();
 
   const {
     user,
-  } = useAuth();
+  } =
+    useAuth();
+
+  const {
+    language,
+    t,
+  } =
+    useLanguage();
 
   const {
     addNotification,
-  } = useNotifications();
+  } =
+    useNotifications();
 
   const {
     showSnackbar,
-  } = useSnackbar();
+  } =
+    useSnackbar();
 
   const [
     technicians,
-  ] = useState(() =>
-    getUsers()
-      .filter(
-        (currentUser) =>
-          currentUser.role ===
-            "Técnico" &&
-          currentUser.status ===
-            "Ativo"
-      )
-      .sort(
-        (
-          firstTechnician,
-          secondTechnician
-        ) =>
-          firstTechnician.name.localeCompare(
-            secondTechnician.name,
-            "pt-BR"
-          )
-      )
-  );
+  ] =
+    useState(() =>
+      getUsers()
+        .filter(
+          (
+            currentUser
+          ) =>
+            currentUser.role ===
+              "Técnico" &&
+            currentUser.status ===
+              "Ativo"
+        )
+        .sort(
+          (
+            firstTechnician,
+            secondTechnician
+          ) =>
+            firstTechnician.name.localeCompare(
+              secondTechnician.name,
+              "pt-BR"
+            )
+        )
+    );
 
   const [
     inventoryItems,
-  ] = useState(() =>
-    getInventoryItems()
-  );
+  ] =
+    useState(() =>
+      getInventoryItems()
+    );
 
   const [
     title,
     setTitle,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     category,
     setCategory,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     priority,
@@ -156,72 +180,88 @@ function CreateTicketPage() {
   ] =
     useState<
       TicketPriority | ""
-    >("");
+    >(
+      ""
+    );
 
   const [
     assignedTechnicianId,
     setAssignedTechnicianId,
-  ] = useState(
-    UNASSIGNED_TECHNICIAN_VALUE
-  );
+  ] =
+    useState(
+      UNASSIGNED_TECHNICIAN_VALUE
+    );
 
   const [
     selectedInventoryItemId,
     setSelectedInventoryItemId,
-  ] = useState(() => {
-    const inventoryItemIdParameter =
-      searchParams.get(
-        "inventoryItemId"
-      );
+  ] =
+    useState(() => {
+      const inventoryItemIdParameter =
+        searchParams.get(
+          "inventoryItemId"
+        );
 
-    if (
-      !inventoryItemIdParameter
-    ) {
-      return NO_EQUIPMENT_VALUE;
-    }
+      if (
+        !inventoryItemIdParameter
+      ) {
+        return NO_EQUIPMENT_VALUE;
+      }
 
-    const inventoryItemId =
-      Number(
-        inventoryItemIdParameter
-      );
+      const inventoryItemId =
+        Number(
+          inventoryItemIdParameter
+        );
 
-    if (
-      !Number.isInteger(
-        inventoryItemId
-      ) ||
-      inventoryItemId <= 0
-    ) {
-      return NO_EQUIPMENT_VALUE;
-    }
-
-    const equipmentExists =
-      inventoryItems.some(
-        (inventoryItem) =>
-          inventoryItem.id ===
+      if (
+        !Number.isInteger(
           inventoryItemId
-      );
+        ) ||
+        inventoryItemId <=
+          0
+      ) {
+        return NO_EQUIPMENT_VALUE;
+      }
 
-    return equipmentExists
-      ? String(
-          inventoryItemId
-        )
-      : NO_EQUIPMENT_VALUE;
-  });
+      const equipmentExists =
+        inventoryItems.some(
+          (
+            inventoryItem
+          ) =>
+            inventoryItem.id ===
+            inventoryItemId
+        );
+
+      return equipmentExists
+        ? String(
+            inventoryItemId
+          )
+        : NO_EQUIPMENT_VALUE;
+    });
 
   const [
     description,
     setDescription,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     errorMessage,
     setErrorMessage,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     isSubmitting,
     setIsSubmitting,
-  ] = useState(false);
+  ] =
+    useState(
+      false
+    );
 
   const normalizedTitle =
     title.trim();
@@ -262,17 +302,54 @@ function CreateTicketPage() {
     return "info";
   }
 
+  function getTranslatedPriority(
+    ticketPriority:
+      TicketPriority
+  ): string {
+    switch (
+      ticketPriority
+    ) {
+      case "Baixa":
+        return t(
+          "priority.low"
+        );
+
+      case "Média":
+        return t(
+          "priority.medium"
+        );
+
+      case "Alta":
+        return t(
+          "priority.high"
+        );
+
+      case "Crítica":
+        return t(
+          "priority.critical"
+        );
+
+      default:
+        return ticketPriority;
+    }
+  }
+
   function getInventoryItemLabel(
-    inventoryItemId: number
+    inventoryItemId:
+      number
   ): string {
     const inventoryItem =
       inventoryItems.find(
-        (currentItem) =>
+        (
+          currentItem
+        ) =>
           currentItem.id ===
           inventoryItemId
       );
 
-    if (!inventoryItem) {
+    if (
+      !inventoryItem
+    ) {
       return `Equipamento #${inventoryItemId}`;
     }
 
@@ -280,18 +357,25 @@ function CreateTicketPage() {
   }
 
   function registerEquipmentHistory(
-    ticketId: number,
-    ticketTitle: string,
-    inventoryItemId: number
+    ticketId:
+      number,
+    ticketTitle:
+      string,
+    inventoryItemId:
+      number
   ): void {
     const inventoryItem =
       inventoryItems.find(
-        (currentItem) =>
+        (
+          currentItem
+        ) =>
           currentItem.id ===
           inventoryItemId
       );
 
-    if (!inventoryItem) {
+    if (
+      !inventoryItem
+    ) {
       return;
     }
 
@@ -319,9 +403,12 @@ function CreateTicketPage() {
           `O chamado #${ticketId} — ${ticketTitle} foi criado e vinculado a este equipamento.`,
 
         performedByUserId:
-          user?.id ?? null,
+          user?.id ??
+          null,
       });
-    } catch (historyError) {
+    } catch (
+      historyError
+    ) {
       console.error(
         "O chamado foi criado, mas não foi possível registrar todo o histórico da vinculação.",
         historyError
@@ -330,7 +417,8 @@ function CreateTicketPage() {
   }
 
   function showValidationMessage(
-    message: string
+    message:
+      string
   ): void {
     setErrorMessage(
       message
@@ -346,7 +434,8 @@ function CreateTicketPage() {
   }
 
   function handleSubmit(
-    event: FormEvent<HTMLFormElement>
+    event:
+      FormEvent<HTMLFormElement>
   ): void {
     event.preventDefault();
 
@@ -356,7 +445,9 @@ function CreateTicketPage() {
       return;
     }
 
-    setErrorMessage("");
+    setErrorMessage(
+      ""
+    );
 
     if (
       !normalizedTitle ||
@@ -445,7 +536,8 @@ function CreateTicketPage() {
           !Number.isInteger(
             selectedTechnicianId
           ) ||
-          selectedTechnicianId <= 0
+          selectedTechnicianId <=
+            0
         )
       ) {
         throw new Error(
@@ -459,7 +551,9 @@ function CreateTicketPage() {
       ) {
         const technicianExists =
           technicians.some(
-            (technician) =>
+            (
+              technician
+            ) =>
               technician.id ===
               selectedTechnicianId
           );
@@ -480,7 +574,8 @@ function CreateTicketPage() {
           !Number.isInteger(
             inventoryItemId
           ) ||
-          inventoryItemId <= 0
+          inventoryItemId <=
+            0
         )
       ) {
         throw new Error(
@@ -494,12 +589,16 @@ function CreateTicketPage() {
       ) {
         const equipmentExists =
           inventoryItems.some(
-            (inventoryItem) =>
+            (
+              inventoryItem
+            ) =>
               inventoryItem.id ===
               inventoryItemId
           );
 
-        if (!equipmentExists) {
+        if (
+          !equipmentExists
+        ) {
           throw new Error(
             "O equipamento selecionado não foi encontrado."
           );
@@ -522,7 +621,8 @@ function CreateTicketPage() {
             "Aberto",
 
           requesterUserId:
-            user?.id ?? 1,
+            user?.id ??
+            1,
 
           assignedTechnicianId:
             selectedTechnicianId,
@@ -546,10 +646,19 @@ function CreateTicketPage() {
 
       addNotification({
         title:
-          "Novo chamado criado",
+          t(
+            "notification.ticketCreated.title"
+          ),
 
         message:
-          `O chamado #${createdTicket.id} — ${createdTicket.title} foi registrado com prioridade ${createdTicket.priority}.`,
+          language ===
+          "en-US"
+            ? `Ticket #${createdTicket.id} — ${createdTicket.title} was created with ${getTranslatedPriority(
+                createdTicket.priority
+              )} priority.`
+            : `O chamado #${createdTicket.id} — ${createdTicket.title} foi registrado com prioridade ${getTranslatedPriority(
+                createdTicket.priority
+              )}.`,
 
         type:
           "ticket_created",
@@ -564,7 +673,8 @@ function CreateTicketPage() {
           createdTicket.id,
 
         userId:
-          user?.id ?? null,
+          user?.id ??
+          null,
       });
 
       if (
@@ -580,15 +690,21 @@ function CreateTicketPage() {
               selectedTechnicianId
           );
 
+        const technicianName =
+          technician?.name ??
+          `#${selectedTechnicianId}`;
+
         addNotification({
           title:
-            "Chamado atribuído",
+            t(
+              "notification.ticketAssigned.title"
+            ),
 
           message:
-            `O chamado #${createdTicket.id} foi atribuído ao técnico ${
-              technician?.name ??
-              `#${selectedTechnicianId}`
-            }.`,
+            language ===
+            "en-US"
+              ? `Ticket #${createdTicket.id} was assigned to technician ${technicianName}.`
+              : `O chamado #${createdTicket.id} foi atribuído ao técnico ${technicianName}.`,
 
           type:
             "ticket_assigned",
@@ -611,14 +727,22 @@ function CreateTicketPage() {
         inventoryItemId !==
         null
       ) {
+        const equipmentLabel =
+          getInventoryItemLabel(
+            inventoryItemId
+          );
+
         addNotification({
           title:
-            "Equipamento vinculado",
+            t(
+              "notification.equipmentLinked.title"
+            ),
 
           message:
-            `O equipamento ${getInventoryItemLabel(
-              inventoryItemId
-            )} foi vinculado ao chamado #${createdTicket.id}.`,
+            language ===
+            "en-US"
+              ? `Equipment ${equipmentLabel} was linked to ticket #${createdTicket.id}.`
+              : `O equipamento ${equipmentLabel} foi vinculado ao chamado #${createdTicket.id}.`,
 
           type:
             "ticket_created",
@@ -633,7 +757,8 @@ function CreateTicketPage() {
             createdTicket.id,
 
           userId:
-            user?.id ?? null,
+            user?.id ??
+            null,
         });
       }
 
@@ -648,7 +773,9 @@ function CreateTicketPage() {
       navigate(
         `/tickets/${createdTicket.id}`
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Não foi possível criar o chamado.",
         error
@@ -682,7 +809,9 @@ function CreateTicketPage() {
     NO_EQUIPMENT_VALUE
       ? undefined
       : inventoryItems.find(
-          (inventoryItem) =>
+          (
+            inventoryItem
+          ) =>
             inventoryItem.id ===
             Number(
               selectedInventoryItemId
@@ -690,17 +819,21 @@ function CreateTicketPage() {
         );
 
   return (
-    <MainLayout title="Abrir chamado">
+    <MainLayout
+      title="Abrir chamado"
+    >
       <Box
         sx={{
-          maxWidth: 900,
+          maxWidth:
+            900,
         }}
       >
         <Typography
           variant="h4"
           component="h1"
           sx={{
-            mb: 1,
+            mb:
+              1,
           }}
         >
           Abrir novo chamado
@@ -709,7 +842,8 @@ function CreateTicketPage() {
         <Typography
           color="text.secondary"
           sx={{
-            mb: 3,
+            mb:
+              3,
           }}
         >
           Preencha as informações abaixo para registrar
@@ -720,7 +854,8 @@ function CreateTicketPage() {
           <Alert
             severity="info"
             sx={{
-              mb: 3,
+              mb:
+                3,
             }}
           >
             Este chamado será criado para o equipamento{" "}
@@ -736,7 +871,8 @@ function CreateTicketPage() {
           <Alert
             severity="error"
             sx={{
-              mb: 3,
+              mb:
+                3,
             }}
             onClose={() =>
               setErrorMessage(
@@ -751,8 +887,11 @@ function CreateTicketPage() {
         <Paper
           sx={{
             p: {
-              xs: 2.5,
-              md: 4,
+              xs:
+                2.5,
+
+              md:
+                4,
             },
           }}
         >
@@ -762,12 +901,20 @@ function CreateTicketPage() {
               handleSubmit
             }
           >
-            <Stack spacing={3}>
+            <Stack
+              spacing={
+                3
+              }
+            >
               <TextField
                 label="Título do chamado"
                 placeholder="Exemplo: Impressora não está funcionando"
-                value={title}
-                onChange={(event) =>
+                value={
+                  title
+                }
+                onChange={(
+                  event
+                ) =>
                   setTitle(
                     event.target.value
                   )
@@ -800,38 +947,53 @@ function CreateTicketPage() {
                   isSubmitting
                 }
               >
-                <InputLabel id="category-label">
+                <InputLabel
+                  id="category-label"
+                >
                   Categoria
                 </InputLabel>
 
                 <Select
                   labelId="category-label"
                   label="Categoria"
-                  value={category}
-                  onChange={(event) =>
+                  value={
+                    category
+                  }
+                  onChange={(
+                    event
+                  ) =>
                     setCategory(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
-                  <MenuItem value="Hardware">
+                  <MenuItem
+                    value="Hardware"
+                  >
                     Hardware
                   </MenuItem>
 
-                  <MenuItem value="Software">
+                  <MenuItem
+                    value="Software"
+                  >
                     Software
                   </MenuItem>
 
-                  <MenuItem value="Rede">
+                  <MenuItem
+                    value="Rede"
+                  >
                     Rede e internet
                   </MenuItem>
 
-                  <MenuItem value="Acesso">
+                  <MenuItem
+                    value="Acesso"
+                  >
                     Acesso e permissões
                   </MenuItem>
 
-                  <MenuItem value="Outros">
+                  <MenuItem
+                    value="Outros"
+                  >
                     Outros
                   </MenuItem>
                 </Select>
@@ -844,34 +1006,47 @@ function CreateTicketPage() {
                   isSubmitting
                 }
               >
-                <InputLabel id="priority-label">
+                <InputLabel
+                  id="priority-label"
+                >
                   Prioridade
                 </InputLabel>
 
                 <Select
                   labelId="priority-label"
                   label="Prioridade"
-                  value={priority}
-                  onChange={(event) =>
+                  value={
+                    priority
+                  }
+                  onChange={(
+                    event
+                  ) =>
                     setPriority(
-                      event.target
-                        .value as TicketPriority
+                      event.target.value as TicketPriority
                     )
                   }
                 >
-                  <MenuItem value="Baixa">
+                  <MenuItem
+                    value="Baixa"
+                  >
                     Baixa
                   </MenuItem>
 
-                  <MenuItem value="Média">
+                  <MenuItem
+                    value="Média"
+                  >
                     Média
                   </MenuItem>
 
-                  <MenuItem value="Alta">
+                  <MenuItem
+                    value="Alta"
+                  >
                     Alta
                   </MenuItem>
 
-                  <MenuItem value="Crítica">
+                  <MenuItem
+                    value="Crítica"
+                  >
                     Crítica
                   </MenuItem>
                 </Select>
@@ -883,7 +1058,9 @@ function CreateTicketPage() {
                   isSubmitting
                 }
               >
-                <InputLabel id="technician-label">
+                <InputLabel
+                  id="technician-label"
+                >
                   Técnico responsável
                 </InputLabel>
 
@@ -893,10 +1070,11 @@ function CreateTicketPage() {
                   value={
                     assignedTechnicianId
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setAssignedTechnicianId(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
@@ -931,7 +1109,9 @@ function CreateTicketPage() {
 
               {technicians.length ===
                 0 && (
-                <Alert severity="info">
+                <Alert
+                  severity="info"
+                >
                   Não há técnicos ativos cadastrados. O
                   chamado será criado sem técnico
                   responsável.
@@ -946,7 +1126,9 @@ function CreateTicketPage() {
                     0
                 }
               >
-                <InputLabel id="inventory-item-label">
+                <InputLabel
+                  id="inventory-item-label"
+                >
                   Equipamento
                 </InputLabel>
 
@@ -956,10 +1138,11 @@ function CreateTicketPage() {
                   value={
                     selectedInventoryItemId
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setSelectedInventoryItemId(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                   renderValue={(
@@ -987,7 +1170,9 @@ function CreateTicketPage() {
                     <Stack>
                       <Typography
                         variant="body2"
-                        fontWeight={600}
+                        fontWeight={
+                          600
+                        }
                       >
                         Nenhum equipamento
                       </Typography>
@@ -1021,14 +1206,19 @@ function CreateTicketPage() {
                           )}
                         >
                           <Stack
-                            spacing={0.25}
+                            spacing={
+                              0.25
+                            }
                             sx={{
-                              py: 0.5,
+                              py:
+                                0.5,
                             }}
                           >
                             <Typography
                               variant="body2"
-                              fontWeight={600}
+                              fontWeight={
+                                600
+                              }
                             >
                               {
                                 inventoryItem.description
@@ -1078,7 +1268,9 @@ function CreateTicketPage() {
 
               {inventoryItems.length ===
                 0 && (
-                <Alert severity="info">
+                <Alert
+                  severity="info"
+                >
                   Não há equipamentos cadastrados no inventário.
                   O chamado será criado sem equipamento
                   vinculado.
@@ -1091,14 +1283,17 @@ function CreateTicketPage() {
                 value={
                   description
                 }
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   setDescription(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 multiline
-                rows={6}
+                rows={
+                  6
+                }
                 required
                 fullWidth
                 disabled={
@@ -1126,6 +1321,7 @@ function CreateTicketPage() {
                 sx={{
                   display:
                     "flex",
+
                   justifyContent:
                     "flex-end",
                 }}

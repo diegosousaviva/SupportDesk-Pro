@@ -71,7 +71,8 @@ const translations = {
     "settings.resetConfirm":
       "Esta ação apagará os dados locais do Suporte Droga Viva, incluindo chamados, usuários, categorias e configurações. Deseja continuar?",
 
-    "settings.audit.title": "Auditoria",
+    "settings.audit.title":
+      "Auditoria",
     "settings.audit.description":
       "Consulte o histórico de acessos, alterações e ações administrativas realizadas no sistema.",
     "settings.audit.button":
@@ -106,6 +107,64 @@ const translations = {
       "Notificar chamados atribuídos",
     "notifications.slaExpired":
       "Notificar chamados com SLA vencido",
+
+    "notifications.markAllAsRead":
+      "Marcar todas como lidas",
+    "notifications.deleteAll":
+      "Apagar todas",
+    "notifications.deleteAllAria":
+      "Apagar todas as notificações",
+    "notifications.close":
+      "Fechar",
+    "notifications.closeAria":
+      "Fechar notificações",
+    "notifications.empty":
+      "Nenhuma notificação",
+    "notifications.emptyDescription":
+      "Os novos avisos aparecerão aqui.",
+    "notifications.delete":
+      "Apagar notificação",
+    "notifications.deleteAllConfirm":
+      "Deseja apagar todas as notificações?",
+
+    "notification.ticketCreated.title":
+      "Novo chamado criado",
+    "notification.ticketAssigned.title":
+      "Chamado atribuído",
+    "notification.equipmentLinked.title":
+      "Equipamento vinculado",
+
+    "notification.ticketResolved.title":
+      "Chamado resolvido",
+    "notification.ticketReopened.title":
+      "Chamado reaberto",
+    "notification.ticketStatusUpdated.title":
+      "Status do chamado atualizado",
+    "notification.ticketUnassigned.title":
+      "Chamado sem responsável",
+    "notification.technicianChanged.title":
+      "Técnico responsável alterado",
+
+    "priority.low":
+      "Baixa",
+    "priority.medium":
+      "Média",
+    "priority.high":
+      "Alta",
+    "priority.critical":
+      "Crítica",
+
+    "status.open":
+      "Aberto",
+    "status.inProgress":
+      "Em andamento",
+    "status.resolved":
+      "Resolvido",
+
+    "technician.unassigned":
+      "Não atribuído",
+    "technician.notFound":
+      "Técnico não encontrado",
 
     "appearance.title":
       "Aparência",
@@ -231,7 +290,8 @@ const translations = {
     "common.cancel": "Cancel",
     "common.back": "Back",
 
-    "settings.title": "Settings",
+    "settings.title":
+      "Settings",
     "settings.subtitle":
       "Manage institutional, visual, and administrative system preferences.",
     "settings.saved":
@@ -257,7 +317,8 @@ const translations = {
     "settings.resetConfirm":
       "This action will delete the local Suporte Droga Viva data, including tickets, users, categories, and settings. Do you want to continue?",
 
-    "settings.audit.title": "Audit",
+    "settings.audit.title":
+      "Audit",
     "settings.audit.description":
       "Review the history of access, changes, and administrative actions performed in the system.",
     "settings.audit.button":
@@ -292,6 +353,64 @@ const translations = {
       "Notify about assigned tickets",
     "notifications.slaExpired":
       "Notify about tickets with expired SLA",
+
+    "notifications.markAllAsRead":
+      "Mark all as read",
+    "notifications.deleteAll":
+      "Delete all",
+    "notifications.deleteAllAria":
+      "Delete all notifications",
+    "notifications.close":
+      "Close",
+    "notifications.closeAria":
+      "Close notifications",
+    "notifications.empty":
+      "No notifications",
+    "notifications.emptyDescription":
+      "New notifications will appear here.",
+    "notifications.delete":
+      "Delete notification",
+    "notifications.deleteAllConfirm":
+      "Do you want to delete all notifications?",
+
+    "notification.ticketCreated.title":
+      "New ticket created",
+    "notification.ticketAssigned.title":
+      "Ticket assigned",
+    "notification.equipmentLinked.title":
+      "Equipment linked",
+
+    "notification.ticketResolved.title":
+      "Ticket resolved",
+    "notification.ticketReopened.title":
+      "Ticket reopened",
+    "notification.ticketStatusUpdated.title":
+      "Ticket status updated",
+    "notification.ticketUnassigned.title":
+      "Ticket unassigned",
+    "notification.technicianChanged.title":
+      "Assigned technician changed",
+
+    "priority.low":
+      "Low",
+    "priority.medium":
+      "Medium",
+    "priority.high":
+      "High",
+    "priority.critical":
+      "Critical",
+
+    "status.open":
+      "Open",
+    "status.inProgress":
+      "In progress",
+    "status.resolved":
+      "Resolved",
+
+    "technician.unassigned":
+      "Unassigned",
+    "technician.notFound":
+      "Technician not found",
 
     "appearance.title":
       "Appearance",
@@ -470,6 +589,7 @@ export function LanguageProvider({
 
         saveSettings({
           ...currentSettings,
+
           language:
             newLanguage,
         });

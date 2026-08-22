@@ -37,6 +37,10 @@ import {
 } from "../../contexts/AuthContext";
 
 import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
+
+import {
   useNotifications,
 } from "../../contexts/NotificationContext";
 
@@ -96,6 +100,11 @@ export default function EditTicketPage() {
   const {
     user,
   } = useAuth();
+
+  const {
+    language,
+    t,
+  } = useLanguage();
 
   const {
     can,
@@ -221,13 +230,6 @@ export default function EditTicketPage() {
     );
   }
 
-  /*
-   * A partir deste ponto sabemos que o chamado existe.
-   *
-   * Mantemos uma referência explicitamente válida para
-   * que o TypeScript preserve essa informação também
-   * dentro das funções internas da página.
-   */
   const currentTicket: Ticket =
     ticket;
 
@@ -248,14 +250,6 @@ export default function EditTicketPage() {
       Permissions.tickets.updateStatus
     );
 
-  /*
-   * O administrador possui tickets.edit.
-   *
-   * O solicitante possui somente tickets.editOwn.
-   *
-   * Usamos essa diferença para impedir que o
-   * solicitante altere campos administrativos.
-   */
   const mayEditAdministrativeFields =
     can(
       Permissions.tickets.edit
@@ -344,6 +338,33 @@ export default function EditTicketPage() {
     );
   }
 
+  function getTranslatedStatus(
+    ticketStatus:
+      TicketStatus
+  ): string {
+    switch (
+      ticketStatus
+    ) {
+      case "Aberto":
+        return t(
+          "status.open"
+        );
+
+      case "Em andamento":
+        return t(
+          "status.inProgress"
+        );
+
+      case "Resolvido":
+        return t(
+          "status.resolved"
+        );
+
+      default:
+        return ticketStatus;
+    }
+  }
+
   function getTechnicianName(
     technicianId:
       number | null
@@ -352,7 +373,9 @@ export default function EditTicketPage() {
       technicianId ===
       null
     ) {
-      return "Não atribuído";
+      return t(
+        "technician.unassigned"
+      );
     }
 
     const technician =
@@ -362,10 +385,15 @@ export default function EditTicketPage() {
           technicianId
       );
 
-    return (
-      technician?.name ??
-      `Técnico não encontrado (#${technicianId})`
-    );
+    if (
+      technician
+    ) {
+      return technician.name;
+    }
+
+    return `${t(
+      "technician.notFound"
+    )} (#${technicianId})`;
   }
 
   function showValidationMessage(
@@ -522,20 +550,12 @@ export default function EditTicketPage() {
 
             priority,
 
-            /*
-             * Somente quem possui permissão operacional
-             * pode alterar o status por esta tela.
-             */
             status:
               mayUpdateStatus &&
               mayEditAdministrativeFields
                 ? status
                 : currentTicket.status,
 
-            /*
-             * Somente quem possui tickets.assign pode
-             * trocar o técnico responsável.
-             */
             assignedTechnicianId:
               mayAssignTechnician &&
               mayEditAdministrativeFields
@@ -573,24 +593,49 @@ export default function EditTicketPage() {
       }
 
       if (statusChanged) {
+        const translatedPreviousStatus =
+          getTranslatedStatus(
+            previousStatus
+          );
+
+        const translatedNewStatus =
+          getTranslatedStatus(
+            updatedTicket.status
+          );
+
         addNotification({
           title:
             updatedTicket.status ===
             "Resolvido"
-              ? "Chamado resolvido"
+              ? t(
+                  "notification.ticketResolved.title"
+                )
               : previousStatus ===
                 "Resolvido"
-                ? "Chamado reaberto"
-                : "Status do chamado atualizado",
+                ? t(
+                    "notification.ticketReopened.title"
+                  )
+                : t(
+                    "notification.ticketStatusUpdated.title"
+                  ),
 
           message:
-            updatedTicket.status ===
-            "Resolvido"
-              ? `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi resolvido. Os alertas de SLA pendentes foram removidos.`
-              : previousStatus ===
+            language ===
+            "en-US"
+              ? updatedTicket.status ===
                 "Resolvido"
-                ? `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi reaberto. O monitor de SLA voltará a acompanhar este chamado.`
-                : `O chamado #${updatedTicket.id} teve o status alterado de "${previousStatus}" para "${updatedTicket.status}".`,
+                ? `Ticket #${updatedTicket.id} — ${updatedTicket.title} was resolved. Pending SLA alerts were removed.`
+                : previousStatus ===
+                  "Resolvido"
+                  ? `Ticket #${updatedTicket.id} — ${updatedTicket.title} was reopened. SLA monitoring will resume for this ticket.`
+                  : `Ticket #${updatedTicket.id} status changed from "${translatedPreviousStatus}" to "${translatedNewStatus}".`
+              : updatedTicket.status ===
+                "Resolvido"
+                ? `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi resolvido. Os alertas de SLA pendentes foram removidos.`
+                : previousStatus ===
+                  "Resolvido"
+                  ? `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi reaberto. O monitor de SLA voltará a acompanhar este chamado.`
+                  : `O chamado #${updatedTicket.id} teve o status alterado de "${translatedPreviousStatus}" para "${translatedNewStatus}".`,
 
           type:
             updatedTicket.status ===
@@ -633,20 +678,35 @@ export default function EditTicketPage() {
           title:
             updatedTicket.assignedTechnicianId ===
             null
-              ? "Chamado sem responsável"
+              ? t(
+                  "notification.ticketUnassigned.title"
+                )
               : previousTechnicianId ===
                 null
-                ? "Chamado atribuído"
-                : "Técnico responsável alterado",
+                ? t(
+                    "notification.ticketAssigned.title"
+                  )
+                : t(
+                    "notification.technicianChanged.title"
+                  ),
 
           message:
-            updatedTicket.assignedTechnicianId ===
-            null
-              ? `O chamado #${updatedTicket.id} deixou de estar atribuído a ${previousTechnicianName}.`
-              : previousTechnicianId ===
+            language ===
+            "en-US"
+              ? updatedTicket.assignedTechnicianId ===
                 null
-                ? `O chamado #${updatedTicket.id} foi atribuído ao técnico ${newTechnicianName}.`
-                : `O chamado #${updatedTicket.id} foi transferido de ${previousTechnicianName} para ${newTechnicianName}.`,
+                ? `Ticket #${updatedTicket.id} is no longer assigned to ${previousTechnicianName}.`
+                : previousTechnicianId ===
+                  null
+                  ? `Ticket #${updatedTicket.id} was assigned to technician ${newTechnicianName}.`
+                  : `Ticket #${updatedTicket.id} was transferred from ${previousTechnicianName} to ${newTechnicianName}.`
+              : updatedTicket.assignedTechnicianId ===
+                null
+                ? `O chamado #${updatedTicket.id} deixou de estar atribuído a ${previousTechnicianName}.`
+                : previousTechnicianId ===
+                  null
+                  ? `O chamado #${updatedTicket.id} foi atribuído ao técnico ${newTechnicianName}.`
+                  : `O chamado #${updatedTicket.id} foi transferido de ${previousTechnicianName} para ${newTechnicianName}.`,
 
           type:
             "ticket_assigned",

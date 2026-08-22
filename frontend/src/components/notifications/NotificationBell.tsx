@@ -6,7 +6,13 @@ import {
 
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 
-import { useNotifications } from "../../contexts/NotificationContext";
+import {
+  useNotifications,
+} from "../../contexts/NotificationContext";
+
+import {
+  useLanguage,
+} from "../../contexts/LanguageContext";
 
 interface NotificationBellProps {
   onClick: () => void;
@@ -17,13 +23,28 @@ function NotificationBell({
 }: NotificationBellProps) {
   const {
     unreadCount,
-  } = useNotifications();
+  } =
+    useNotifications();
+
+  const {
+    t,
+  } =
+    useLanguage();
 
   return (
-    <Tooltip title="Notificações">
+    <Tooltip
+      title={t(
+        "notifications.title"
+      )}
+    >
       <IconButton
         color="inherit"
-        onClick={onClick}
+        onClick={
+          onClick
+        }
+        aria-label={t(
+          "notifications.title"
+        )}
       >
         <Badge
           badgeContent={

@@ -1,6 +1,7 @@
 import {
   addNotification,
   getNotifications,
+  isSlaNotificationDismissed,
 } from "../services/notificationService";
 
 import {
@@ -30,19 +31,37 @@ const EXPIRED_NOTIFICATION_TYPE:
     "sla_expired";
 
 function notificationAlreadyExists(
-  ticketId: number,
-  type: NotificationType
+  ticketId:
+    number,
+  type:
+    NotificationType
 ): boolean {
-  return getNotifications().some(
-    (notification) =>
-      notification.ticketId ===
-        ticketId &&
-      notification.type === type
+  const notificationExists =
+    getNotifications().some(
+      (
+        notification
+      ) =>
+        notification.ticketId ===
+          ticketId &&
+        notification.type ===
+          type
+    );
+
+  if (
+    notificationExists
+  ) {
+    return true;
+  }
+
+  return isSlaNotificationDismissed(
+    ticketId,
+    type
   );
 }
 
 function createSlaWarningNotification(
-  ticket: Ticket
+  ticket:
+    Ticket
 ): AppNotification | null {
   if (
     notificationAlreadyExists(
@@ -85,7 +104,8 @@ function createSlaWarningNotification(
 }
 
 function createSlaExpiredNotification(
-  ticket: Ticket
+  ticket:
+    Ticket
 ): AppNotification | null {
   if (
     notificationAlreadyExists(
@@ -128,16 +148,23 @@ function createSlaExpiredNotification(
 }
 
 export interface SlaMonitorResult {
-  checkedTickets: number;
-  warningNotificationsCreated: number;
-  expiredNotificationsCreated: number;
+  checkedTickets:
+    number;
+
+  warningNotificationsCreated:
+    number;
+
+  expiredNotificationsCreated:
+    number;
 }
 
 export function runSlaMonitor():
   SlaMonitorResult {
   const activeTickets =
     getTickets().filter(
-      (ticket) =>
+      (
+        ticket
+      ) =>
         ticket.status !==
         "Resolvido"
     );
@@ -149,7 +176,9 @@ export function runSlaMonitor():
     0;
 
   activeTickets.forEach(
-    (ticket) => {
+    (
+      ticket
+    ) => {
       try {
         const sla =
           calculateTicketSla(
@@ -165,7 +194,9 @@ export function runSlaMonitor():
               ticket
             );
 
-          if (notification) {
+          if (
+            notification
+          ) {
             warningNotificationsCreated +=
               1;
           }
@@ -182,12 +213,16 @@ export function runSlaMonitor():
               ticket
             );
 
-          if (notification) {
+          if (
+            notification
+          ) {
             expiredNotificationsCreated +=
               1;
           }
         }
-      } catch (error) {
+      } catch (
+        error
+      ) {
         console.error(
           `Não foi possível verificar o SLA do chamado #${ticket.id}.`,
           error

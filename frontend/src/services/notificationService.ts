@@ -6,6 +6,14 @@ import type {
 const STORAGE_KEY =
   "supportdesk-pro-notifications";
 
+const DISMISSED_SLA_STORAGE_KEY =
+  "supportdesk-pro-dismissed-sla-notifications";
+
+interface DismissedSlaNotification {
+  ticketId: number;
+  type: NotificationType;
+}
+
 function saveNotifications(
   notifications: AppNotification[]
 ): void {
@@ -17,7 +25,155 @@ function saveNotifications(
   );
 }
 
-export function getNotifications(): AppNotification[] {
+function getDismissedSlaNotifications():
+  DismissedSlaNotification[] {
+  const storedValue =
+    localStorage.getItem(
+      DISMISSED_SLA_STORAGE_KEY
+    );
+
+  if (!storedValue) {
+    return [];
+  }
+
+  try {
+    const parsedValue =
+      JSON.parse(
+        storedValue
+      ) as unknown;
+
+    if (
+      !Array.isArray(
+        parsedValue
+      )
+    ) {
+      return [];
+    }
+
+    return parsedValue.filter(
+      (
+        item
+      ): item is DismissedSlaNotification => {
+        if (
+          typeof item !==
+            "object" ||
+          item ===
+            null
+        ) {
+          return false;
+        }
+
+        const candidate =
+          item as Partial<DismissedSlaNotification>;
+
+        return (
+          typeof candidate.ticketId ===
+            "number" &&
+          typeof candidate.type ===
+            "string"
+        );
+      }
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveDismissedSlaNotifications(
+  notifications:
+    DismissedSlaNotification[]
+): void {
+  localStorage.setItem(
+    DISMISSED_SLA_STORAGE_KEY,
+    JSON.stringify(
+      notifications
+    )
+  );
+}
+
+function isSlaNotificationType(
+  type:
+    NotificationType
+): boolean {
+  return (
+    type ===
+      "sla_warning" ||
+    type ===
+      "sla_expired"
+  );
+}
+
+function registerDismissedSlaNotification(
+  ticketId:
+    number,
+  type:
+    NotificationType
+): void {
+  if (
+    !isSlaNotificationType(
+      type
+    )
+  ) {
+    return;
+  }
+
+  const dismissedNotifications =
+    getDismissedSlaNotifications();
+
+  const alreadyRegistered =
+    dismissedNotifications.some(
+      (
+        notification
+      ) =>
+        notification.ticketId ===
+          ticketId &&
+        notification.type ===
+          type
+    );
+
+  if (
+    alreadyRegistered
+  ) {
+    return;
+  }
+
+  saveDismissedSlaNotifications([
+    ...dismissedNotifications,
+
+    {
+      ticketId,
+      type,
+    },
+  ]);
+}
+
+export function isSlaNotificationDismissed(
+  ticketId:
+    number,
+  type:
+    NotificationType
+): boolean {
+  if (
+    !isSlaNotificationType(
+      type
+    )
+  ) {
+    return false;
+  }
+
+  return getDismissedSlaNotifications().some(
+    (
+      notification
+    ) =>
+      notification.ticketId ===
+        ticketId &&
+      notification.type ===
+        type
+  );
+}
+
+export function getNotifications():
+  AppNotification[] {
   const storedNotifications =
     localStorage.getItem(
       STORAGE_KEY
@@ -74,8 +230,8 @@ export function addNotification(
       0
     );
 
-  const newNotification: AppNotification =
-    {
+  const newNotification:
+    AppNotification = {
       ...notification,
 
       id:
@@ -94,15 +250,20 @@ export function addNotification(
 }
 
 export function markNotificationAsRead(
-  id: number
+  id:
+    number
 ): void {
   const notifications =
     getNotifications().map(
-      (notification) =>
-        notification.id === id
+      (
+        notification
+      ) =>
+        notification.id ===
+        id
           ? {
               ...notification,
-              read: true,
+              read:
+                true,
             }
           : notification
     );
@@ -112,12 +273,16 @@ export function markNotificationAsRead(
   );
 }
 
-export function markAllNotificationsAsRead(): void {
+export function markAllNotificationsAsRead():
+  void {
   const notifications =
     getNotifications().map(
-      (notification) => ({
+      (
+        notification
+      ) => ({
         ...notification,
-        read: true,
+        read:
+          true,
       })
     );
 
@@ -127,25 +292,58 @@ export function markAllNotificationsAsRead(): void {
 }
 
 export function removeNotification(
-  id: number
+  id:
+    number
 ): void {
   const notifications =
-    getNotifications().filter(
-      (notification) =>
-        notification.id !== id
+    getNotifications();
+
+  const notificationToRemove =
+    notifications.find(
+      (
+        notification
+      ) =>
+        notification.id ===
+        id
+    );
+
+  if (
+    notificationToRemove &&
+    notificationToRemove.ticketId !==
+      null &&
+    isSlaNotificationType(
+      notificationToRemove.type
+    )
+  ) {
+    registerDismissedSlaNotification(
+      notificationToRemove.ticketId,
+      notificationToRemove.type
+    );
+  }
+
+  const filteredNotifications =
+    notifications.filter(
+      (
+        notification
+      ) =>
+        notification.id !==
+        id
     );
 
   saveNotifications(
-    notifications
+    filteredNotifications
   );
 }
 
 export function removeNotificationsByTicket(
-  ticketId: number
+  ticketId:
+    number
 ): void {
   const notifications =
     getNotifications().filter(
-      (notification) =>
+      (
+        notification
+      ) =>
         notification.ticketId !==
         ticketId
     );
@@ -156,12 +354,16 @@ export function removeNotificationsByTicket(
 }
 
 export function removeNotificationsByTicketAndTypes(
-  ticketId: number,
-  types: readonly NotificationType[]
+  ticketId:
+    number,
+  types:
+    readonly NotificationType[]
 ): void {
   const notifications =
     getNotifications().filter(
-      (notification) => {
+      (
+        notification
+      ) => {
         const belongsToTicket =
           notification.ticketId ===
           ticketId;
@@ -184,7 +386,8 @@ export function removeNotificationsByTicketAndTypes(
 }
 
 export function removeSlaNotificationsByTicket(
-  ticketId: number
+  ticketId:
+    number
 ): void {
   removeNotificationsByTicketAndTypes(
     ticketId,
@@ -195,7 +398,32 @@ export function removeSlaNotificationsByTicket(
   );
 }
 
-export function clearNotifications(): void {
+export function clearNotifications():
+  void {
+  const notifications =
+    getNotifications();
+
+  notifications.forEach(
+    (
+      notification
+    ) => {
+      if (
+        notification.ticketId ===
+          null ||
+        !isSlaNotificationType(
+          notification.type
+        )
+      ) {
+        return;
+      }
+
+      registerDismissedSlaNotification(
+        notification.ticketId,
+        notification.type
+      );
+    }
+  );
+
   localStorage.removeItem(
     STORAGE_KEY
   );

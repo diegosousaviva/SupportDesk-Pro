@@ -55,6 +55,7 @@ import {
 } from "../../services/inventoryService";
 
 import {
+  getActiveStores,
   getStoreById,
 } from "../../services/storeService";
 
@@ -79,6 +80,9 @@ type TicketPriority =
 
 const UNASSIGNED_TECHNICIAN_VALUE =
   "unassigned";
+
+const NO_STORE_VALUE =
+  "none";
 
 const NO_EQUIPMENT_VALUE =
   "none";
@@ -152,51 +156,21 @@ function CreateTicketPage() {
     );
 
   const [
+    stores,
+  ] =
+    useState(() =>
+      getActiveStores()
+    );
+
+  const [
     inventoryItems,
   ] =
     useState(() =>
       getInventoryItems()
     );
 
-  const [
-    title,
-    setTitle,
-  ] =
-    useState(
-      ""
-    );
-
-  const [
-    category,
-    setCategory,
-  ] =
-    useState(
-      ""
-    );
-
-  const [
-    priority,
-    setPriority,
-  ] =
-    useState<
-      TicketPriority | ""
-    >(
-      ""
-    );
-
-  const [
-    assignedTechnicianId,
-    setAssignedTechnicianId,
-  ] =
-    useState(
-      UNASSIGNED_TECHNICIAN_VALUE
-    );
-
-  const [
-    selectedInventoryItemId,
-    setSelectedInventoryItemId,
-  ] =
-    useState(() => {
+  const initialInventoryItemId =
+    (() => {
       const inventoryItemIdParameter =
         searchParams.get(
           "inventoryItemId"
@@ -237,7 +211,99 @@ function CreateTicketPage() {
             inventoryItemId
           )
         : NO_EQUIPMENT_VALUE;
-    });
+    })();
+
+  const initialStoreId =
+    (() => {
+      if (
+        initialInventoryItemId ===
+        NO_EQUIPMENT_VALUE
+      ) {
+        return NO_STORE_VALUE;
+      }
+
+      const inventoryItem =
+        inventoryItems.find(
+          (
+            currentItem
+          ) =>
+            currentItem.id ===
+            Number(
+              initialInventoryItemId
+            )
+        );
+
+      if (
+        !inventoryItem
+      ) {
+        return NO_STORE_VALUE;
+      }
+
+      const storeExists =
+        stores.some(
+          (
+            store
+          ) =>
+            store.id ===
+            inventoryItem.storeId
+        );
+
+      return storeExists
+        ? String(
+            inventoryItem.storeId
+          )
+        : NO_STORE_VALUE;
+    })();
+
+  const [
+    title,
+    setTitle,
+  ] =
+    useState(
+      ""
+    );
+
+  const [
+    category,
+    setCategory,
+  ] =
+    useState(
+      ""
+    );
+
+  const [
+    priority,
+    setPriority,
+  ] =
+    useState<
+      TicketPriority | ""
+    >(
+      ""
+    );
+
+  const [
+    selectedStoreId,
+    setSelectedStoreId,
+  ] =
+    useState(
+      initialStoreId
+    );
+
+  const [
+    assignedTechnicianId,
+    setAssignedTechnicianId,
+  ] =
+    useState(
+      UNASSIGNED_TECHNICIAN_VALUE
+    );
+
+  const [
+    selectedInventoryItemId,
+    setSelectedInventoryItemId,
+  ] =
+    useState(
+      initialInventoryItemId
+    );
 
   const [
     description,
@@ -354,6 +420,58 @@ function CreateTicketPage() {
     }
 
     return `${inventoryItem.tag} — ${inventoryItem.description}`;
+  }
+
+  function handleInventoryItemChange(
+    value:
+      string
+  ): void {
+    setSelectedInventoryItemId(
+      value
+    );
+
+    if (
+      value ===
+      NO_EQUIPMENT_VALUE
+    ) {
+      return;
+    }
+
+    const inventoryItem =
+      inventoryItems.find(
+        (
+          currentItem
+        ) =>
+          currentItem.id ===
+          Number(
+            value
+          )
+      );
+
+    if (
+      !inventoryItem
+    ) {
+      return;
+    }
+
+    const storeExists =
+      stores.some(
+        (
+          store
+        ) =>
+          store.id ===
+          inventoryItem.storeId
+      );
+
+    if (
+      storeExists
+    ) {
+      setSelectedStoreId(
+        String(
+          inventoryItem.storeId
+        )
+      );
+    }
   }
 
   function registerEquipmentHistory(
@@ -513,6 +631,14 @@ function CreateTicketPage() {
         true
       );
 
+      const storeId =
+        selectedStoreId ===
+        NO_STORE_VALUE
+          ? null
+          : Number(
+              selectedStoreId
+            );
+
       const selectedTechnicianId =
         assignedTechnicianId ===
         UNASSIGNED_TECHNICIAN_VALUE
@@ -528,6 +654,44 @@ function CreateTicketPage() {
           : Number(
               selectedInventoryItemId
             );
+
+      if (
+        storeId !==
+          null &&
+        (
+          !Number.isInteger(
+            storeId
+          ) ||
+          storeId <=
+            0
+        )
+      ) {
+        throw new Error(
+          "Selecione uma loja válida."
+        );
+      }
+
+      if (
+        storeId !==
+        null
+      ) {
+        const storeExists =
+          stores.some(
+            (
+              store
+            ) =>
+              store.id ===
+              storeId
+          );
+
+        if (
+          !storeExists
+        ) {
+          throw new Error(
+            "A loja selecionada não está disponível."
+          );
+        }
+      }
 
       if (
         selectedTechnicianId !==
@@ -623,6 +787,8 @@ function CreateTicketPage() {
           requesterUserId:
             user?.id ??
             1,
+
+          storeId,
 
           assignedTechnicianId:
             selectedTechnicianId,
@@ -967,33 +1133,23 @@ function CreateTicketPage() {
                     )
                   }
                 >
-                  <MenuItem
-                    value="Hardware"
-                  >
+                  <MenuItem value="Hardware">
                     Hardware
                   </MenuItem>
 
-                  <MenuItem
-                    value="Software"
-                  >
+                  <MenuItem value="Software">
                     Software
                   </MenuItem>
 
-                  <MenuItem
-                    value="Rede"
-                  >
+                  <MenuItem value="Rede">
                     Rede e internet
                   </MenuItem>
 
-                  <MenuItem
-                    value="Acesso"
-                  >
+                  <MenuItem value="Acesso">
                     Acesso e permissões
                   </MenuItem>
 
-                  <MenuItem
-                    value="Outros"
-                  >
+                  <MenuItem value="Outros">
                     Outros
                   </MenuItem>
                 </Select>
@@ -1026,31 +1182,89 @@ function CreateTicketPage() {
                     )
                   }
                 >
-                  <MenuItem
-                    value="Baixa"
-                  >
+                  <MenuItem value="Baixa">
                     Baixa
                   </MenuItem>
 
-                  <MenuItem
-                    value="Média"
-                  >
+                  <MenuItem value="Média">
                     Média
                   </MenuItem>
 
-                  <MenuItem
-                    value="Alta"
-                  >
+                  <MenuItem value="Alta">
                     Alta
                   </MenuItem>
 
-                  <MenuItem
-                    value="Crítica"
-                  >
+                  <MenuItem value="Crítica">
                     Crítica
                   </MenuItem>
                 </Select>
               </FormControl>
+
+              <FormControl
+                fullWidth
+                disabled={
+                  isSubmitting ||
+                  stores.length ===
+                    0
+                }
+              >
+                <InputLabel
+                  id="store-label"
+                >
+                  Loja solicitante
+                </InputLabel>
+
+                <Select
+                  labelId="store-label"
+                  label="Loja solicitante"
+                  value={
+                    selectedStoreId
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setSelectedStoreId(
+                      event.target.value
+                    )
+                  }
+                >
+                  <MenuItem
+                    value={
+                      NO_STORE_VALUE
+                    }
+                  >
+                    Não informada
+                  </MenuItem>
+
+                  {stores.map(
+                    (
+                      store
+                    ) => (
+                      <MenuItem
+                        key={
+                          store.id
+                        }
+                        value={String(
+                          store.id
+                        )}
+                      >
+                        {store.code} — {store.name}
+                      </MenuItem>
+                    )
+                  )}
+                </Select>
+
+                <FormHelperText>
+                  Selecione a loja para a qual o chamado está sendo aberto.
+                </FormHelperText>
+              </FormControl>
+
+              {stores.length ===
+                0 && (
+                <Alert severity="info">
+                  Não há lojas ativas cadastradas.
+                </Alert>
+              )}
 
               <FormControl
                 fullWidth
@@ -1141,7 +1355,7 @@ function CreateTicketPage() {
                   onChange={(
                     event
                   ) =>
-                    setSelectedInventoryItemId(
+                    handleInventoryItemChange(
                       event.target.value
                     )
                   }
@@ -1261,8 +1475,8 @@ function CreateTicketPage() {
                 </Select>
 
                 <FormHelperText>
-                  Opcional. Selecione o equipamento relacionado
-                  ao chamado.
+                  Opcional. Ao selecionar um equipamento,
+                  a loja dele será preenchida automaticamente.
                 </FormHelperText>
               </FormControl>
 

@@ -24,6 +24,12 @@ export interface Ticket {
 
   requesterUserId: number;
 
+  /**
+   * Loja solicitante do chamado.
+   * null = chamado ainda não possui loja associada.
+   */
+  storeId: number | null;
+
   assignedTechnicianId: number | null;
 
   /**

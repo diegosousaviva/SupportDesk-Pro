@@ -1,8 +1,12 @@
 import {
   Alert,
   Button,
+  FormControl,
+  FormHelperText,
+  InputLabel,
   MenuItem,
   Paper,
+  Select,
   Stack,
   TextField,
   Typography,
@@ -53,6 +57,23 @@ import {
 } from "../../hooks/useSnackbar";
 
 import {
+  addInventoryHistoryEvent,
+} from "../../services/inventoryHistoryService";
+
+import {
+  getInventoryItems,
+} from "../../services/inventoryService";
+
+import {
+  getActiveStores,
+  getStoreById,
+} from "../../services/storeService";
+
+import {
+  createTicketHistoryEntry,
+} from "../../services/ticketHistoryService";
+
+import {
   getTicketById,
   updateTicket,
 } from "../../services/ticketService";
@@ -73,6 +94,12 @@ type TicketStatus =
 
 const UNASSIGNED_TECHNICIAN_VALUE =
   "unassigned";
+
+const NO_STORE_VALUE =
+  "none";
+
+const NO_EQUIPMENT_VALUE =
+  "none";
 
 const MINIMUM_TITLE_LENGTH =
   3;
@@ -140,6 +167,32 @@ export default function EditTicketPage() {
         )
     );
 
+  const inventoryItems =
+    getInventoryItems();
+
+  const activeStores =
+    getActiveStores();
+
+  const currentTicketStore =
+    ticket?.storeId
+      ? getStoreById(
+          ticket.storeId
+        )
+      : undefined;
+
+  const stores =
+    currentTicketStore &&
+    !activeStores.some(
+      (store) =>
+        store.id ===
+        currentTicketStore.id
+    )
+      ? [
+          ...activeStores,
+          currentTicketStore,
+        ]
+      : activeStores;
+
   const [
     title,
     setTitle,
@@ -180,6 +233,20 @@ export default function EditTicketPage() {
     );
 
   const [
+    selectedStoreId,
+    setSelectedStoreId,
+  ] = useState(
+    ticket?.storeId ===
+      null ||
+      ticket?.storeId ===
+        undefined
+      ? NO_STORE_VALUE
+      : String(
+          ticket.storeId
+        )
+  );
+
+  const [
     assignedTechnicianId,
     setAssignedTechnicianId,
   ] = useState(
@@ -190,6 +257,20 @@ export default function EditTicketPage() {
       ? UNASSIGNED_TECHNICIAN_VALUE
       : String(
           ticket.assignedTechnicianId
+        )
+  );
+
+  const [
+    selectedInventoryItemId,
+    setSelectedInventoryItemId,
+  ] = useState(
+    ticket?.inventoryItemId ===
+      null ||
+      ticket?.inventoryItemId ===
+        undefined
+      ? NO_EQUIPMENT_VALUE
+      : String(
+          ticket.inventoryItemId
         )
   );
 
@@ -310,6 +391,23 @@ export default function EditTicketPage() {
     normalizedDescription.length <
       MINIMUM_DESCRIPTION_LENGTH;
 
+  const selectedStoreNumber =
+    selectedStoreId ===
+    NO_STORE_VALUE
+      ? null
+      : Number(
+          selectedStoreId
+        );
+
+  const selectedStoreExists =
+    selectedStoreNumber ===
+      null ||
+    stores.some(
+      (store) =>
+        store.id ===
+        selectedStoreNumber
+    );
+
   const assignedTechnicianNumber =
     assignedTechnicianId ===
     UNASSIGNED_TECHNICIAN_VALUE
@@ -325,6 +423,23 @@ export default function EditTicketPage() {
       (technician) =>
         technician.id ===
         assignedTechnicianNumber
+    );
+
+  const selectedInventoryItemNumber =
+    selectedInventoryItemId ===
+    NO_EQUIPMENT_VALUE
+      ? null
+      : Number(
+          selectedInventoryItemId
+        );
+
+  const selectedInventoryItemExists =
+    selectedInventoryItemNumber ===
+      null ||
+    inventoryItems.some(
+      (inventoryItem) =>
+        inventoryItem.id ===
+        selectedInventoryItemNumber
     );
 
   function handleBack():
@@ -394,6 +509,175 @@ export default function EditTicketPage() {
     return `${t(
       "technician.notFound"
     )} (#${technicianId})`;
+  }
+
+  function getInventoryItemLabel(
+    inventoryItemId:
+      number
+  ): string {
+    const inventoryItem =
+      inventoryItems.find(
+        (currentItem) =>
+          currentItem.id ===
+          inventoryItemId
+      );
+
+    if (!inventoryItem) {
+      return `Equipamento #${inventoryItemId}`;
+    }
+
+    return `${inventoryItem.tag} — ${inventoryItem.description}`;
+  }
+
+  function registerEquipmentChangeHistory(
+    previousInventoryItemId:
+      number | null,
+    newInventoryItemId:
+      number | null
+  ): void {
+    if (
+      previousInventoryItemId ===
+      newInventoryItemId
+    ) {
+      return;
+    }
+
+    try {
+      if (
+        previousInventoryItemId !==
+        null
+      ) {
+        const previousEquipment =
+          inventoryItems.find(
+            (inventoryItem) =>
+              inventoryItem.id ===
+              previousInventoryItemId
+          );
+
+        if (previousEquipment) {
+          addInventoryHistoryEvent({
+            inventoryItemId:
+              previousInventoryItemId,
+
+            type:
+              "Observação",
+
+            title:
+              `Chamado #${currentTicketId} desvinculado`,
+
+            description:
+              `O chamado #${currentTicketId} — ${normalizedTitle} deixou de estar vinculado a este equipamento.`,
+
+            performedByUserId:
+              user?.id ??
+              null,
+          });
+        }
+      }
+
+      if (
+        newInventoryItemId !==
+        null
+      ) {
+        const newEquipment =
+          inventoryItems.find(
+            (inventoryItem) =>
+              inventoryItem.id ===
+              newInventoryItemId
+          );
+
+        if (newEquipment) {
+          addInventoryHistoryEvent({
+            inventoryItemId:
+              newInventoryItemId,
+
+            type:
+              "Chamado vinculado",
+
+            title:
+              `Chamado #${currentTicketId} vinculado`,
+
+            description:
+              `O chamado #${currentTicketId} — ${normalizedTitle} foi vinculado a este equipamento.`,
+
+            performedByUserId:
+              user?.id ??
+              null,
+          });
+        }
+      }
+
+      if (
+        previousInventoryItemId ===
+          null &&
+        newInventoryItemId !==
+          null
+      ) {
+        createTicketHistoryEntry({
+          ticketId:
+            currentTicketId,
+
+          eventType:
+            "equipment_linked",
+
+          description:
+            `O equipamento ${getInventoryItemLabel(
+              newInventoryItemId
+            )} foi vinculado ao chamado.`,
+        });
+
+        return;
+      }
+
+      if (
+        previousInventoryItemId !==
+          null &&
+        newInventoryItemId ===
+          null
+      ) {
+        createTicketHistoryEntry({
+          ticketId:
+            currentTicketId,
+
+          eventType:
+            "equipment_linked",
+
+          description:
+            `O equipamento ${getInventoryItemLabel(
+              previousInventoryItemId
+            )} foi desvinculado do chamado.`,
+        });
+
+        return;
+      }
+
+      if (
+        previousInventoryItemId !==
+          null &&
+        newInventoryItemId !==
+          null
+      ) {
+        createTicketHistoryEntry({
+          ticketId:
+            currentTicketId,
+
+          eventType:
+            "equipment_linked",
+
+          description:
+            `O equipamento do chamado foi alterado de ${getInventoryItemLabel(
+              previousInventoryItemId
+            )} para ${getInventoryItemLabel(
+              newInventoryItemId
+            )}.`,
+        });
+      }
+    } catch (historyError) {
+      console.error(
+        "O chamado foi atualizado, mas não foi possível registrar todo o histórico da alteração do equipamento.",
+        historyError
+      );
+    }
   }
 
   function showValidationMessage(
@@ -493,6 +777,38 @@ export default function EditTicketPage() {
     }
 
     if (
+      mayEditAdministrativeFields &&
+      selectedStoreNumber !==
+        null &&
+      (
+        !Number.isInteger(
+          selectedStoreNumber
+        ) ||
+        selectedStoreNumber <=
+          0
+      )
+    ) {
+      showValidationMessage(
+        "Selecione uma loja solicitante válida."
+      );
+
+      return;
+    }
+
+    if (
+      mayEditAdministrativeFields &&
+      selectedStoreNumber !==
+        null &&
+      !selectedStoreExists
+    ) {
+      showValidationMessage(
+        "A loja solicitante selecionada não foi encontrada."
+      );
+
+      return;
+    }
+
+    if (
       mayAssignTechnician &&
       assignedTechnicianNumber !==
         null &&
@@ -524,6 +840,38 @@ export default function EditTicketPage() {
       return;
     }
 
+    if (
+      mayEditAdministrativeFields &&
+      selectedInventoryItemNumber !==
+        null &&
+      (
+        !Number.isInteger(
+          selectedInventoryItemNumber
+        ) ||
+        selectedInventoryItemNumber <=
+          0
+      )
+    ) {
+      showValidationMessage(
+        "Selecione um equipamento válido."
+      );
+
+      return;
+    }
+
+    if (
+      mayEditAdministrativeFields &&
+      selectedInventoryItemNumber !==
+        null &&
+      !selectedInventoryItemExists
+    ) {
+      showValidationMessage(
+        "O equipamento selecionado não foi encontrado."
+      );
+
+      return;
+    }
+
     try {
       setIsSaving(
         true
@@ -534,6 +882,9 @@ export default function EditTicketPage() {
 
       const previousTechnicianId =
         currentTicket.assignedTechnicianId;
+
+      const previousInventoryItemId =
+        currentTicket.inventoryItemId;
 
       const updatedTicket =
         updateTicket(
@@ -556,11 +907,21 @@ export default function EditTicketPage() {
                 ? status
                 : currentTicket.status,
 
+            storeId:
+              mayEditAdministrativeFields
+                ? selectedStoreNumber
+                : currentTicket.storeId,
+
             assignedTechnicianId:
               mayAssignTechnician &&
               mayEditAdministrativeFields
                 ? assignedTechnicianNumber
                 : currentTicket.assignedTechnicianId,
+
+            inventoryItemId:
+              mayEditAdministrativeFields
+                ? selectedInventoryItemNumber
+                : currentTicket.inventoryItemId,
           }
         );
 
@@ -577,6 +938,50 @@ export default function EditTicketPage() {
       const technicianChanged =
         previousTechnicianId !==
         updatedTicket.assignedTechnicianId;
+
+      const equipmentChanged =
+        previousInventoryItemId !==
+        updatedTicket.inventoryItemId;
+
+      if (
+        equipmentChanged
+      ) {
+        registerEquipmentChangeHistory(
+          previousInventoryItemId,
+          updatedTicket.inventoryItemId
+        );
+
+        if (
+          updatedTicket.inventoryItemId !==
+          null
+        ) {
+          addNotification({
+            title:
+              "Equipamento vinculado",
+
+            message:
+              `O equipamento ${getInventoryItemLabel(
+                updatedTicket.inventoryItemId
+              )} foi vinculado ao chamado #${updatedTicket.id}.`,
+
+            type:
+              "ticket_created",
+
+            severity:
+              "info",
+
+            read:
+              false,
+
+            ticketId:
+              updatedTicket.id,
+
+            userId:
+              user?.id ??
+              null,
+          });
+        }
+      }
 
       if (
         statusChanged &&
@@ -952,6 +1357,61 @@ export default function EditTicketPage() {
               </MenuItem>
             </TextField>
 
+            {mayEditAdministrativeFields && (
+              <TextField
+                select
+                label="Loja solicitante"
+                value={
+                  selectedStoreId
+                }
+                onChange={(event) =>
+                  setSelectedStoreId(
+                    event.target
+                      .value
+                  )
+                }
+                helperText={
+                  stores.length ===
+                    0
+                    ? "Não há lojas ativas cadastradas."
+                    : "Selecione a loja para a qual o chamado está sendo atendido."
+                }
+                fullWidth
+                disabled={
+                  isSaving
+                }
+              >
+                <MenuItem
+                  value={
+                    NO_STORE_VALUE
+                  }
+                >
+                  Não informada
+                </MenuItem>
+
+                {stores.map(
+                  (
+                    store
+                  ) => (
+                    <MenuItem
+                      key={
+                        store.id
+                      }
+                      value={String(
+                        store.id
+                      )}
+                    >
+                      {store.code} — {store.name}
+                      {store.status ===
+                      "Inativa"
+                        ? " — Inativa"
+                        : ""}
+                    </MenuItem>
+                  )
+                )}
+              </TextField>
+            )}
+
             {mayUpdateStatus &&
               mayEditAdministrativeFields && (
                 <TextField
@@ -1056,6 +1516,155 @@ export default function EditTicketPage() {
                   )}
                 </TextField>
               )}
+
+            {mayEditAdministrativeFields && (
+              <>
+                <FormControl
+                  fullWidth
+                  disabled={
+                    isSaving ||
+                    inventoryItems.length ===
+                      0
+                  }
+                >
+                  <InputLabel id="edit-ticket-inventory-item-label">
+                    Equipamento
+                  </InputLabel>
+
+                  <Select
+                    labelId="edit-ticket-inventory-item-label"
+                    label="Equipamento"
+                    value={
+                      selectedInventoryItemId
+                    }
+                    onChange={(event) =>
+                      setSelectedInventoryItemId(
+                        event.target
+                          .value
+                      )
+                    }
+                    renderValue={(
+                      selectedValue
+                    ) => {
+                      if (
+                        selectedValue ===
+                        NO_EQUIPMENT_VALUE
+                      ) {
+                        return "Nenhum equipamento";
+                      }
+
+                      return getInventoryItemLabel(
+                        Number(
+                          selectedValue
+                        )
+                      );
+                    }}
+                  >
+                    <MenuItem
+                      value={
+                        NO_EQUIPMENT_VALUE
+                      }
+                    >
+                      <Stack>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                        >
+                          Nenhum equipamento
+                        </Typography>
+
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                        >
+                          Remover vínculo com o inventário
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+
+                    {inventoryItems.map(
+                      (
+                        inventoryItem
+                      ) => {
+                        const equipmentStore =
+                          getStoreById(
+                            inventoryItem.storeId
+                          );
+
+                        return (
+                          <MenuItem
+                            key={
+                              inventoryItem.id
+                            }
+                            value={String(
+                              inventoryItem.id
+                            )}
+                          >
+                            <Stack
+                              spacing={0.25}
+                              sx={{
+                                py: 0.5,
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                fontWeight={600}
+                              >
+                                {
+                                  inventoryItem.description
+                                }
+                              </Typography>
+
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Etiqueta:{" "}
+                                {
+                                  inventoryItem.tag
+                                }
+                                {" • "}
+                                {equipmentStore
+                                  ? `${equipmentStore.code} — ${equipmentStore.name}`
+                                  : "Loja não encontrada"}
+                              </Typography>
+
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Situação:{" "}
+                                {
+                                  inventoryItem.status
+                                }
+                                {" • "}
+                                Estado:{" "}
+                                {
+                                  inventoryItem.condition
+                                }
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        );
+                      }
+                    )}
+                  </Select>
+
+                  <FormHelperText>
+                    Opcional. Selecione o equipamento relacionado
+                    ao chamado ou escolha Nenhum equipamento para
+                    remover o vínculo atual.
+                  </FormHelperText>
+                </FormControl>
+
+                {inventoryItems.length ===
+                  0 && (
+                  <Alert severity="info">
+                    Não há equipamentos cadastrados no inventário.
+                  </Alert>
+                )}
+              </>
+            )}
 
             <Stack
               direction={{

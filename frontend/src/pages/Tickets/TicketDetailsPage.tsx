@@ -53,6 +53,10 @@ import {
 } from "../../contexts/AuthContext";
 
 import {
+  useNotifications,
+} from "../../contexts/NotificationContext";
+
+import {
   usePermissions,
 } from "../../hooks/usePermissions";
 
@@ -78,6 +82,10 @@ import {
 import {
   calculateTicketSla,
 } from "../../services/slaService";
+
+import {
+  getStoreById,
+} from "../../services/storeService";
 
 import {
   getUserById,
@@ -106,6 +114,11 @@ export default function TicketDetailsPage() {
   const {
     showSnackbar,
   } = useSnackbar();
+
+  const {
+    addNotification,
+    removeSlaNotificationsByTicket,
+  } = useNotifications();
 
   const [
     deleteDialogOpen,
@@ -211,12 +224,6 @@ export default function TicketDetailsPage() {
     );
   }
 
-  /*
-   * A partir deste ponto sabemos que o chamado existe.
-   *
-   * Criamos uma referência estável para que o TypeScript
-   * preserve corretamente o tipo dentro dos handlers.
-   */
   const currentTicket =
     ticket;
 
@@ -305,6 +312,27 @@ export default function TicketDetailsPage() {
       assignedTechnician
         ? assignedTechnician.name
         : `Técnico não encontrado (#${currentTicket.assignedTechnicianId})`;
+  }
+
+  const store =
+    currentTicket.storeId ===
+    null
+      ? undefined
+      : getStoreById(
+          currentTicket.storeId
+        );
+
+  let storeName =
+    "Não informada";
+
+  if (
+    currentTicket.storeId !==
+    null
+  ) {
+    storeName =
+      store
+        ? `${store.code} — ${store.name}`
+        : `Loja não encontrada (#${currentTicket.storeId})`;
   }
 
   const sla =
@@ -421,6 +449,29 @@ export default function TicketDetailsPage() {
           `${user.name} alterou o status de "${previousStatus}" para "${selectedStatus}".`,
       });
 
+      addNotification({
+        title:
+          "Status do chamado atualizado",
+
+        message:
+          `O chamado #${updatedTicket.id} teve o status alterado de "${previousStatus}" para "${updatedTicket.status}".`,
+
+        type:
+          "status_changed",
+
+        severity:
+          "info",
+
+        read:
+          false,
+
+        ticketId:
+          updatedTicket.id,
+
+        userId:
+          updatedTicket.assignedTechnicianId,
+      });
+
       setStatusDialogOpen(
         false
       );
@@ -535,6 +586,33 @@ export default function TicketDetailsPage() {
 
         description:
           `${user.name} alterou o status de "${previousStatus}" para "Resolvido".`,
+      });
+
+      removeSlaNotificationsByTicket(
+        updatedTicket.id
+      );
+
+      addNotification({
+        title:
+          "Chamado resolvido",
+
+        message:
+          `O chamado #${updatedTicket.id} — ${updatedTicket.title} foi resolvido. Os alertas de SLA pendentes foram removidos.`,
+
+        type:
+          "ticket_resolved",
+
+        severity:
+          "success",
+
+        read:
+          false,
+
+        ticketId:
+          updatedTicket.id,
+
+        userId:
+          updatedTicket.assignedTechnicianId,
       });
 
       setCloseDialogOpen(
@@ -828,6 +906,9 @@ export default function TicketDetailsPage() {
           technicianInactive={
             assignedTechnician?.status ===
             "Inativo"
+          }
+          storeName={
+            storeName
           }
           createdAt={
             currentTicket.createdAt

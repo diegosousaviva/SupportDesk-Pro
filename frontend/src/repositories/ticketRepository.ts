@@ -20,6 +20,7 @@ type StoredTicket = Partial<Ticket> & {
   priority?: unknown;
   status?: unknown;
   requesterUserId?: unknown;
+  storeId?: unknown;
   assignedTechnicianId?: unknown;
   inventoryItemId?: unknown;
   createdAt?: unknown;
@@ -37,6 +38,7 @@ const initialTickets: Ticket[] = [
     priority: "Alta",
     status: "Aberto",
     requesterUserId: 3,
+    storeId: null,
     assignedTechnicianId: null,
     inventoryItemId: null,
     createdAt:
@@ -54,6 +56,7 @@ const initialTickets: Ticket[] = [
     priority: "Média",
     status: "Em andamento",
     requesterUserId: 3,
+    storeId: null,
     assignedTechnicianId: 2,
     inventoryItemId: null,
     createdAt:
@@ -71,6 +74,7 @@ const initialTickets: Ticket[] = [
     priority: "Baixa",
     status: "Resolvido",
     requesterUserId: 3,
+    storeId: null,
     assignedTechnicianId: 2,
     inventoryItemId: null,
     createdAt:
@@ -127,6 +131,20 @@ function normalizeUserId(
   }
 
   return defaultValue;
+}
+
+function normalizeStoreId(
+  value: unknown
+): number | null {
+  if (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value > 0
+  ) {
+    return value;
+  }
+
+  return null;
 }
 
 function normalizeTechnicianId(
@@ -232,30 +250,46 @@ function migrateStoredTicket(
 
   return {
     id: storedTicket.id,
+
     title:
       storedTicket.title.trim(),
+
     description:
       typeof storedTicket.description ===
       "string"
         ? storedTicket.description
         : "",
+
     category:
       storedTicket.category.trim(),
+
     priority:
       storedTicket.priority,
+
     status:
       storedTicket.status,
+
     requesterUserId,
+
+    storeId:
+      normalizeStoreId(
+        storedTicket.storeId
+      ),
+
     assignedTechnicianId:
       normalizeTechnicianId(
         storedTicket.assignedTechnicianId
       ),
+
     inventoryItemId:
       normalizeInventoryItemId(
         storedTicket.inventoryItemId
       ),
+
     createdAt,
+
     updatedAt,
+
     closedAt,
   };
 }
@@ -296,7 +330,9 @@ function loadTicketsFromStorage(): Ticket[] {
     }
 
     const parsedData: unknown =
-      JSON.parse(storedTickets);
+      JSON.parse(
+        storedTickets
+      );
 
     if (
       !Array.isArray(
@@ -315,7 +351,9 @@ function loadTicketsFromStorage(): Ticket[] {
     const migratedTickets =
       parsedData
         .map(
-          (storedTicket) =>
+          (
+            storedTicket
+          ) =>
             migrateStoredTicket(
               storedTicket as StoredTicket
             )
@@ -374,8 +412,11 @@ export function findTicketById(
   id: number
 ): Ticket | undefined {
   return tickets.find(
-    (ticket) =>
-      ticket.id === id
+    (
+      ticket
+    ) =>
+      ticket.id ===
+      id
   );
 }
 
@@ -400,9 +441,31 @@ export function createTicketRepository(
 
   const newTicket: Ticket = {
     ...ticketData,
-    id: highestId + 1,
-    createdAt: currentDate,
-    updatedAt: currentDate,
+
+    storeId:
+      normalizeStoreId(
+        ticketData.storeId
+      ),
+
+    assignedTechnicianId:
+      normalizeTechnicianId(
+        ticketData.assignedTechnicianId
+      ),
+
+    inventoryItemId:
+      normalizeInventoryItemId(
+        ticketData.inventoryItemId
+      ),
+
+    id:
+      highestId + 1,
+
+    createdAt:
+      currentDate,
+
+    updatedAt:
+      currentDate,
+
     closedAt:
       ticketData.status ===
       "Resolvido"
@@ -436,8 +499,11 @@ export function updateTicketById(
 ): Ticket | undefined {
   const currentTicket =
     tickets.find(
-      (ticket) =>
-        ticket.id === id
+      (
+        ticket
+      ) =>
+        ticket.id ===
+        id
     );
 
   if (!currentTicket) {
@@ -456,7 +522,8 @@ export function updateTicketById(
     currentTicket.closedAt;
 
   if (
-    newStatus === "Resolvido" &&
+    newStatus ===
+      "Resolvido" &&
     currentTicket.status !==
       "Resolvido" &&
     updatedData.closedAt ===
@@ -470,26 +537,60 @@ export function updateTicketById(
     newStatus !==
     "Resolvido"
   ) {
-    closedAt = null;
+    closedAt =
+      null;
   }
 
   const updatedTicket: Ticket = {
     ...currentTicket,
     ...updatedData,
-    id: currentTicket.id,
+
+    storeId:
+      updatedData.storeId ===
+      undefined
+        ? currentTicket.storeId
+        : normalizeStoreId(
+            updatedData.storeId
+          ),
+
+    assignedTechnicianId:
+      updatedData.assignedTechnicianId ===
+      undefined
+        ? currentTicket.assignedTechnicianId
+        : normalizeTechnicianId(
+            updatedData.assignedTechnicianId
+          ),
+
+    inventoryItemId:
+      updatedData.inventoryItemId ===
+      undefined
+        ? currentTicket.inventoryItemId
+        : normalizeInventoryItemId(
+            updatedData.inventoryItemId
+          ),
+
+    id:
+      currentTicket.id,
+
     createdAt:
       currentTicket.createdAt,
+
     updatedAt:
       currentDate,
+
     closedAt,
   };
 
-  tickets = tickets.map(
-    (ticket) =>
-      ticket.id === id
-        ? updatedTicket
-        : ticket
-  );
+  tickets =
+    tickets.map(
+      (
+        ticket
+      ) =>
+        ticket.id ===
+        id
+          ? updatedTicket
+          : ticket
+    );
 
   saveTicketsToStorage(
     tickets
@@ -503,8 +604,11 @@ export function deleteTicketById(
 ): boolean {
   const ticketExists =
     tickets.some(
-      (ticket) =>
-        ticket.id === id
+      (
+        ticket
+      ) =>
+        ticket.id ===
+        id
     );
 
   if (!ticketExists) {
@@ -513,8 +617,11 @@ export function deleteTicketById(
 
   tickets =
     tickets.filter(
-      (ticket) =>
-        ticket.id !== id
+      (
+        ticket
+      ) =>
+        ticket.id !==
+        id
     );
 
   saveTicketsToStorage(

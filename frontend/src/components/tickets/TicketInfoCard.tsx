@@ -9,31 +9,51 @@ import {
   CalendarMonth,
   PersonOutline,
   Schedule,
+  StorefrontOutlined,
 } from "@mui/icons-material";
 
 interface TicketInfoCardProps {
   technicianName: string;
   technicianInactive?: boolean;
+  storeName: string;
   createdAt: string;
   updatedAt: string;
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+function formatDate(
+  dateString: string
+): string {
+  const date =
+    new Date(
+      dateString
+    );
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "Data não disponível";
   }
 
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      dateStyle:
+        "medium",
+
+      timeStyle:
+        "short",
+    }
+  ).format(
+    date
+  );
 }
 
 export default function TicketInfoCard({
   technicianName,
   technicianInactive = false,
+  storeName,
   createdAt,
   updatedAt,
 }: TicketInfoCardProps) {
@@ -41,16 +61,22 @@ export default function TicketInfoCard({
     <Paper
       sx={{
         p: {
-          xs: 2.5,
-          md: 4,
+          xs:
+            2.5,
+
+          md:
+            4,
         },
       }}
     >
       <Typography
         variant="h6"
         sx={{
-          mb: 3,
-          fontWeight: 700,
+          mb:
+            3,
+
+          fontWeight:
+            700,
         }}
       >
         Informações do chamado
@@ -58,17 +84,31 @@ export default function TicketInfoCard({
 
       <Box
         sx={{
-          display: "grid",
+          display:
+            "grid",
+
           gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, minmax(0, 1fr))",
-            lg: "repeat(3, minmax(0, 1fr))",
+            xs:
+              "1fr",
+
+            sm:
+              "repeat(2, minmax(0, 1fr))",
+
+            lg:
+              "repeat(4, minmax(0, 1fr))",
           },
-          gap: 3,
+
+          gap:
+            3,
         }}
       >
-        <Stack direction="row" spacing={1.5}>
-          <PersonOutline color="action" />
+        <Stack
+          direction="row"
+          spacing={1.5}
+        >
+          <PersonOutline
+            color="action"
+          />
 
           <Box>
             <Typography
@@ -78,7 +118,12 @@ export default function TicketInfoCard({
               Técnico responsável
             </Typography>
 
-            <Typography sx={{ fontWeight: 600 }}>
+            <Typography
+              sx={{
+                fontWeight:
+                  600,
+              }}
+            >
               {technicianName}
             </Typography>
 
@@ -93,8 +138,40 @@ export default function TicketInfoCard({
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={1.5}>
-          <CalendarMonth color="action" />
+        <Stack
+          direction="row"
+          spacing={1.5}
+        >
+          <StorefrontOutlined
+            color="action"
+          />
+
+          <Box>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Loja solicitante
+            </Typography>
+
+            <Typography
+              sx={{
+                fontWeight:
+                  600,
+              }}
+            >
+              {storeName}
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Stack
+          direction="row"
+          spacing={1.5}
+        >
+          <CalendarMonth
+            color="action"
+          />
 
           <Box>
             <Typography
@@ -104,14 +181,26 @@ export default function TicketInfoCard({
               Data de abertura
             </Typography>
 
-            <Typography sx={{ fontWeight: 600 }}>
-              {formatDate(createdAt)}
+            <Typography
+              sx={{
+                fontWeight:
+                  600,
+              }}
+            >
+              {formatDate(
+                createdAt
+              )}
             </Typography>
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={1.5}>
-          <Schedule color="action" />
+        <Stack
+          direction="row"
+          spacing={1.5}
+        >
+          <Schedule
+            color="action"
+          />
 
           <Box>
             <Typography
@@ -121,8 +210,15 @@ export default function TicketInfoCard({
               Última atualização
             </Typography>
 
-            <Typography sx={{ fontWeight: 600 }}>
-              {formatDate(updatedAt)}
+            <Typography
+              sx={{
+                fontWeight:
+                  600,
+              }}
+            >
+              {formatDate(
+                updatedAt
+              )}
             </Typography>
           </Box>
         </Stack>

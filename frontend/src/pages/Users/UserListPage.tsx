@@ -828,12 +828,14 @@ function UserListPage() {
                 },
               }}
             >
-              <InputLabel id="user-role-filter-label">
+              <InputLabel id="user-role-filter-label" htmlFor="user-role-filter">
                 Perfil
               </InputLabel>
 
               <Select
-                labelId="user-role-filter-label"
+                id="user-role-filter"
+                    name="roleFilter"
+                    labelId="user-role-filter-label"
                 value={roleFilter}
                 label="Perfil"
                 onChange={(event) =>
@@ -870,12 +872,14 @@ function UserListPage() {
                 },
               }}
             >
-              <InputLabel id="user-status-filter-label">
+              <InputLabel id="user-status-filter-label" htmlFor="user-status-filter">
                 Status
               </InputLabel>
 
               <Select
-                labelId="user-status-filter-label"
+                id="user-status-filter"
+                    name="statusFilter"
+                    labelId="user-status-filter-label"
                 value={statusFilter}
                 label="Status"
                 onChange={(event) =>

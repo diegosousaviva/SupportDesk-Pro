@@ -49,6 +49,9 @@ const initialUsers: User[] = [
     role:
       "Administrador",
 
+    storeId:
+      null,
+
     status:
       "Ativo",
 
@@ -77,6 +80,9 @@ const initialUsers: User[] = [
     role:
       "Técnico",
 
+    storeId:
+      null,
+
     status:
       "Ativo",
 
@@ -104,6 +110,16 @@ const initialUsers: User[] = [
 
     role:
       "Solicitante",
+
+    /*
+     * A Mariana ainda não possui uma loja definida.
+     *
+     * Como as lojas reais já foram cadastradas, vamos
+     * escolher a loja dela posteriormente, através da
+     * tela de edição do usuário.
+     */
+    storeId:
+      null,
 
     status:
       "Ativo",
@@ -213,6 +229,46 @@ function normalizeStoredUser(
     }
   }
 
+  /*
+   * Migração do vínculo com loja.
+   *
+   * Usuários criados antes da implementação de lojas
+   * não possuem storeId.
+   *
+   * Administradores e Técnicos podem permanecer sem
+   * loja específica.
+   *
+   * Solicitantes antigos também permanecem sem loja
+   * até que o Administrador defina uma loja através
+   * da edição do usuário.
+   */
+  let storeId:
+    number | null = null;
+
+  if (
+    typeof candidate.storeId ===
+    "number" &&
+    Number.isInteger(
+      candidate.storeId
+    ) &&
+    candidate.storeId > 0
+  ) {
+    storeId =
+      candidate.storeId;
+  }
+
+  /*
+   * Administrador e Técnico não ficam vinculados a uma
+   * loja específica.
+   */
+  if (
+    candidate.role !==
+      "Solicitante"
+  ) {
+    storeId =
+      null;
+  }
+
   return {
     id:
       candidate.id,
@@ -240,8 +296,10 @@ function normalizeStoredUser(
     role:
       candidate.role as User["role"],
 
+    storeId,
+
     status:
-      candidate.status as User["status"],
+      candidate.status,
 
     createdAt:
       typeof candidate.createdAt ===
@@ -311,8 +369,8 @@ function loadUsers():
     /*
      * Salvamos novamente os dados normalizados.
      *
-     * Assim a migração acontece apenas uma vez e o
-     * localStorage passa a usar o formato atual.
+     * Assim a migração acontece automaticamente e o
+     * localStorage passa a utilizar o formato atual.
      */
     saveUsers(
       normalizedUsers
@@ -369,6 +427,15 @@ export function createUserRepository(
         nextId,
 
       ...user,
+
+      storeId:
+        user.role ===
+        "Solicitante"
+          ? (
+              user.storeId ??
+              null
+            )
+          : null,
     };
 
   users.push(
@@ -417,6 +484,21 @@ export function updateUserById(
 
       id:
         currentUser.id,
+
+      storeId:
+        (
+          updatedData.role ??
+          currentUser.role
+        ) ===
+        "Solicitante"
+          ? (
+              updatedData.storeId !==
+              undefined
+                ? updatedData.storeId
+                : currentUser.storeId ??
+                  null
+            )
+          : null,
     };
 
   users[index] =

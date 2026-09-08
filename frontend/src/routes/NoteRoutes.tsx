@@ -64,7 +64,9 @@ export const noteRoutes:
     {
       path: "/notes/:id/edit",
       element: <EditNotePage />,
-      permission:
-        Permissions.notes.view,
+      anyOf: [
+        Permissions.notes.edit,
+        Permissions.notes.editOwn,
+      ],
     },
   ];

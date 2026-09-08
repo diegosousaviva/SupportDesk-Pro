@@ -16,7 +16,12 @@ export type AuthUser =
 
 interface StoredSession {
   user: AuthUser;
+
   startedAt: string;
+
+  token: string;
+
+  expiresAt: string;
 }
 
 function isValidAuthUser(
@@ -47,14 +52,41 @@ function isValidAuthUser(
   );
 }
 
+function isValidDateString(
+  value: unknown
+): value is string {
+  if (
+    typeof value !==
+    "string"
+  ) {
+    return false;
+  }
+
+  const date =
+    new Date(
+      value
+    );
+
+  return !Number.isNaN(
+    date.getTime()
+  );
+}
+
 function createStoredSession(
   user: AuthUser,
+  token: string,
+  expiresAt: string,
   startedAt: string =
     new Date().toISOString()
 ): StoredSession {
   return {
     user,
+
     startedAt,
+
+    token,
+
+    expiresAt,
   };
 }
 
@@ -74,11 +106,13 @@ function parseStoredSession(
       );
 
     /*
-     * Formato novo:
+     * Formato atual:
      *
      * {
      *   user: {...},
-     *   startedAt: "..."
+     *   startedAt: "...",
+     *   token: "...",
+     *   expiresAt: "..."
      * }
      */
     if (
@@ -89,6 +123,10 @@ function parseStoredSession(
       "user" in
         parsedValue &&
       "startedAt" in
+        parsedValue &&
+      "token" in
+        parsedValue &&
+      "expiresAt" in
         parsedValue
     ) {
       const storedSession =
@@ -98,26 +136,49 @@ function parseStoredSession(
 
           startedAt:
             unknown;
+
+          token:
+            unknown;
+
+          expiresAt:
+            unknown;
         };
 
       if (
         !isValidAuthUser(
           storedSession.user
-        ) ||
-        typeof storedSession.startedAt !==
-          "string"
+        )
       ) {
         return null;
       }
 
-      const startedAtDate =
-        new Date(
-          storedSession.startedAt
-        );
+      if (
+        typeof storedSession.startedAt !==
+        "string"
+      ) {
+        return null;
+      }
 
       if (
-        Number.isNaN(
-          startedAtDate.getTime()
+        typeof storedSession.token !==
+        "string" ||
+        storedSession.token.trim()
+          .length === 0
+      ) {
+        return null;
+      }
+
+      if (
+        !isValidDateString(
+          storedSession.startedAt
+        )
+      ) {
+        return null;
+      }
+
+      if (
+        !isValidDateString(
+          storedSession.expiresAt
         )
       ) {
         return null;
@@ -128,29 +189,31 @@ function parseStoredSession(
           storedSession.user,
 
         startedAt:
-          startedAtDate.toISOString(),
+          new Date(
+            storedSession.startedAt
+          ).toISOString(),
+
+        token:
+          storedSession.token,
+
+        expiresAt:
+          new Date(
+            storedSession.expiresAt
+          ).toISOString(),
       };
     }
 
     /*
      * Compatibilidade com sessões antigas.
      *
-     * Antes desta versão, somente o usuário era
-     * armazenado diretamente.
+     * Sessões antigas não possuem token.
      *
-     * Quando encontrarmos esse formato antigo,
-     * consideramos que a sessão começou agora.
+     * Como agora a autenticação depende do token
+     * emitido pelo backend, essas sessões não podem
+     * ser utilizadas para chamadas autenticadas.
+     *
+     * Retornamos null para forçar um novo login.
      */
-    if (
-      isValidAuthUser(
-        parsedValue
-      )
-    ) {
-      return createStoredSession(
-        parsedValue
-      );
-    }
-
     return null;
   } catch {
     return null;
@@ -207,9 +270,33 @@ function getStoredSession():
   return null;
 }
 
+function isSessionExpired(
+  session: StoredSession
+): boolean {
+  const expiresAt =
+    new Date(
+      session.expiresAt
+    );
+
+  if (
+    Number.isNaN(
+      expiresAt.getTime()
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    Date.now() >=
+    expiresAt.getTime()
+  );
+}
+
 export function saveSession(
   user: AuthUser,
-  remember: boolean
+  remember: boolean,
+  token: string,
+  expiresAt: string
 ): void {
   localStorage.removeItem(
     LOCAL_SESSION_KEY
@@ -221,7 +308,9 @@ export function saveSession(
 
   const session =
     createStoredSession(
-      user
+      user,
+      token,
+      expiresAt
     );
 
   const serializedSession =
@@ -263,15 +352,23 @@ export function updateCurrentSessionUser(
 
   /*
    * Atualizamos somente os dados do usuário.
-   * O horário inicial da sessão é preservado.
+   *
+   * O horário inicial da sessão,
+   * token e validade são preservados.
    */
   const updatedSession:
     StoredSession = {
-      user,
+    user,
 
-      startedAt:
-        currentSession.startedAt,
-    };
+    startedAt:
+      currentSession.startedAt,
+
+    token:
+      currentSession.token,
+
+    expiresAt:
+      currentSession.expiresAt,
+  };
 
   const serializedSession =
     JSON.stringify(
@@ -312,10 +409,65 @@ export function getCurrentUser():
   const session =
     getStoredSession();
 
-  return (
-    session?.user ??
-    null
-  );
+  if (!session) {
+    return null;
+  }
+
+  if (
+    isSessionExpired(
+      session
+    )
+  ) {
+    clearSession();
+
+    return null;
+  }
+
+  return session.user;
+}
+
+export function getAuthToken():
+  string | null {
+  const session =
+    getStoredSession();
+
+  if (!session) {
+    return null;
+  }
+
+  if (
+    isSessionExpired(
+      session
+    )
+  ) {
+    clearSession();
+
+    return null;
+  }
+
+  return session.token;
+}
+
+export function getSessionExpiresAt():
+  string | null {
+  const session =
+    getStoredSession();
+
+  if (!session) {
+    return null;
+  }
+
+  if (
+    isSessionExpired(
+      session
+    )
+  ) {
+    clearSession();
+
+    return null;
+  }
+
+  return session.expiresAt;
 }
 
 export function getSessionStartedAt():
@@ -360,8 +512,22 @@ export function getSessionElapsedMilliseconds():
 
 export function isAuthenticated():
   boolean {
-  return (
-    getCurrentUser() !==
-    null
-  );
+  const session =
+    getStoredSession();
+
+  if (!session) {
+    return false;
+  }
+
+  if (
+    isSessionExpired(
+      session
+    )
+  ) {
+    clearSession();
+
+    return false;
+  }
+
+  return true;
 }

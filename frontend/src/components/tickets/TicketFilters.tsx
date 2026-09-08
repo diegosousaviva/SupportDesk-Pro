@@ -2,9 +2,12 @@ import {
   Box,
   Button,
   Chip,
+  FormControl,
   Grid,
+  InputLabel,
   MenuItem,
   Paper,
+  Select,
   Stack,
   TextField,
   Typography,
@@ -30,9 +33,7 @@ import type {
   TicketTechnicianFilter,
 } from "../../hooks/useTicketFilters";
 
-import type {
-  User,
-} from "../../types/User";
+import type { User } from "../../types/User";
 
 interface TicketFiltersProps {
   searchTerm: string;
@@ -132,14 +133,14 @@ export default function TicketFilters({
             }}
           >
             <TextField
+              id="ticket-search"
+              name="ticket-search"
               fullWidth
               label="Pesquisar chamados"
               placeholder="Título, descrição ou número"
               value={searchTerm}
               onChange={(event) =>
-                setSearchTerm(
-                  event.target.value
-                )
+                setSearchTerm(event.target.value)
               }
               slotProps={{
                 input: {
@@ -161,34 +162,41 @@ export default function TicketFilters({
               md: 3,
             }}
           >
-            <TextField
-              select
-              fullWidth
-              label="Status"
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(
-                  event.target
-                    .value as TicketStatusFilter
-                )
-              }
-            >
-              <MenuItem value={ALL_STATUS_VALUE}>
-                Todos
-              </MenuItem>
+            <FormControl fullWidth>
+              <InputLabel id="ticket-status-filter-label">
+                Status
+              </InputLabel>
 
-              <MenuItem value="Aberto">
-                Aberto
-              </MenuItem>
+              <Select
+                labelId="ticket-status-filter-label"
+                id="ticket-status-filter"
+                name="ticket-status-filter"
+                value={statusFilter}
+                label="Status"
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target
+                      .value as TicketStatusFilter
+                  )
+                }
+              >
+                <MenuItem value={ALL_STATUS_VALUE}>
+                  Todos
+                </MenuItem>
 
-              <MenuItem value="Em andamento">
-                Em andamento
-              </MenuItem>
+                <MenuItem value="Aberto">
+                  Aberto
+                </MenuItem>
 
-              <MenuItem value="Resolvido">
-                Resolvido
-              </MenuItem>
-            </TextField>
+                <MenuItem value="Em andamento">
+                  Em andamento
+                </MenuItem>
+
+                <MenuItem value="Resolvido">
+                  Resolvido
+                </MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid
@@ -198,38 +206,45 @@ export default function TicketFilters({
               md: 3,
             }}
           >
-            <TextField
-              select
-              fullWidth
-              label="Prioridade"
-              value={priorityFilter}
-              onChange={(event) =>
-                setPriorityFilter(
-                  event.target
-                    .value as TicketPriorityFilter
-                )
-              }
-            >
-              <MenuItem value={ALL_PRIORITIES_VALUE}>
-                Todas
-              </MenuItem>
+            <FormControl fullWidth>
+              <InputLabel id="ticket-priority-filter-label">
+                Prioridade
+              </InputLabel>
 
-              <MenuItem value="Baixa">
-                Baixa
-              </MenuItem>
+              <Select
+                labelId="ticket-priority-filter-label"
+                id="ticket-priority-filter"
+                name="ticket-priority-filter"
+                value={priorityFilter}
+                label="Prioridade"
+                onChange={(event) =>
+                  setPriorityFilter(
+                    event.target
+                      .value as TicketPriorityFilter
+                  )
+                }
+              >
+                <MenuItem value={ALL_PRIORITIES_VALUE}>
+                  Todas
+                </MenuItem>
 
-              <MenuItem value="Média">
-                Média
-              </MenuItem>
+                <MenuItem value="Baixa">
+                  Baixa
+                </MenuItem>
 
-              <MenuItem value="Alta">
-                Alta
-              </MenuItem>
+                <MenuItem value="Média">
+                  Média
+                </MenuItem>
 
-              <MenuItem value="Crítica">
-                Crítica
-              </MenuItem>
-            </TextField>
+                <MenuItem value="Alta">
+                  Alta
+                </MenuItem>
+
+                <MenuItem value="Crítica">
+                  Crítica
+                </MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid
@@ -239,31 +254,38 @@ export default function TicketFilters({
               md: 4,
             }}
           >
-            <TextField
-              select
-              fullWidth
-              label="Categoria"
-              value={categoryFilter}
-              onChange={(event) =>
-                setCategoryFilter(
-                  event.target
-                    .value as TicketCategoryFilter
-                )
-              }
-            >
-              <MenuItem value={ALL_CATEGORIES_VALUE}>
-                Todas
-              </MenuItem>
+            <FormControl fullWidth>
+              <InputLabel id="ticket-category-filter-label">
+                Categoria
+              </InputLabel>
 
-              {categories.map((category) => (
-                <MenuItem
-                  key={category}
-                  value={category}
-                >
-                  {category}
+              <Select
+                labelId="ticket-category-filter-label"
+                id="ticket-category-filter"
+                name="ticket-category-filter"
+                value={categoryFilter}
+                label="Categoria"
+                onChange={(event) =>
+                  setCategoryFilter(
+                    event.target
+                      .value as TicketCategoryFilter
+                  )
+                }
+              >
+                <MenuItem value={ALL_CATEGORIES_VALUE}>
+                  Todas
                 </MenuItem>
-              ))}
-            </TextField>
+
+                {categories.map((category) => (
+                  <MenuItem
+                    key={category}
+                    value={category}
+                  >
+                    {category}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid
@@ -273,38 +295,49 @@ export default function TicketFilters({
               md: 4,
             }}
           >
-            <TextField
-              select
-              fullWidth
-              label="Técnico"
-              value={technicianFilter}
-              onChange={(event) =>
-                setTechnicianFilter(
-                  event.target
-                    .value as TicketTechnicianFilter
-                )
-              }
-            >
-              <MenuItem value={ALL_TECHNICIANS_VALUE}>
-                Todos
-              </MenuItem>
+            <FormControl fullWidth>
+              <InputLabel id="ticket-technician-filter-label">
+                Técnico
+              </InputLabel>
 
-              <MenuItem value={UNASSIGNED_TECHNICIAN_VALUE}>
-                Não atribuído
-              </MenuItem>
-
-              {technicians.map((technician) => (
+              <Select
+                labelId="ticket-technician-filter-label"
+                id="ticket-technician-filter"
+                name="ticket-technician-filter"
+                value={technicianFilter}
+                label="Técnico"
+                onChange={(event) =>
+                  setTechnicianFilter(
+                    event.target
+                      .value as TicketTechnicianFilter
+                  )
+                }
+              >
                 <MenuItem
-                  key={technician.id}
-                  value={String(technician.id)}
+                  value={ALL_TECHNICIANS_VALUE}
                 >
-                  {technician.name}
-                  {technician.status === "Inativo"
-                    ? " — Inativo"
-                    : ""}
+                  Todos
                 </MenuItem>
-              ))}
-            </TextField>
+
+                <MenuItem
+                  value={UNASSIGNED_TECHNICIAN_VALUE}
+                >
+                  Não atribuído
+                </MenuItem>
+
+                {technicians.map((technician) => (
+                  <MenuItem
+                    key={technician.id}
+                    value={String(technician.id)}
+                  >
+                    {technician.name}
+                    {technician.status === "Inativo"
+                      ? " — Inativo"
+                      : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid

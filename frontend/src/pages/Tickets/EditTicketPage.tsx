@@ -1527,11 +1527,13 @@ export default function EditTicketPage() {
                       0
                   }
                 >
-                  <InputLabel id="edit-ticket-inventory-item-label">
+                  <InputLabel id="edit-ticket-inventory-item-label" htmlFor="edit-ticket-inventory-item">
                     Equipamento
                   </InputLabel>
 
                   <Select
+                    id="edit-ticket-inventory-item"
+                    name="inventoryItem"
                     labelId="edit-ticket-inventory-item-label"
                     label="Equipamento"
                     value={

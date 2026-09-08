@@ -1024,12 +1024,14 @@ export default function TicketDetailsPage() {
                 isUpdatingStatus
               }
             >
-              <InputLabel id="ticket-status-label">
+              <InputLabel id="ticket-status-label" htmlFor="ticket-status">
                 Status
               </InputLabel>
 
               <Select
-                labelId="ticket-status-label"
+                id="ticket-status"
+                    name="status"
+                    labelId="ticket-status-label"
                 label="Status"
                 value={
                   selectedStatus

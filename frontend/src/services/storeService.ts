@@ -561,9 +561,13 @@ export function getStores():
         firstStore,
         secondStore
       ) =>
-        firstStore.name.localeCompare(
-          secondStore.name,
-          "pt-BR"
+        firstStore.code.localeCompare(
+          secondStore.code,
+          "pt-BR",
+          {
+            numeric: true,
+            sensitivity: "base",
+          }
         )
     );
 }

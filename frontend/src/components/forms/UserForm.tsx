@@ -29,6 +29,10 @@ import {
   validateStrongPassword,
 } from "../../utils/password";
 
+import {
+  getActiveStores,
+} from "../../services/storeService";
+
 import type {
   User,
 } from "../../types/User";
@@ -40,6 +44,7 @@ export interface UserFormData {
   phone: string;
   department: string;
   role: User["role"];
+  storeId: number | null;
   status: User["status"];
 }
 
@@ -61,6 +66,7 @@ interface FormErrors {
   password?: string;
   phone?: string;
   department?: string;
+  storeId?: string;
 }
 
 const SETTINGS_STORAGE_KEY =
@@ -107,6 +113,9 @@ const defaultValues:
 
     role:
       "Solicitante",
+
+    storeId:
+      null,
 
     status:
       "Ativo",
@@ -182,10 +191,23 @@ function UserForm({
       []
     );
 
+  const activeStores =
+    useMemo(
+      () =>
+        getActiveStores(),
+      []
+    );
+
   useEffect(() => {
     if (initialValues) {
       setFormData(
-        initialValues
+        {
+          ...initialValues,
+
+          storeId:
+            initialValues.storeId ??
+            null,
+        }
       );
 
       return;
@@ -207,12 +229,26 @@ function UserForm({
     setFormData(
       (
         current
-      ) => ({
-        ...current,
+      ) => {
+        const updatedData = {
+          ...current,
 
-        [field]:
-          value,
-      })
+          [field]:
+            value,
+        };
+
+        if (
+          field ===
+            "role" &&
+          value !==
+            "Solicitante"
+        ) {
+          updatedData.storeId =
+            null;
+        }
+
+        return updatedData;
+      }
     );
 
     if (
@@ -225,6 +261,22 @@ function UserForm({
           ...currentErrors,
 
           [field]:
+            undefined,
+        })
+      );
+    }
+
+    if (
+      field ===
+        "role"
+    ) {
+      setErrors(
+        (
+          currentErrors
+        ) => ({
+          ...currentErrors,
+
+          storeId:
             undefined,
         })
       );
@@ -366,6 +418,44 @@ function UserForm({
         `O departamento deve possuir no máximo ${MAXIMUM_DEPARTMENT_LENGTH} caracteres.`;
     }
 
+    if (
+      formData.role ===
+        "Solicitante" &&
+      (
+        formData.storeId ===
+          null ||
+        !Number.isInteger(
+          formData.storeId
+        ) ||
+        formData.storeId <=
+          0
+      )
+    ) {
+      newErrors.storeId =
+        "Selecione a loja do usuário.";
+    }
+
+    if (
+      formData.role ===
+        "Solicitante" &&
+      formData.storeId !==
+        null
+    ) {
+      const selectedStore =
+        activeStores.find(
+          (store) =>
+            store.id ===
+            formData.storeId
+        );
+
+      if (
+        !selectedStore
+      ) {
+        newErrors.storeId =
+          "Selecione uma loja ativa válida.";
+      }
+    }
+
     setErrors(
       newErrors
     );
@@ -401,6 +491,12 @@ function UserForm({
       return;
     }
 
+    const normalizedStoreId =
+      formData.role ===
+        "Solicitante"
+        ? formData.storeId
+        : null;
+
     onSubmit({
       ...formData,
 
@@ -417,6 +513,9 @@ function UserForm({
 
       department:
         formData.department.trim(),
+
+      storeId:
+        normalizedStoreId,
     });
   }
 
@@ -708,12 +807,14 @@ function UserForm({
             fullWidth
             required
           >
-            <InputLabel id="user-role-label">
+            <InputLabel id="user-role-label" htmlFor="user-role">
               Perfil
             </InputLabel>
 
             <Select
-              labelId="user-role-label"
+              id="user-role"
+                    name="role"
+                    labelId="user-role-label"
               label="Perfil"
               value={
                 formData.role
@@ -751,14 +852,123 @@ function UserForm({
         >
           <FormControl
             fullWidth
+            required={
+              formData.role ===
+              "Solicitante"
+            }
+            error={
+              Boolean(
+                errors.storeId
+              )
+            }
+            disabled={
+              formData.role !==
+              "Solicitante"
+            }
+          >
+            <InputLabel id="user-store-label" htmlFor="user-store">
+              Loja
+            </InputLabel>
+
+            <Select
+              id="user-store"
+                    name="storeId"
+                    labelId="user-store-label"
+              label="Loja"
+              value={
+                formData.role ===
+                "Solicitante"
+                  ? (
+                      formData.storeId ===
+                      null
+                        ? ""
+                        : String(
+                            formData.storeId
+                          )
+                    )
+                  : ""
+              }
+              onChange={(event) =>
+                handleChange(
+                  "storeId",
+                  event.target.value
+                    ? Number(
+                        event.target.value
+                      )
+                    : null
+                )
+              }
+            >
+              {formData.role !==
+              "Solicitante" ? (
+                <MenuItem value="">
+                  Todas as lojas
+                </MenuItem>
+              ) : (
+                <MenuItem value="">
+                  Selecione a loja
+                </MenuItem>
+              )}
+
+              {activeStores.map(
+                (
+                  store
+                ) => (
+                  <MenuItem
+                    key={
+                      store.id
+                    }
+                    value={
+                      store.id
+                    }
+                  >
+                    {store.code} -{" "}
+                    {store.name}
+                  </MenuItem>
+                )
+              )}
+            </Select>
+
+            {errors.storeId && (
+              <Box
+                component="span"
+                sx={{
+                  color:
+                    "error.main",
+                  fontSize:
+                    "0.75rem",
+                  mt:
+                    0.75,
+                  ml:
+                    1.75,
+                }}
+              >
+                {errors.storeId}
+              </Box>
+            )}
+          </FormControl>
+        </Grid>
+
+        <Grid
+          size={{
+            xs:
+              12,
+            md:
+              6,
+          }}
+        >
+          <FormControl
+            fullWidth
             required
           >
-            <InputLabel id="user-status-label">
+            <InputLabel id="user-status-label" htmlFor="user-status">
               Status
             </InputLabel>
 
             <Select
-              labelId="user-status-label"
+              id="user-status"
+                    name="status"
+                    labelId="user-status-label"
               label="Status"
               value={
                 formData.status

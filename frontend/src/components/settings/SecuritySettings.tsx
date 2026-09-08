@@ -100,14 +100,16 @@ function SecuritySettings({
         </Typography>
 
         <FormControl fullWidth>
-          <InputLabel id="session-timeout-label">
+          <InputLabel id="session-timeout-label" htmlFor="session-timeout">
             {t(
               "security.inactivityTimeout"
             )}
           </InputLabel>
 
           <Select
-            labelId="session-timeout-label"
+            id="session-timeout"
+                    name="sessionTimeoutMinutes"
+                    labelId="session-timeout-label"
             label={t(
               "security.inactivityTimeout"
             )}
@@ -171,14 +173,16 @@ function SecuritySettings({
         </FormControl>
 
         <FormControl fullWidth>
-          <InputLabel id="maximum-session-duration-label">
+          <InputLabel id="maximum-session-duration-label" htmlFor="maximum-session-duration">
             {t(
               "security.maximumSessionDuration"
             )}
           </InputLabel>
 
           <Select
-            labelId="maximum-session-duration-label"
+            id="maximum-session-duration"
+                    name="maximumSessionDurationMinutes"
+                    labelId="maximum-session-duration-label"
             label={t(
               "security.maximumSessionDuration"
             )}

@@ -53,6 +53,14 @@ function InventoryLabelPage() {
       Number(id)
     );
 
+  const [
+    options,
+    setOptions,
+  ] =
+    useState<InventoryLabelOptions>(
+      DEFAULT_INVENTORY_LABEL_OPTIONS
+    );
+
   if (!equipment) {
     return (
       <MainLayout title="Etiqueta">
@@ -77,14 +85,6 @@ function InventoryLabelPage() {
   const store =
     getStoreById(
       equipment.storeId
-    );
-
-  const [
-    options,
-    setOptions,
-  ] =
-    useState<InventoryLabelOptions>(
-      DEFAULT_INVENTORY_LABEL_OPTIONS
     );
 
   function updateOption<

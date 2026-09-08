@@ -17,7 +17,6 @@ import {
   Button,
   FormControl,
   FormHelperText,
-  InputLabel,
   MenuItem,
   Paper,
   Select,
@@ -74,6 +73,10 @@ import {
 import type {
   Ticket,
 } from "../../types/Ticket";
+
+import {
+  getCategories,
+} from "../../services/categoryService";
 
 type TicketPriority =
   Ticket["priority"];
@@ -167,6 +170,29 @@ function CreateTicketPage() {
   ] =
     useState(() =>
       getInventoryItems()
+    );
+
+  const [
+    categories,
+  ] =
+    useState(() =>
+      getCategories()
+        .filter(
+          (
+            currentCategory
+          ) =>
+            currentCategory.active
+        )
+        .sort(
+          (
+            firstCategory,
+            secondCategory
+          ) =>
+            firstCategory.name.localeCompare(
+              secondCategory.name,
+              "pt-BR"
+            )
+        )
     );
 
   const initialInventoryItemId =
@@ -626,6 +652,17 @@ function CreateTicketPage() {
       return;
     }
 
+    if (
+      categories.length ===
+      0
+    ) {
+      showValidationMessage(
+        "Não há categorias ativas cadastradas. Cadastre uma categoria antes de abrir um chamado."
+      );
+
+      return;
+    }
+
     try {
       setIsSubmitting(
         true
@@ -767,6 +804,23 @@ function CreateTicketPage() {
             "O equipamento selecionado não foi encontrado."
           );
         }
+      }
+
+      const selectedCategoryExists =
+        categories.some(
+          (
+            currentCategory
+          ) =>
+            currentCategory.name ===
+            category
+        );
+
+      if (
+        !selectedCategoryExists
+      ) {
+        throw new Error(
+          "A categoria selecionada não está mais disponível."
+        );
       }
 
       const createdTicket =
@@ -1073,6 +1127,8 @@ function CreateTicketPage() {
               }
             >
               <TextField
+                id="ticket-title"
+                name="title"
                 label="Título do chamado"
                 placeholder="Exemplo: Impressora não está funcionando"
                 value={
@@ -1106,158 +1162,214 @@ function CreateTicketPage() {
                 }}
               />
 
-              <FormControl
-                fullWidth
-                required
-                disabled={
-                  isSubmitting
-                }
-              >
-                <InputLabel
-                  id="category-label"
+              <Box>
+                <Typography
+                  component="div"
+                  variant="body2"
+                  fontWeight={
+                    500
+                  }
+                  sx={{
+                    mb:
+                      0.75,
+                  }}
                 >
                   Categoria
-                </InputLabel>
+                </Typography>
 
-                <Select
-                  labelId="category-label"
-                  label="Categoria"
-                  value={
-                    category
+                <FormControl
+                  fullWidth
+                  required
+                  disabled={
+                    isSubmitting ||
+                    categories.length ===
+                      0
                   }
-                  onChange={(
-                    event
-                  ) =>
-                    setCategory(
-                      event.target.value
-                    )
+                  error={
+                    categories.length ===
+                    0
                   }
                 >
-                  <MenuItem value="Hardware">
-                    Hardware
-                  </MenuItem>
+                  <Select
+                    id="ticket-category"
+                    name="category"
+                    value={
+                      category
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setCategory(
+                        event.target.value
+                      )
+                    }
+                    inputProps={{
+                      "aria-label":
+                        "Categoria",
+                    }}
+                  >
+                    {categories.map(
+                      (
+                        currentCategory
+                      ) => (
+                        <MenuItem
+                          key={
+                            currentCategory.id
+                          }
+                          value={
+                            currentCategory.name
+                          }
+                        >
+                          {
+                            currentCategory.name
+                          }
+                        </MenuItem>
+                      )
+                    )}
+                  </Select>
 
-                  <MenuItem value="Software">
-                    Software
-                  </MenuItem>
+                  {categories.length ===
+                    0 && (
+                    <FormHelperText>
+                      Cadastre pelo menos uma categoria ativa antes de abrir um chamado.
+                    </FormHelperText>
+                  )}
+                </FormControl>
+              </Box>
 
-                  <MenuItem value="Rede">
-                    Rede e internet
-                  </MenuItem>
-
-                  <MenuItem value="Acesso">
-                    Acesso e permissões
-                  </MenuItem>
-
-                  <MenuItem value="Outros">
-                    Outros
-                  </MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl
-                fullWidth
-                required
-                disabled={
-                  isSubmitting
-                }
-              >
-                <InputLabel
-                  id="priority-label"
+              <Box>
+                <Typography
+                  component="div"
+                  variant="body2"
+                  fontWeight={
+                    500
+                  }
+                  sx={{
+                    mb:
+                      0.75,
+                  }}
                 >
                   Prioridade
-                </InputLabel>
+                </Typography>
 
-                <Select
-                  labelId="priority-label"
-                  label="Prioridade"
-                  value={
-                    priority
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setPriority(
-                      event.target.value as TicketPriority
-                    )
+                <FormControl
+                  fullWidth
+                  required
+                  disabled={
+                    isSubmitting
                   }
                 >
-                  <MenuItem value="Baixa">
-                    Baixa
-                  </MenuItem>
+                  <Select
+                    id="ticket-priority"
+                    name="priority"
+                    value={
+                      priority
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setPriority(
+                        event.target
+                          .value as TicketPriority
+                      )
+                    }
+                    inputProps={{
+                      "aria-label":
+                        "Prioridade",
+                    }}
+                  >
+                    <MenuItem value="Baixa">
+                      Baixa
+                    </MenuItem>
 
-                  <MenuItem value="Média">
-                    Média
-                  </MenuItem>
+                    <MenuItem value="Média">
+                      Média
+                    </MenuItem>
 
-                  <MenuItem value="Alta">
-                    Alta
-                  </MenuItem>
+                    <MenuItem value="Alta">
+                      Alta
+                    </MenuItem>
 
-                  <MenuItem value="Crítica">
-                    Crítica
-                  </MenuItem>
-                </Select>
-              </FormControl>
+                    <MenuItem value="Crítica">
+                      Crítica
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
 
-              <FormControl
-                fullWidth
-                disabled={
-                  isSubmitting ||
-                  stores.length ===
-                    0
-                }
-              >
-                <InputLabel
-                  id="store-label"
+              <Box>
+                <Typography
+                  component="div"
+                  variant="body2"
+                  fontWeight={
+                    500
+                  }
+                  sx={{
+                    mb:
+                      0.75,
+                  }}
                 >
                   Loja solicitante
-                </InputLabel>
+                </Typography>
 
-                <Select
-                  labelId="store-label"
-                  label="Loja solicitante"
-                  value={
-                    selectedStoreId
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setSelectedStoreId(
-                      event.target.value
-                    )
+                <FormControl
+                  fullWidth
+                  disabled={
+                    isSubmitting ||
+                    stores.length ===
+                      0
                   }
                 >
-                  <MenuItem
+                  <Select
+                    id="ticket-store"
+                    name="storeId"
                     value={
-                      NO_STORE_VALUE
+                      selectedStoreId
                     }
+                    onChange={(
+                      event
+                    ) =>
+                      setSelectedStoreId(
+                        event.target.value
+                      )
+                    }
+                    inputProps={{
+                      "aria-label":
+                        "Loja solicitante",
+                    }}
                   >
-                    Não informada
-                  </MenuItem>
+                    <MenuItem
+                      value={
+                        NO_STORE_VALUE
+                      }
+                    >
+                      Não informada
+                    </MenuItem>
 
-                  {stores.map(
-                    (
-                      store
-                    ) => (
-                      <MenuItem
-                        key={
-                          store.id
-                        }
-                        value={String(
-                          store.id
-                        )}
-                      >
-                        {store.code} — {store.name}
-                      </MenuItem>
-                    )
-                  )}
-                </Select>
+                    {stores.map(
+                      (
+                        store
+                      ) => (
+                        <MenuItem
+                          key={
+                            store.id
+                          }
+                          value={String(
+                            store.id
+                          )}
+                        >
+                          {store.code} —{" "}
+                          {store.name}
+                        </MenuItem>
+                      )
+                    )}
+                  </Select>
 
-                <FormHelperText>
-                  Selecione a loja para a qual o chamado está sendo aberto.
-                </FormHelperText>
-              </FormControl>
+                  <FormHelperText>
+                    Selecione a loja para a qual o chamado está sendo aberto.
+                  </FormHelperText>
+                </FormControl>
+              </Box>
 
               {stores.length ===
                 0 && (
@@ -1266,219 +1378,243 @@ function CreateTicketPage() {
                 </Alert>
               )}
 
-              <FormControl
-                fullWidth
-                disabled={
-                  isSubmitting
-                }
-              >
-                <InputLabel
-                  id="technician-label"
+              <Box>
+                <Typography
+                  component="div"
+                  variant="body2"
+                  fontWeight={
+                    500
+                  }
+                  sx={{
+                    mb:
+                      0.75,
+                  }}
                 >
                   Técnico responsável
-                </InputLabel>
+                </Typography>
 
-                <Select
-                  labelId="technician-label"
-                  label="Técnico responsável"
-                  value={
-                    assignedTechnicianId
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setAssignedTechnicianId(
-                      event.target.value
-                    )
+                <FormControl
+                  fullWidth
+                  disabled={
+                    isSubmitting
                   }
                 >
-                  <MenuItem
+                  <Select
+                    id="ticket-technician"
+                    name="assignedTechnicianId"
                     value={
-                      UNASSIGNED_TECHNICIAN_VALUE
+                      assignedTechnicianId
                     }
+                    onChange={(
+                      event
+                    ) =>
+                      setAssignedTechnicianId(
+                        event.target.value
+                      )
+                    }
+                    inputProps={{
+                      "aria-label":
+                        "Técnico responsável",
+                    }}
                   >
-                    Não atribuído
-                  </MenuItem>
+                    <MenuItem
+                      value={
+                        UNASSIGNED_TECHNICIAN_VALUE
+                      }
+                    >
+                      Não atribuído
+                    </MenuItem>
 
-                  {technicians.map(
-                    (
-                      technician
-                    ) => (
-                      <MenuItem
-                        key={
-                          technician.id
-                        }
-                        value={String(
-                          technician.id
-                        )}
-                      >
-                        {
-                          technician.name
-                        }
-                      </MenuItem>
-                    )
-                  )}
-                </Select>
-              </FormControl>
+                    {technicians.map(
+                      (
+                        technician
+                      ) => (
+                        <MenuItem
+                          key={
+                            technician.id
+                          }
+                          value={String(
+                            technician.id
+                          )}
+                        >
+                          {
+                            technician.name
+                          }
+                        </MenuItem>
+                      )
+                    )}
+                  </Select>
+                </FormControl>
+              </Box>
 
               {technicians.length ===
                 0 && (
                 <Alert
                   severity="info"
                 >
-                  Não há técnicos ativos cadastrados. O
-                  chamado será criado sem técnico
-                  responsável.
+                  Não há técnicos ativos cadastrados. O chamado será criado sem técnico responsável.
                 </Alert>
               )}
 
-              <FormControl
-                fullWidth
-                disabled={
-                  isSubmitting ||
-                  inventoryItems.length ===
-                    0
-                }
-              >
-                <InputLabel
-                  id="inventory-item-label"
-                >
-                  Equipamento
-                </InputLabel>
-
-                <Select
-                  labelId="inventory-item-label"
-                  label="Equipamento"
-                  value={
-                    selectedInventoryItemId
+              <Box>
+                <Typography
+                  component="div"
+                  variant="body2"
+                  fontWeight={
+                    500
                   }
-                  onChange={(
-                    event
-                  ) =>
-                    handleInventoryItemChange(
-                      event.target.value
-                    )
-                  }
-                  renderValue={(
-                    selectedValue
-                  ) => {
-                    if (
-                      selectedValue ===
-                      NO_EQUIPMENT_VALUE
-                    ) {
-                      return "Nenhum equipamento";
-                    }
-
-                    return getInventoryItemLabel(
-                      Number(
-                        selectedValue
-                      )
-                    );
+                  sx={{
+                    mb:
+                      0.75,
                   }}
                 >
-                  <MenuItem
+                  Equipamento
+                </Typography>
+
+                <FormControl
+                  fullWidth
+                  disabled={
+                    isSubmitting ||
+                    inventoryItems.length ===
+                      0
+                  }
+                >
+                  <Select
+                    id="ticket-inventory"
+                    name="inventoryItemId"
                     value={
-                      NO_EQUIPMENT_VALUE
+                      selectedInventoryItemId
                     }
-                  >
-                    <Stack>
-                      <Typography
-                        variant="body2"
-                        fontWeight={
-                          600
-                        }
-                      >
-                        Nenhum equipamento
-                      </Typography>
-
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-                        Criar chamado sem vínculo com o
-                        inventário
-                      </Typography>
-                    </Stack>
-                  </MenuItem>
-
-                  {inventoryItems.map(
-                    (
-                      inventoryItem
+                    onChange={(
+                      event
+                    ) =>
+                      handleInventoryItemChange(
+                        event.target.value
+                      )
+                    }
+                    renderValue={(
+                      selectedValue
                     ) => {
-                      const store =
-                        getStoreById(
-                          inventoryItem.storeId
-                        );
+                      if (
+                        selectedValue ===
+                        NO_EQUIPMENT_VALUE
+                      ) {
+                        return "Nenhum equipamento";
+                      }
 
-                      return (
-                        <MenuItem
-                          key={
-                            inventoryItem.id
-                          }
-                          value={String(
-                            inventoryItem.id
-                          )}
-                        >
-                          <Stack
-                            spacing={
-                              0.25
-                            }
-                            sx={{
-                              py:
-                                0.5,
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              fontWeight={
-                                600
-                              }
-                            >
-                              {
-                                inventoryItem.description
-                              }
-                            </Typography>
-
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              Etiqueta:{" "}
-                              {
-                                inventoryItem.tag
-                              }
-                              {" • "}
-                              {store
-                                ? `${store.code} — ${store.name}`
-                                : "Loja não encontrada"}
-                            </Typography>
-
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              Situação:{" "}
-                              {
-                                inventoryItem.status
-                              }
-                              {" • "}
-                              Estado:{" "}
-                              {
-                                inventoryItem.condition
-                              }
-                            </Typography>
-                          </Stack>
-                        </MenuItem>
+                      return getInventoryItemLabel(
+                        Number(
+                          selectedValue
+                        )
                       );
-                    }
-                  )}
-                </Select>
+                    }}
+                    inputProps={{
+                      "aria-label":
+                        "Equipamento",
+                    }}
+                  >
+                    <MenuItem
+                      value={
+                        NO_EQUIPMENT_VALUE
+                      }
+                    >
+                      <Stack>
+                        <Typography
+                          variant="body2"
+                          fontWeight={
+                            600
+                          }
+                        >
+                          Nenhum equipamento
+                        </Typography>
 
-                <FormHelperText>
-                  Opcional. Ao selecionar um equipamento,
-                  a loja dele será preenchida automaticamente.
-                </FormHelperText>
-              </FormControl>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                        >
+                          Criar chamado sem vínculo com o inventário
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+
+                    {inventoryItems.map(
+                      (
+                        inventoryItem
+                      ) => {
+                        const store =
+                          getStoreById(
+                            inventoryItem.storeId
+                          );
+
+                        return (
+                          <MenuItem
+                            key={
+                              inventoryItem.id
+                            }
+                            value={String(
+                              inventoryItem.id
+                            )}
+                          >
+                            <Stack
+                              spacing={
+                                0.25
+                              }
+                              sx={{
+                                py:
+                                  0.5,
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                fontWeight={
+                                  600
+                                }
+                              >
+                                {
+                                  inventoryItem.description
+                                }
+                              </Typography>
+
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Etiqueta:{" "}
+                                {
+                                  inventoryItem.tag
+                                }
+                                {" • "}
+                                {store
+                                  ? `${store.code} — ${store.name}`
+                                  : "Loja não encontrada"}
+                              </Typography>
+
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Situação:{" "}
+                                {
+                                  inventoryItem.status
+                                }
+                                {" • "}
+                                Estado:{" "}
+                                {
+                                  inventoryItem.condition
+                                }
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        );
+                      }
+                    )}
+                  </Select>
+
+                  <FormHelperText>
+                    Opcional. Ao selecionar um equipamento, a loja dele será preenchida automaticamente.
+                  </FormHelperText>
+                </FormControl>
+              </Box>
 
               {inventoryItems.length ===
                 0 && (
@@ -1486,12 +1622,13 @@ function CreateTicketPage() {
                   severity="info"
                 >
                   Não há equipamentos cadastrados no inventário.
-                  O chamado será criado sem equipamento
-                  vinculado.
+                  O chamado será criado sem equipamento vinculado.
                 </Alert>
               )}
 
               <TextField
+                id="ticket-description"
+                name="description"
                 label="Descrição"
                 placeholder="Descreva o problema com o máximo de detalhes possível"
                 value={
@@ -1551,7 +1688,9 @@ function CreateTicketPage() {
                     isSubmitting
                   }
                   disabled={
-                    isSubmitting
+                    isSubmitting ||
+                    categories.length ===
+                      0
                   }
                 >
                   {isSubmitting

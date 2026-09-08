@@ -3,6 +3,7 @@ import {
   AssignmentOutlined,
   CategoryOutlined,
   CloseOutlined,
+  DeleteOutline,
   DescriptionOutlined,
   EditOutlined,
   FlagOutlined,
@@ -10,7 +11,6 @@ import {
   PersonOutline,
   SaveOutlined,
   TaskAltOutlined,
-  TitleOutlined,
 } from "@mui/icons-material";
 
 import {
@@ -18,17 +18,21 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 
-import {
-  useState,
-} from "react";
+import { useState } from "react";
 
 import {
+  deleteTicketComment,
   getTicketComments,
   updateTicketComment,
 } from "../../services/ticketCommentService";
@@ -76,13 +80,11 @@ type TimelineEntry =
       title: string;
       description: string;
       createdAt: string;
-      eventType:
-        TicketHistoryEventType;
+      eventType: TicketHistoryEventType;
     };
 
 function getHistoryTitle(
-  eventType:
-    TicketHistoryEventType
+  eventType: TicketHistoryEventType
 ): string {
   switch (eventType) {
     case "ticket_created":
@@ -121,8 +123,7 @@ function getHistoryTitle(
 }
 
 function getHistoryIcon(
-  eventType:
-    TicketHistoryEventType
+  eventType: TicketHistoryEventType
 ) {
   switch (eventType) {
     case "ticket_created":
@@ -134,8 +135,9 @@ function getHistoryIcon(
 
     case "title_changed":
       return (
-        <TitleOutlined
-          fontSize="small"
+        <Typography
+          component="span"
+          sx={{ display: "none" }}
         />
       );
 
@@ -202,46 +204,37 @@ function buildTimelineEntries(
   comments: TicketComment[],
   history: TicketHistoryEntry[]
 ): TimelineEntry[] {
-  const commentEntries:
-    TimelineEntry[] =
-      comments.map(
-        (comment) => ({
-          id: `comment-${comment.id}`,
-          type: "comment",
-          commentId: comment.id,
-          title: "Comentário",
-          description:
-            comment.message,
-          createdAt:
-            comment.createdAt,
-          updatedAt:
-            comment.updatedAt,
-          authorName:
-            comment.authorName,
-        })
-      );
+  const commentEntries: TimelineEntry[] =
+    comments.map(
+      (comment) => ({
+        id: `comment-${comment.id}`,
+        type: "comment",
+        commentId: comment.id,
+        title: "Comentário",
+        description: comment.message,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        authorName: comment.authorName,
+      })
+    );
 
-  const historyEntries:
-    TimelineEntry[] =
-      history
-        .filter(
-          (entry) =>
-            entry.eventType !==
-            "comment_added"
-        )
-        .map((entry) => ({
-          id: `history-${entry.id}`,
-          type: "history",
-          title: getHistoryTitle(
-            entry.eventType
-          ),
-          description:
-            entry.description,
-          createdAt:
-            entry.createdAt,
-          eventType:
-            entry.eventType,
-        }));
+  const historyEntries: TimelineEntry[] =
+    history
+      .filter(
+        (entry) =>
+          entry.eventType !==
+          "comment_added"
+      )
+      .map((entry) => ({
+        id: `history-${entry.id}`,
+        type: "history",
+        title: getHistoryTitle(
+          entry.eventType
+        ),
+        description: entry.description,
+        createdAt: entry.createdAt,
+        eventType: entry.eventType,
+      }));
 
   return [
     ...commentEntries,
@@ -294,10 +287,23 @@ export default function TicketTimeline({
     setIsSaving,
   ] = useState(false);
 
-  /*
-   * Força uma nova leitura do LocalStorage
-   * depois da edição de um comentário.
-   */
+  const [
+    deletingCommentId,
+    setDeletingCommentId,
+  ] = useState<number | null>(
+    null
+  );
+
+  const [
+    isDeleting,
+    setIsDeleting,
+  ] = useState(false);
+
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState("");
+
   void refreshKey;
 
   const comments =
@@ -318,7 +324,10 @@ export default function TicketTimeline({
       { type: "comment" }
     >
   ): void {
-    if (isSaving) {
+    if (
+      isSaving ||
+      isDeleting
+    ) {
       return;
     }
 
@@ -397,260 +406,430 @@ export default function TicketTimeline({
     }
   }
 
+  function openDeleteConfirmation(
+    commentId: number
+  ): void {
+    if (
+      isSaving ||
+      isDeleting
+    ) {
+      return;
+    }
+
+    setDeleteError("");
+    setDeletingCommentId(
+      commentId
+    );
+  }
+
+  function closeDeleteConfirmation(): void {
+    if (isDeleting) {
+      return;
+    }
+
+    setDeletingCommentId(null);
+    setDeleteError("");
+  }
+
+  function confirmDeleteComment(): void {
+    if (
+      deletingCommentId === null ||
+      isDeleting
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      deleteTicketComment(
+        deletingCommentId
+      );
+
+      if (
+        editingCommentId ===
+        deletingCommentId
+      ) {
+        setEditingCommentId(null);
+        setEditedMessage("");
+        setEditingError("");
+      }
+
+      setRefreshKey(
+        (currentValue) =>
+          currentValue + 1
+      );
+
+      setDeletingCommentId(null);
+    } catch (error) {
+      console.error(
+        "Não foi possível excluir o comentário.",
+        error
+      );
+
+      const failureMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir o comentário.";
+
+      setDeleteError(
+        failureMessage
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
-    <Stack spacing={3}>
-      <Box>
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 700 }}
-        >
-          Atividade do chamado
-        </Typography>
+    <>
+      <Stack spacing={3}>
+        <Box>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700 }}
+          >
+            Atividade do chamado
+          </Typography>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 0.5 }}
-        >
-          Acompanhe os comentários e
-          as alterações realizadas
-          neste chamado.
-        </Typography>
-      </Box>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: 0.5 }}
+          >
+            Acompanhe os comentários e
+            as alterações realizadas
+            neste chamado.
+          </Typography>
+        </Box>
 
-      <Divider />
+        <Divider />
 
-      {timelineEntries.length ===
-      0 ? (
-        <Alert severity="info">
-          Este chamado ainda não
-          possui atividades.
-        </Alert>
-      ) : (
-        <Stack spacing={0}>
-          {timelineEntries.map(
-            (entry, index) => {
-              const isLast =
-                index ===
-                timelineEntries.length -
-                  1;
+        {timelineEntries.length ===
+        0 ? (
+          <Alert severity="info">
+            Este chamado ainda não
+            possui atividades.
+          </Alert>
+        ) : (
+          <Stack spacing={0}>
+            {timelineEntries.map(
+              (entry, index) => {
+                const isLast =
+                  index ===
+                  timelineEntries.length -
+                    1;
 
-              if (
-                entry.type ===
-                "comment"
-              ) {
-                const isEditing =
-                  editingCommentId ===
-                  entry.commentId;
+                if (
+                  entry.type ===
+                  "comment"
+                ) {
+                  const isEditing =
+                    editingCommentId ===
+                    entry.commentId;
+
+                  return (
+                    <TimelineItem
+                      key={entry.id}
+                      title={entry.title}
+                      createdAt={
+                        entry.createdAt
+                      }
+                      updatedAt={
+                        entry.updatedAt
+                      }
+                      authorName={
+                        entry.authorName
+                      }
+                      icon={
+                        <AddCommentOutlined
+                          fontSize="small"
+                        />
+                      }
+                      isLast={isLast}
+                      action={
+                        isEditing ? (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                          >
+                            <Button
+                              size="small"
+                              variant="contained"
+                              startIcon={
+                                isSaving ? (
+                                  <CircularProgress
+                                    size={15}
+                                    color="inherit"
+                                  />
+                                ) : (
+                                  <SaveOutlined />
+                                )
+                              }
+                              onClick={
+                                saveEditing
+                              }
+                              disabled={
+                                isSaving ||
+                                isDeleting
+                              }
+                            >
+                              Salvar
+                            </Button>
+
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={
+                                <CloseOutlined />
+                              }
+                              onClick={
+                                cancelEditing
+                              }
+                              disabled={
+                                isSaving
+                              }
+                            >
+                              Cancelar
+                            </Button>
+                          </Stack>
+                        ) : (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                          >
+                            <Button
+                              size="small"
+                              startIcon={
+                                <EditOutlined />
+                              }
+                              onClick={() =>
+                                startEditing(
+                                  entry
+                                )
+                              }
+                              disabled={
+                                isSaving ||
+                                isDeleting
+                              }
+                            >
+                              Editar
+                            </Button>
+
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={
+                                <DeleteOutline />
+                              }
+                              onClick={() =>
+                                openDeleteConfirmation(
+                                  entry.commentId
+                                )
+                              }
+                              disabled={
+                                isSaving ||
+                                isDeleting
+                              }
+                            >
+                              Excluir
+                            </Button>
+                          </Stack>
+                        )
+                      }
+                      description={
+                        isEditing ? (
+                          <Stack
+                            spacing={1}
+                          >
+                            {editingError && (
+                              <Alert
+                                severity="error"
+                                onClose={() =>
+                                  setEditingError(
+                                    ""
+                                  )
+                                }
+                              >
+                                {
+                                  editingError
+                                }
+                              </Alert>
+                            )}
+
+                            <TextField
+                              label="Editar comentário"
+                              multiline
+                              minRows={3}
+                              fullWidth
+                              value={
+                                editedMessage
+                              }
+                              disabled={
+                                isSaving
+                              }
+                              onChange={(
+                                event
+                              ) => {
+                                setEditedMessage(
+                                  event
+                                    .target
+                                    .value
+                                );
+
+                                if (
+                                  editingError
+                                ) {
+                                  setEditingError(
+                                    ""
+                                  );
+                                }
+                              }}
+                              helperText={`${editedMessage.length}/2000 caracteres`}
+                              slotProps={{
+                                htmlInput:
+                                  {
+                                    maxLength:
+                                      2000,
+                                  },
+                              }}
+                            />
+                          </Stack>
+                        ) : (
+                          entry.description
+                        )
+                      }
+                    />
+                  );
+                }
 
                 return (
                   <TimelineItem
                     key={entry.id}
                     title={entry.title}
+                    description={
+                      entry.description
+                    }
                     createdAt={
                       entry.createdAt
                     }
-                    updatedAt={
-                      entry.updatedAt
-                    }
-                    authorName={
-                      entry.authorName
-                    }
-                    icon={
-                      <AddCommentOutlined
-                        fontSize="small"
-                      />
-                    }
+                    icon={getHistoryIcon(
+                      entry.eventType
+                    )}
                     isLast={isLast}
-                    action={
-                      isEditing ? (
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                        >
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={
-                              isSaving ? (
-                                <CircularProgress
-                                  size={15}
-                                  color="inherit"
-                                />
-                              ) : (
-                                <SaveOutlined />
-                              )
-                            }
-                            onClick={
-                              saveEditing
-                            }
-                            disabled={
-                              isSaving
-                            }
-                          >
-                            Salvar
-                          </Button>
-
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={
-                              <CloseOutlined />
-                            }
-                            onClick={
-                              cancelEditing
-                            }
-                            disabled={
-                              isSaving
-                            }
-                          >
-                            Cancelar
-                          </Button>
-                        </Stack>
-                      ) : (
-                        <Button
-                          size="small"
-                          startIcon={
-                            <EditOutlined />
-                          }
-                          onClick={() =>
-                            startEditing(
-                              entry
-                            )
-                          }
-                          disabled={
-                            isSaving
-                          }
-                        >
-                          Editar
-                        </Button>
-                      )
-                    }
-                    description={
-                      isEditing ? (
-                        <Stack
-                          spacing={1}
-                        >
-                          {editingError && (
-                            <Alert
-                              severity="error"
-                              onClose={() =>
-                                setEditingError(
-                                  ""
-                                )
-                              }
-                            >
-                              {
-                                editingError
-                              }
-                            </Alert>
-                          )}
-
-                          <TextField
-                            label="Editar comentário"
-                            multiline
-                            minRows={3}
-                            fullWidth
-                            value={
-                              editedMessage
-                            }
-                            disabled={
-                              isSaving
-                            }
-                            onChange={(
-                              event
-                            ) => {
-                              setEditedMessage(
-                                event
-                                  .target
-                                  .value
-                              );
-
-                              if (
-                                editingError
-                              ) {
-                                setEditingError(
-                                  ""
-                                );
-                              }
-                            }}
-                            helperText={`${editedMessage.length}/2000 caracteres`}
-                            slotProps={{
-                              htmlInput:
-                                {
-                                  maxLength:
-                                    2000,
-                                },
-                            }}
-                          />
-                        </Stack>
-                      ) : (
-                        entry.description
-                      )
-                    }
                   />
                 );
               }
+            )}
+          </Stack>
+        )}
 
-              return (
-                <TimelineItem
-                  key={entry.id}
-                  title={entry.title}
-                  description={
-                    entry.description
-                  }
-                  createdAt={
-                    entry.createdAt
-                  }
-                  icon={getHistoryIcon(
-                    entry.eventType
-                  )}
-                  isLast={isLast}
-                />
-              );
-            }
-          )}
-        </Stack>
-      )}
+        <Divider />
 
-      <Divider />
-
-      <Box>
-        <Typography
-          component="h3"
-          variant="subtitle1"
-          fontWeight={700}
-          sx={{ mb: 2 }}
-        >
-          Adicionar comentário
-        </Typography>
-
-        {commentError && (
-          <Alert
-            severity="error"
+        <Box>
+          <Typography
+            component="h3"
+            variant="subtitle1"
+            fontWeight={700}
             sx={{ mb: 2 }}
-            onClose={
-              onClearCommentError
-            }
           >
-            {commentError}
-          </Alert>
-        )}
+            Adicionar comentário
+          </Typography>
 
-        {onAddComment ? (
-          <AddTicketComment
-            onSubmit={onAddComment}
-            disabled={
-              isAddingComment
+          {commentError && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={
+                onClearCommentError
+              }
+            >
+              {commentError}
+            </Alert>
+          )}
+
+          {onAddComment ? (
+            <AddTicketComment
+              onSubmit={onAddComment}
+              disabled={
+                isAddingComment
+              }
+            />
+          ) : (
+            <Alert severity="warning">
+              Entre no sistema para
+              adicionar comentários.
+            </Alert>
+          )}
+        </Box>
+      </Stack>
+
+      <Dialog
+        open={
+          deletingCommentId !== null
+        }
+        onClose={
+          closeDeleteConfirmation
+        }
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          Excluir comentário?
+        </DialogTitle>
+
+        <DialogContent>
+          {deleteError && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+            >
+              {deleteError}
+            </Alert>
+          )}
+
+          <DialogContentText>
+            Tem certeza que deseja
+            excluir este comentário?
+            Esta ação não poderá ser
+            desfeita.
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={
+              closeDeleteConfirmation
             }
-          />
-        ) : (
-          <Alert severity="warning">
-            Entre no sistema para
-            adicionar comentários.
-          </Alert>
-        )}
-      </Box>
-    </Stack>
+            disabled={isDeleting}
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            onClick={
+              confirmDeleteComment
+            }
+            color="error"
+            variant="contained"
+            startIcon={
+              isDeleting ? (
+                <CircularProgress
+                  size={16}
+                  color="inherit"
+                />
+              ) : (
+                <DeleteOutline />
+              )
+            }
+            disabled={isDeleting}
+          >
+            {isDeleting
+              ? "Excluindo..."
+              : "Excluir"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

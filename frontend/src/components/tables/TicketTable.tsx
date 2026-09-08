@@ -1,4 +1,5 @@
 import {
+  Box,
   Chip,
   IconButton,
   Stack,
@@ -84,271 +85,316 @@ function TicketTable({
   }
 
   return (
-    <TableContainer>
-      <Table sx={{ minWidth: hasActions ? 980 : 850 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell
-              sortDirection={getSortDirection("id")}
-            >
-              <TableSortLabel
-                active={sortField === "id"}
-                direction={getTableSortDirection("id")}
-                onClick={() => onSort("id")}
+    <Box
+      sx={{
+        width: "100%",
+        minWidth: 0,
+      }}
+    >
+      <TableContainer
+        sx={{
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "auto",
+          overflowY: "hidden",
+          WebkitOverflowScrolling: "touch",
+          borderRadius: 1,
+          "&::-webkit-scrollbar": {
+            height: 8,
+          },
+        }}
+      >
+        <Table
+          sx={{
+            minWidth: hasActions ? 980 : 850,
+            tableLayout: "auto",
+          }}
+        >
+          <TableHead>
+            <TableRow>
+              <TableCell
+                sortDirection={getSortDirection("id")}
               >
-                <strong>ID</strong>
-              </TableSortLabel>
-            </TableCell>
+                <TableSortLabel
+                  active={sortField === "id"}
+                  direction={getTableSortDirection("id")}
+                  onClick={() => onSort("id")}
+                >
+                  <strong>ID</strong>
+                </TableSortLabel>
+              </TableCell>
 
-            <TableCell
-              sortDirection={getSortDirection("title")}
-            >
-              <TableSortLabel
-                active={sortField === "title"}
-                direction={getTableSortDirection("title")}
-                onClick={() => onSort("title")}
+              <TableCell
+                sortDirection={getSortDirection("title")}
               >
-                <strong>Título</strong>
-              </TableSortLabel>
-            </TableCell>
+                <TableSortLabel
+                  active={sortField === "title"}
+                  direction={getTableSortDirection("title")}
+                  onClick={() => onSort("title")}
+                >
+                  <strong>Título</strong>
+                </TableSortLabel>
+              </TableCell>
 
-            <TableCell
-              sortDirection={getSortDirection(
-                "category"
-              )}
-            >
-              <TableSortLabel
-                active={sortField === "category"}
-                direction={getTableSortDirection(
-                  "category"
-                )}
-                onClick={() => onSort("category")}
+              <TableCell
+                sortDirection={getSortDirection("category")}
               >
-                <strong>Categoria</strong>
-              </TableSortLabel>
-            </TableCell>
+                <TableSortLabel
+                  active={sortField === "category"}
+                  direction={getTableSortDirection(
+                    "category"
+                  )}
+                  onClick={() => onSort("category")}
+                >
+                  <strong>Categoria</strong>
+                </TableSortLabel>
+              </TableCell>
 
-            <TableCell
-              sortDirection={getSortDirection(
-                "technician"
-              )}
-            >
-              <TableSortLabel
-                active={sortField === "technician"}
-                direction={getTableSortDirection(
+              <TableCell
+                sortDirection={getSortDirection(
                   "technician"
                 )}
-                onClick={() => onSort("technician")}
               >
-                <strong>Técnico</strong>
-              </TableSortLabel>
-            </TableCell>
+                <TableSortLabel
+                  active={sortField === "technician"}
+                  direction={getTableSortDirection(
+                    "technician"
+                  )}
+                  onClick={() => onSort("technician")}
+                >
+                  <strong>Técnico</strong>
+                </TableSortLabel>
+              </TableCell>
 
-            <TableCell
-              sortDirection={getSortDirection(
-                "priority"
-              )}
-            >
-              <TableSortLabel
-                active={sortField === "priority"}
-                direction={getTableSortDirection(
+              <TableCell
+                sortDirection={getSortDirection(
                   "priority"
                 )}
-                onClick={() => onSort("priority")}
               >
-                <strong>Prioridade</strong>
-              </TableSortLabel>
-            </TableCell>
-
-            <TableCell
-              sortDirection={getSortDirection("status")}
-            >
-              <TableSortLabel
-                active={sortField === "status"}
-                direction={getTableSortDirection(
-                  "status"
-                )}
-                onClick={() => onSort("status")}
-              >
-                <strong>Status</strong>
-              </TableSortLabel>
-            </TableCell>
-
-            {hasActions && (
-              <TableCell align="center">
-                <strong>Ações</strong>
-              </TableCell>
-            )}
-          </TableRow>
-        </TableHead>
-
-        <TableBody>
-          {tickets.map((ticket) => (
-            <TableRow
-              key={ticket.id}
-              hover
-            >
-              <TableCell>
-                #{ticket.id}
-              </TableCell>
-
-              <TableCell>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600 }}
-                >
-                  {ticket.title}
-                </Typography>
-              </TableCell>
-
-              <TableCell>
-                {ticket.category}
-              </TableCell>
-
-              <TableCell>
-                <Typography
-                  variant="body2"
-                  color={
-                    ticket.assignedTechnicianId === null
-                      ? "text.secondary"
-                      : "text.primary"
-                  }
-                >
-                  {getTechnicianName(
-                    ticket.assignedTechnicianId
+                <TableSortLabel
+                  active={sortField === "priority"}
+                  direction={getTableSortDirection(
+                    "priority"
                   )}
-                </Typography>
+                  onClick={() => onSort("priority")}
+                >
+                  <strong>Prioridade</strong>
+                </TableSortLabel>
               </TableCell>
 
-              <TableCell>
-                <Chip
-                  label={ticket.priority}
-                  size="small"
-                  color={
-                    ticket.priority === "Crítica" ||
-                    ticket.priority === "Alta"
-                      ? "error"
-                      : ticket.priority === "Média"
-                        ? "warning"
-                        : "success"
-                  }
-                />
-              </TableCell>
-
-              <TableCell>
-                <Chip
-                  label={ticket.status}
-                  size="small"
-                  color={
-                    ticket.status === "Aberto"
-                      ? "warning"
-                      : ticket.status === "Em andamento"
-                        ? "info"
-                        : "success"
-                  }
-                />
+              <TableCell
+                sortDirection={getSortDirection("status")}
+              >
+                <TableSortLabel
+                  active={sortField === "status"}
+                  direction={getTableSortDirection(
+                    "status"
+                  )}
+                  onClick={() => onSort("status")}
+                >
+                  <strong>Status</strong>
+                </TableSortLabel>
               </TableCell>
 
               {hasActions && (
                 <TableCell align="center">
-                  {onView && (
-                    <Tooltip title="Visualizar">
-                      <IconButton
-                        color="primary"
-                        aria-label={`Visualizar chamado ${ticket.id}`}
-                        onClick={() => onView(ticket.id)}
-                      >
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {onEdit && (
-                    <Tooltip title="Editar">
-                      <IconButton
-                        color="warning"
-                        aria-label={`Editar chamado ${ticket.id}`}
-                        onClick={() => onEdit(ticket.id)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {onAssign && (
-                    <Tooltip title="Atribuir técnico">
-                      <IconButton
-                        color="info"
-                        aria-label={`Atribuir técnico ao chamado ${ticket.id}`}
-                        onClick={() => onAssign(ticket.id)}
-                      >
-                        <PersonAddIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {onClose && (
-                    <Tooltip title="Encerrar chamado">
-                      <IconButton
-                        color="success"
-                        aria-label={`Encerrar chamado ${ticket.id}`}
-                        onClick={() => onClose(ticket.id)}
-                      >
-                        <CheckCircleIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {onDelete && (
-                    <Tooltip title="Excluir">
-                      <IconButton
-                        color="error"
-                        aria-label={`Excluir chamado ${ticket.id}`}
-                        onClick={() => onDelete(ticket.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                  <strong>Ações</strong>
                 </TableCell>
               )}
             </TableRow>
-          ))}
+          </TableHead>
 
-          {tickets.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={hasActions ? 7 : 6}
-                align="center"
-                sx={{ py: 6 }}
+          <TableBody>
+            {tickets.map((ticket) => (
+              <TableRow
+                key={ticket.id}
+                hover
               >
-                <Stack
-                  spacing={1.5}
-                  alignItems="center"
-                >
-                  <SearchIcon
-                    color="disabled"
-                    sx={{ fontSize: 42 }}
-                  />
+                <TableCell>
+                  #{ticket.id}
+                </TableCell>
 
-                  <Typography sx={{ fontWeight: 600 }}>
-                    Nenhum chamado encontrado
-                  </Typography>
-
+                <TableCell>
                   <Typography
                     variant="body2"
-                    color="text.secondary"
+                    sx={{
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                    }}
                   >
-                    Altere os termos da pesquisa ou limpe os
-                    filtros selecionados.
+                    {ticket.title}
                   </Typography>
-                </Stack>
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
+                </TableCell>
+
+                <TableCell>
+                  {ticket.category}
+                </TableCell>
+
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    color={
+                      ticket.assignedTechnicianId === null
+                        ? "text.secondary"
+                        : "text.primary"
+                    }
+                    sx={{
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {getTechnicianName(
+                      ticket.assignedTechnicianId
+                    )}
+                  </Typography>
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={ticket.priority}
+                    size="small"
+                    color={
+                      ticket.priority === "Crítica" ||
+                      ticket.priority === "Alta"
+                        ? "error"
+                        : ticket.priority === "Média"
+                          ? "warning"
+                          : "success"
+                    }
+                  />
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={ticket.status}
+                    size="small"
+                    color={
+                      ticket.status === "Aberto"
+                        ? "warning"
+                        : ticket.status === "Em andamento"
+                          ? "info"
+                          : "success"
+                    }
+                  />
+                </TableCell>
+
+                {hasActions && (
+                  <TableCell
+                    align="center"
+                    sx={{
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {onView && (
+                      <Tooltip title="Visualizar">
+                        <IconButton
+                          color="primary"
+                          aria-label={`Visualizar chamado ${ticket.id}`}
+                          onClick={() =>
+                            onView(ticket.id)
+                          }
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
+                    {onEdit && (
+                      <Tooltip title="Editar">
+                        <IconButton
+                          color="warning"
+                          aria-label={`Editar chamado ${ticket.id}`}
+                          onClick={() =>
+                            onEdit(ticket.id)
+                          }
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
+                    {onAssign && (
+                      <Tooltip title="Atribuir técnico">
+                        <IconButton
+                          color="info"
+                          aria-label={`Atribuir técnico ao chamado ${ticket.id}`}
+                          onClick={() =>
+                            onAssign(ticket.id)
+                          }
+                        >
+                          <PersonAddIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
+                    {onClose && (
+                      <Tooltip title="Encerrar chamado">
+                        <IconButton
+                          color="success"
+                          aria-label={`Encerrar chamado ${ticket.id}`}
+                          onClick={() =>
+                            onClose(ticket.id)
+                          }
+                        >
+                          <CheckCircleIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
+                    {onDelete && (
+                      <Tooltip title="Excluir">
+                        <IconButton
+                          color="error"
+                          aria-label={`Excluir chamado ${ticket.id}`}
+                          onClick={() =>
+                            onDelete(ticket.id)
+                          }
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+
+            {tickets.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={hasActions ? 7 : 6}
+                  align="center"
+                  sx={{ py: 6 }}
+                >
+                  <Stack
+                    spacing={1.5}
+                    alignItems="center"
+                  >
+                    <SearchIcon
+                      color="disabled"
+                      sx={{ fontSize: 42 }}
+                    />
+
+                    <Typography
+                      sx={{ fontWeight: 600 }}
+                    >
+                      Nenhum chamado encontrado
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Altere os termos da pesquisa ou
+                      limpe os filtros selecionados.
+                    </Typography>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 }
 

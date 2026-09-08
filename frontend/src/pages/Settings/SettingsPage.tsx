@@ -997,6 +997,9 @@ function SettingsPage() {
             importInputRef
           }
           type="file"
+          id="settings-backup-file"
+          name="settingsBackupFile"
+          aria-label="Selecionar arquivo de backup"
           accept="application/json,.json"
           hidden
           onChange={

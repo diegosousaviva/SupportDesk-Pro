@@ -41,8 +41,8 @@ export function useSessionTimeout():
   } = useSnackbar();
 
   const lastActivityRef =
-    useRef(
-      Date.now()
+    useRef<number>(
+      0
     );
 
   const sessionExpiredRef =

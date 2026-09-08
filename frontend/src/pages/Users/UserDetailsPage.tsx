@@ -37,6 +37,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockIcon from "@mui/icons-material/Lock";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import StoreIcon from "@mui/icons-material/Store";
 
 import {
   Permissions,
@@ -62,6 +63,10 @@ import {
 import {
   getUserHistory,
 } from "../../services/userHistoryService";
+
+import {
+  getStoreById,
+} from "../../services/storeService";
 
 import type {
   UserHistoryAction,
@@ -220,6 +225,19 @@ function UserDetailsPage() {
       );
     }, [user]);
 
+  const userStore =
+    useMemo(() => {
+      if (
+        !user?.storeId
+      ) {
+        return undefined;
+      }
+
+      return getStoreById(
+        user.storeId
+      );
+    }, [user]);
+
   const canEdit = can(
     Permissions.users.edit
   );
@@ -242,6 +260,14 @@ function UserDetailsPage() {
 
   const currentUserId =
     user.id;
+
+  const storeLabel =
+    userStore
+      ? `${userStore.code} - ${userStore.name}`
+      : user.role ===
+          "Solicitante"
+        ? "Não informada"
+        : "Todas as lojas";
 
   function handleBack(): void {
     if (deleting) {
@@ -655,6 +681,37 @@ function UserDetailsPage() {
             <Grid
               size={{
                 xs: 12,
+                md: 6,
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="flex-start"
+              >
+                <StoreIcon color="primary" />
+
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Loja
+                  </Typography>
+
+                  <Typography
+                    fontWeight={600}
+                  >
+                    {storeLabel}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Grid>
+
+            <Grid
+              size={{
+                xs: 12,
+                md: 6,
               }}
             >
               <Stack

@@ -130,7 +130,9 @@ function AppearanceSettings({
           </InputLabel>
 
           <Select
-            labelId="preferred-theme-label"
+            id="preferred-theme"
+                    name="preferredTheme"
+                    labelId="preferred-theme-label"
             label={t(
               "appearance.theme"
             )}
@@ -212,7 +214,9 @@ function AppearanceSettings({
           </InputLabel>
 
           <Select
-            labelId="language-label"
+            id="language"
+                    name="language"
+                    labelId="language-label"
             label={t(
               "appearance.language"
             )}

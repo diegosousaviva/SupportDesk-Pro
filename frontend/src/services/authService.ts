@@ -1,7 +1,3 @@
-import type {
-  User,
-} from "../types/User";
-
 import {
   createAuditLog,
 } from "./auditLogService";
@@ -16,6 +12,7 @@ import {
 
 import {
   clearSession,
+  getAuthToken,
   getCurrentUser as getCurrentUserFromSession,
   isAuthenticated as isAuthenticatedFromSession,
   saveSession,
@@ -24,16 +21,6 @@ import {
 import type {
   AuthUser,
 } from "./sessionService";
-
-import {
-  getUsers,
-  updateUser,
-} from "./userService";
-
-import {
-  isPasswordHash,
-  verifyPassword,
-} from "../utils/password";
 
 export type {
   AuthUser,
@@ -54,17 +41,28 @@ export interface LoginData {
   remember: boolean;
 }
 
-function removePassword(
-  user: User
-): AuthUser {
-  const {
-    password:
-      _password,
+interface LoginApiResponse {
+  success: boolean;
 
-    ...authenticatedUser
-  } = user;
+  message: string;
 
-  return authenticatedUser;
+  token?: string;
+
+  expiresAt?: string;
+
+  user?: AuthUser;
+}
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
+
+function normalizeEmail(
+  email: string
+): string {
+  return email
+    .trim()
+    .toLowerCase();
 }
 
 function registerLoginFailureAudit(
@@ -174,15 +172,52 @@ function registerInvalidCredentials(
   );
 }
 
+async function parseApiResponse(
+  response: Response
+): Promise<LoginApiResponse> {
+  try {
+    const data =
+      (await response.json()) as LoginApiResponse;
+
+    return data;
+  } catch {
+    return {
+      success:
+        false,
+
+      message:
+        "Resposta inválida recebida do servidor.",
+    };
+  }
+}
+
 export async function login({
   email,
   password,
   remember,
 }: LoginData): Promise<AuthUser> {
   const normalizedEmail =
-    email
-      .trim()
-      .toLowerCase();
+    normalizeEmail(
+      email
+    );
+
+  if (
+    normalizedEmail.length ===
+    0
+  ) {
+    throw new Error(
+      "E-mail é obrigatório."
+    );
+  }
+
+  if (
+    password.length ===
+    0
+  ) {
+    throw new Error(
+      "Senha é obrigatória."
+    );
+  }
 
   if (
     isLoginBlocked(
@@ -195,30 +230,69 @@ export async function login({
     );
   }
 
-  const user =
-    getUsers().find(
-      (currentUser) =>
-        currentUser.email
-          .trim()
-          .toLowerCase() ===
-        normalizedEmail
-    );
+  let response: Response;
 
-  if (!user) {
-    registerInvalidCredentials(
-      normalizedEmail
+  try {
+    response =
+      await fetch(
+        `${API_URL}/api/auth/login`,
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify({
+              email:
+                normalizedEmail,
+
+              password,
+            }),
+        }
+      );
+  } catch {
+    throw new Error(
+      "Não foi possível conectar ao servidor de autenticação. Verifique se o backend está em execução."
     );
   }
 
-  const validPassword =
-    await verifyPassword(
-      password,
-      user.password
+  const result =
+    await parseApiResponse(
+      response
     );
 
-  if (!validPassword) {
-    registerInvalidCredentials(
-      normalizedEmail
+  if (
+    !response.ok ||
+    !result.success
+  ) {
+    if (
+      response.status ===
+        401 ||
+      result.message ===
+        "E-mail ou senha inválidos."
+    ) {
+      registerInvalidCredentials(
+        normalizedEmail
+      );
+    }
+
+    throw new Error(
+      result.message ||
+        "Não foi possível realizar o login."
+    );
+  }
+
+  if (
+    !result.user ||
+    !result.token ||
+    !result.expiresAt
+  ) {
+    throw new Error(
+      "O servidor não retornou os dados necessários para criar a sessão."
     );
   }
 
@@ -226,45 +300,11 @@ export async function login({
     normalizedEmail
   );
 
-  if (
-    user.status !==
-    "Ativo"
-  ) {
-    throw new Error(
-      "Este usuário está inativo e não pode acessar o sistema."
-    );
-  }
-
-  let authenticatedUserData =
-    user;
-
-  if (
-    !isPasswordHash(
-      user.password
-    )
-  ) {
-    const migratedUser =
-      await updateUser(
-        user.id,
-        {
-          password,
-        }
-      );
-
-    if (migratedUser) {
-      authenticatedUserData =
-        migratedUser;
-    }
-  }
-
-  const authenticatedUser =
-    removePassword(
-      authenticatedUserData
-    );
-
   saveSession(
-    authenticatedUser,
-    remember
+    result.user,
+    remember,
+    result.token,
+    result.expiresAt
   );
 
   createAuditLog({
@@ -275,22 +315,22 @@ export async function login({
       "Login",
 
     userId:
-      authenticatedUser.id,
+      result.user.id,
 
     userName:
-      authenticatedUser.name,
+      result.user.name,
 
     entityId:
-      authenticatedUser.id,
+      result.user.id,
 
     description:
       "Login realizado com sucesso.",
 
     details:
-      `Perfil: ${authenticatedUser.role}`,
+      `Perfil: ${result.user.role}`,
   });
 
-  return authenticatedUser;
+  return result.user;
 }
 
 export function logout(
@@ -442,4 +482,9 @@ export function getCurrentUser():
 export function isAuthenticated():
   boolean {
   return isAuthenticatedFromSession();
+}
+
+export function getToken():
+  string | null {
+  return getAuthToken();
 }

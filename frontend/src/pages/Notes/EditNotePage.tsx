@@ -974,12 +974,14 @@ function EditNotePage() {
                   isSubmitting
                 }
               >
-                <InputLabel id="edit-note-category-label">
+                <InputLabel id="edit-note-category-label" htmlFor="edit-note-category">
                   Categoria
                 </InputLabel>
 
                 <Select
-                  labelId="edit-note-category-label"
+                  id="edit-note-category"
+                    name="category"
+                    labelId="edit-note-category-label"
                   value={
                     category
                   }
@@ -1253,6 +1255,9 @@ function EditNotePage() {
                       hidden
                       multiple
                       type="file"
+                       id="note-attachments"
+                       name="attachments"
+                       aria-label="Selecionar arquivos para anexar à nota"
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp"
                       onChange={
                         handleFileSelection

@@ -3,6 +3,7 @@ import type { TicketComment } from "../types/TicketComment";
 import {
   createTicketCommentRepository,
   deleteCommentsByTicketId,
+  deleteTicketCommentById,
   findCommentsByTicketId,
   updateTicketCommentRepository,
 } from "../repositories/ticketCommentRepository";
@@ -60,6 +61,19 @@ export function updateTicketComment(
   }
 
   return updatedComment;
+}
+
+export function deleteTicketComment(
+  id: number
+): void {
+  const deleted =
+    deleteTicketCommentById(id);
+
+  if (!deleted) {
+    throw new Error(
+      "Comentário não encontrado."
+    );
+  }
 }
 
 export function deleteTicketComments(

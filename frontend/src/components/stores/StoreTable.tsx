@@ -67,6 +67,71 @@ function StoreTable({
       Permissions.stores.delete
     );
 
+  const sortedStores = [
+    ...stores,
+  ].sort(
+    (
+      firstStore,
+      secondStore
+    ) => {
+      const firstCode =
+        firstStore.code
+          .trim()
+          .toLocaleUpperCase(
+            "pt-BR"
+          );
+
+      const secondCode =
+        secondStore.code
+          .trim()
+          .toLocaleUpperCase(
+            "pt-BR"
+          );
+
+      const firstNumberMatch =
+        firstCode.match(
+          /\d+/
+        );
+
+      const secondNumberMatch =
+        secondCode.match(
+          /\d+/
+        );
+
+      const firstNumber =
+        firstNumberMatch
+          ? Number(
+              firstNumberMatch[0]
+            )
+          : Number.MAX_SAFE_INTEGER;
+
+      const secondNumber =
+        secondNumberMatch
+          ? Number(
+              secondNumberMatch[0]
+            )
+          : Number.MAX_SAFE_INTEGER;
+
+      if (
+        firstNumber !==
+        secondNumber
+      ) {
+        return (
+          firstNumber -
+          secondNumber
+        );
+      }
+
+      return firstCode.localeCompare(
+        secondCode,
+        "pt-BR",
+        {
+          sensitivity: "base",
+        }
+      );
+    }
+  );
+
   return (
     <TableContainer
       component={Paper}
@@ -108,7 +173,8 @@ function StoreTable({
         </TableHead>
 
         <TableBody>
-          {stores.length === 0 ? (
+          {sortedStores.length ===
+          0 ? (
             <TableRow>
               <TableCell
                 colSpan={7}
@@ -136,7 +202,7 @@ function StoreTable({
               </TableCell>
             </TableRow>
           ) : (
-            stores.map(
+            sortedStores.map(
               (store) => (
                 <TableRow
                   key={store.id}

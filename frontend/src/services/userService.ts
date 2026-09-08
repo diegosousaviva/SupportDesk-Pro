@@ -34,6 +34,11 @@ import {
   createUserHistory,
 } from "./userHistoryService";
 
+import {
+  getStoreById,
+  getActiveStores,
+} from "./storeService";
+
 export type CreateUserData = Omit<
   User,
   "id"
@@ -91,6 +96,29 @@ function normalizeEmail(
   return email
     .trim()
     .toLowerCase();
+}
+
+function normalizeStoreId(
+  role: UserRole,
+  storeId: number | null | undefined
+): number | null {
+  if (
+    role !==
+    "Solicitante"
+  ) {
+    return null;
+  }
+
+  if (
+    storeId ===
+      null ||
+    storeId ===
+      undefined
+  ) {
+    return null;
+  }
+
+  return storeId;
 }
 
 function validateMaximumLength(
@@ -221,6 +249,76 @@ function validateStatus(
   }
 }
 
+function validateStore(
+  role: UserRole,
+  storeId: number | null | undefined
+): void {
+  if (
+    role !==
+    "Solicitante"
+  ) {
+    return;
+  }
+
+  if (
+    storeId ===
+      null ||
+    storeId ===
+      undefined
+  ) {
+    throw new Error(
+      "Selecione a loja do usuário."
+    );
+  }
+
+  if (
+    !Number.isInteger(
+      storeId
+    ) ||
+    storeId <=
+      0
+  ) {
+    throw new Error(
+      "Selecione uma loja válida."
+    );
+  }
+
+  const store =
+    getStoreById(
+      storeId
+    );
+
+  if (!store) {
+    throw new Error(
+      "A loja selecionada não foi encontrada."
+    );
+  }
+
+  if (
+    store.status !==
+    "Ativa"
+  ) {
+    throw new Error(
+      "A loja selecionada está inativa."
+    );
+  }
+
+  const activeStoreExists =
+    getActiveStores().some(
+      (activeStore) =>
+        activeStore.id ===
+        storeId
+    );
+
+  if (
+    !activeStoreExists
+  ) {
+    throw new Error(
+      "Selecione uma loja ativa válida."
+    );
+  }
+}
+
 function isStrongPasswordRequired():
   boolean {
   return getSettings()
@@ -273,6 +371,7 @@ function validateUserData(
     department: string;
     role: UserRole;
     status: UserStatus;
+    storeId: number | null | undefined;
   }
 ): void {
   validateName(
@@ -297,6 +396,11 @@ function validateUserData(
 
   validateStatus(
     data.status
+  );
+
+  validateStore(
+    data.role,
+    data.storeId
   );
 }
 
@@ -565,6 +669,12 @@ export async function createUser(
   const normalizedPassword =
     userData.password.trim();
 
+  const normalizedStoreId =
+    normalizeStoreId(
+      userData.role,
+      userData.storeId
+    );
+
   validateUserData({
     name:
       normalizedName,
@@ -583,6 +693,9 @@ export async function createUser(
 
     status:
       userData.status,
+
+    storeId:
+      normalizedStoreId,
   });
 
   validateEmailAvailability(
@@ -626,6 +739,9 @@ export async function createUser(
 
       department:
         normalizedDepartment,
+
+      storeId:
+        normalizedStoreId,
     });
 
   createUserHistory({
@@ -652,7 +768,13 @@ export async function createUser(
     newUser.id,
     "Criação",
     `Usuário "${newUser.name}" criado.`,
-    `E-mail: ${newUser.email} | Perfil: ${newUser.role} | Status: ${newUser.status}`
+    `E-mail: ${newUser.email} | Perfil: ${newUser.role} | Status: ${newUser.status} | Loja: ${
+      newUser.storeId
+        ? String(
+            newUser.storeId
+          )
+        : "Todas"
+    }`
   );
 
   return newUser;
@@ -716,6 +838,18 @@ export async function updateUser(
     updatedData.status ??
     currentUser.status;
 
+  const requestedStoreId =
+    updatedData.storeId !==
+    undefined
+      ? updatedData.storeId
+      : currentUser.storeId;
+
+  const normalizedStoreId =
+    normalizeStoreId(
+      normalizedRole,
+      requestedStoreId
+    );
+
   validateUserData({
     name:
       normalizedName,
@@ -734,6 +868,9 @@ export async function updateUser(
 
     status:
       normalizedStatus,
+
+    storeId:
+      normalizedStoreId,
   });
 
   if (
@@ -804,6 +941,9 @@ export async function updateUser(
       status:
         normalizedStatus,
 
+      storeId:
+        normalizedStoreId,
+
       password,
     };
 
@@ -841,12 +981,17 @@ export async function updateUser(
     updatedUser.status !==
     currentUser.status;
 
+  const storeChanged =
+    updatedUser.storeId !==
+    currentUser.storeId;
+
   const generalDataChanged =
     nameChanged ||
     emailChanged ||
     phoneChanged ||
     departmentChanged ||
-    passwordWasChanged;
+    passwordWasChanged ||
+    storeChanged;
 
   if (
     generalDataChanged
@@ -891,6 +1036,14 @@ export async function updateUser(
     ) {
       changedFields.push(
         "senha"
+      );
+    }
+
+    if (
+      storeChanged
+    ) {
+      changedFields.push(
+        "loja"
       );
     }
 

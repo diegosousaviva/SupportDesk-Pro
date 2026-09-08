@@ -116,6 +116,10 @@ function EditUserPage() {
       role:
         currentUser.role,
 
+      storeId:
+        currentUser.storeId ??
+        null,
+
       status:
         currentUser.status,
     };

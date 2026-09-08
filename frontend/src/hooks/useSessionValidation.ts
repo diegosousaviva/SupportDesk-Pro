@@ -142,12 +142,13 @@ export function useSessionValidation():
           )
         ) {
           const {
-            password:
-              _password,
+            password,
 
             ...refreshedUser
           } =
             registeredUser;
+
+          void password;
 
           refreshUser(
             refreshedUser

@@ -126,12 +126,14 @@ export default function DashboardFilters({
               },
             }}
           >
-            <InputLabel id="dashboard-period-label">
+            <InputLabel id="dashboard-period-label" htmlFor="dashboard-period">
               Período
             </InputLabel>
 
             <Select
-              labelId="dashboard-period-label"
+              id="dashboard-period"
+                    name="period"
+                    labelId="dashboard-period-label"
               value={
                 period
               }
@@ -179,12 +181,14 @@ export default function DashboardFilters({
                 },
               }}
             >
-              <InputLabel id="dashboard-store-label">
+              <InputLabel id="dashboard-store-label" htmlFor="dashboard-store">
                 Loja
               </InputLabel>
 
               <Select
-                labelId="dashboard-store-label"
+                id="dashboard-store"
+                    name="store"
+                    labelId="dashboard-store-label"
                 value={
                   storeFilter
                 }

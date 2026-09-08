@@ -687,12 +687,14 @@ function CreateNotePage() {
                   isSubmitting
                 }
               >
-                <InputLabel id="note-category-label">
+                <InputLabel id="note-category-label" htmlFor="note-category">
                   Categoria
                 </InputLabel>
 
                 <Select
-                  labelId="note-category-label"
+                  id="note-category"
+                    name="category"
+                    labelId="note-category-label"
                   value={
                     category
                   }
@@ -828,6 +830,9 @@ function CreateNotePage() {
                       hidden
                       multiple
                       type="file"
+                       id="note-attachments"
+                       name="attachments"
+                       aria-label="Selecionar arquivos para anexar à nota"
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp"
                       onChange={
                         handleFileSelection

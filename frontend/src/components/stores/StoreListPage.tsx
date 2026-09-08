@@ -99,27 +99,40 @@ function StoreListPage() {
             "pt-BR"
           );
 
-      return stores.filter(
-        (store) => {
-          const searchableContent =
-            [
-              store.code,
-              store.name,
-              store.city,
-              store.state,
-              store.manager,
-              store.email,
-              store.phone,
-            ]
-              .join(" ")
-              .toLocaleLowerCase(
-                "pt-BR"
-              );
+      const filtered =
+        stores.filter(
+          (store) => {
+            const searchableContent =
+              [
+                store.code,
+                store.name,
+                store.city,
+                store.state,
+                store.manager,
+                store.email,
+                store.phone,
+              ]
+                .join(" ")
+                .toLocaleLowerCase(
+                  "pt-BR"
+                );
 
-          return searchableContent.includes(
-            value
-          );
-        }
+            return searchableContent.includes(
+              value
+            );
+          }
+        );
+
+      return [...filtered].sort(
+        (firstStore, secondStore) =>
+          firstStore.code.localeCompare(
+            secondStore.code,
+            "pt-BR",
+            {
+              numeric: true,
+              sensitivity: "base",
+            }
+          )
       );
     }, [
       stores,

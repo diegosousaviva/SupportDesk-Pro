@@ -53,6 +53,14 @@ interface LoginApiResponse {
   user?: AuthUser;
 }
 
+interface ChangePasswordApiResponse {
+  success: boolean;
+
+  message: string;
+
+  user?: AuthUser;
+}
+
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "http://localhost:3000";
@@ -190,6 +198,29 @@ async function parseApiResponse(
     };
   }
 }
+
+async function parseChangePasswordResponse(
+  response: Response
+): Promise<ChangePasswordApiResponse> {
+  try {
+    const data =
+      (await response.json()) as ChangePasswordApiResponse;
+
+    return data;
+  } catch {
+    return {
+      success:
+        false,
+
+      message:
+        "Resposta inválida recebida do servidor.",
+    };
+  }
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
 
 export async function login({
   email,
@@ -333,6 +364,145 @@ export async function login({
   return result.user;
 }
 
+// ============================================================
+// ALTERAR PRÓPRIA SENHA
+// ============================================================
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<AuthUser> {
+  if (
+    currentPassword.length ===
+    0
+  ) {
+    throw new Error(
+      "A senha atual é obrigatória."
+    );
+  }
+
+  if (
+    newPassword.length ===
+    0
+  ) {
+    throw new Error(
+      "A nova senha é obrigatória."
+    );
+  }
+
+  const token =
+    getAuthToken();
+
+  if (!token) {
+    throw new Error(
+      "Sua sessão não está autenticada. Faça login novamente."
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response =
+      await fetch(
+        `${API_URL}/api/auth/change-password`,
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body:
+            JSON.stringify({
+              currentPassword,
+
+              newPassword,
+            }),
+        }
+      );
+  } catch {
+    throw new Error(
+      "Não foi possível conectar ao servidor de autenticação. Verifique se o backend está em execução."
+    );
+  }
+
+  const result =
+    await parseChangePasswordResponse(
+      response
+    );
+
+  if (
+    !response.ok ||
+    !result.success
+  ) {
+    throw new Error(
+      result.message ||
+        "Não foi possível alterar a senha."
+    );
+  }
+
+  if (
+    !result.user
+  ) {
+    throw new Error(
+      "O servidor não retornou os dados do usuário após a alteração da senha."
+    );
+  }
+
+  const currentUser =
+    getCurrentUserFromSession();
+
+  createAuditLog({
+    module:
+      "Autenticação",
+
+    action:
+      "Senha alterada",
+
+    userId:
+      result.user.id,
+
+    userName:
+      result.user.name,
+
+    entityId:
+      result.user.id,
+
+    description:
+      "Senha alterada com sucesso.",
+
+    details:
+      currentUser?.mustChangePassword ===
+      true
+        ? "Troca obrigatória de senha concluída no primeiro acesso."
+        : "Senha alterada pelo próprio usuário.",
+  });
+
+  /*
+   * O backend invalida as sessões existentes
+   * depois da alteração da senha.
+   *
+   * Portanto, o token utilizado nesta requisição
+   * deixa de ser válido e a sessão local também
+   * deve ser removida.
+   *
+   * O usuário fará um novo login utilizando
+   * a nova senha.
+   */
+  clearSession();
+
+  return result.user;
+}
+
+// ============================================================
+// LOGOUT
+// ============================================================
+
 export function logout(
   reason: LogoutReason =
     "manual"
@@ -474,15 +644,27 @@ export function logout(
   clearSession();
 }
 
+// ============================================================
+// USUÁRIO ATUAL
+// ============================================================
+
 export function getCurrentUser():
   AuthUser | null {
   return getCurrentUserFromSession();
 }
 
+// ============================================================
+// AUTENTICAÇÃO
+// ============================================================
+
 export function isAuthenticated():
   boolean {
   return isAuthenticatedFromSession();
 }
+
+// ============================================================
+// TOKEN
+// ============================================================
 
 export function getToken():
   string | null {

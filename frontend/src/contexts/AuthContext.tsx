@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -64,54 +65,67 @@ export function AuthProvider({
         getCurrentUser()
     );
 
-  async function login(
-    loginData: LoginData
-  ): Promise<AuthUser> {
-    const authenticatedUser =
-      await loginService(
-        loginData
-      );
+  const login =
+    useCallback(
+      async (
+        loginData: LoginData
+      ): Promise<AuthUser> => {
+        const authenticatedUser =
+          await loginService(
+            loginData
+          );
 
-    setUser(
-      authenticatedUser
+        setUser(
+          authenticatedUser
+        );
+
+        return authenticatedUser;
+      },
+      []
     );
 
-    return authenticatedUser;
-  }
+  const logout =
+    useCallback(
+      (
+        reason: LogoutReason =
+          "manual"
+      ): void => {
+        logoutService(
+          reason
+        );
 
-  function logout(
-    reason: LogoutReason =
-      "manual"
-  ): void {
-    logoutService(
-      reason
+        setUser(
+          null
+        );
+      },
+      []
     );
 
-    setUser(
-      null
-    );
-  }
+  const refreshUser =
+    useCallback(
+      (
+        refreshedUser: AuthUser
+      ): void => {
+        updateCurrentSessionUser(
+          refreshedUser
+        );
 
-  function refreshUser(
-    refreshedUser: AuthUser
-  ): void {
-    updateCurrentSessionUser(
-      refreshedUser
+        setUser(
+          refreshedUser
+        );
+      },
+      []
     );
 
-    setUser(
-      refreshedUser
-    );
-  }
+  const authenticated =
+    user !== null;
 
   const contextValue =
     useMemo<AuthContextValue>(
       () => ({
         user,
 
-        authenticated:
-          user !==
-          null,
+        authenticated,
 
         login,
 
@@ -121,6 +135,10 @@ export function AuthProvider({
       }),
       [
         user,
+        authenticated,
+        login,
+        logout,
+        refreshUser,
       ]
     );
 

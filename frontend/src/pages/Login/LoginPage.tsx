@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import type {
   FormEvent,
@@ -26,21 +28,49 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { useAuth } from "../../contexts/AuthContext";
 
+const PASSWORD_CHANGED_KEY =
+  "supportdesk-password-changed";
+
 function LoginPage() {
   const navigate = useNavigate();
+
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] =
+    useState("");
+
   const [password, setPassword] =
     useState("");
+
   const [remember, setRemember] =
     useState(true);
+
   const [showPassword, setShowPassword] =
     useState(false);
+
   const [loading, setLoading] =
     useState(false);
+
   const [errorMessage, setErrorMessage] =
     useState("");
+
+  const [passwordChanged, setPasswordChanged] =
+    useState(false);
+
+  useEffect(() => {
+    const passwordWasChanged =
+      sessionStorage.getItem(
+        PASSWORD_CHANGED_KEY
+      ) === "true";
+
+    if (passwordWasChanged) {
+      setPasswordChanged(true);
+
+      sessionStorage.removeItem(
+        PASSWORD_CHANGED_KEY
+      );
+    }
+  }, []);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -62,7 +92,9 @@ function LoginPage() {
       });
     } catch (error) {
       if (error instanceof Error) {
-        setErrorMessage(error.message);
+        setErrorMessage(
+          error.message
+        );
       } else {
         setErrorMessage(
           "Não foi possível realizar o login."
@@ -129,6 +161,24 @@ function LoginPage() {
             </Typography>
           </Stack>
 
+          {passwordChanged && (
+            <Alert severity="success">
+              <Typography
+                fontWeight={600}
+              >
+                Senha alterada com sucesso!
+              </Typography>
+
+              <Typography
+                variant="body2"
+              >
+                Sua senha foi alterada. Entre
+                novamente utilizando sua nova
+                senha.
+              </Typography>
+            </Alert>
+          )}
+
           {errorMessage && (
             <Alert severity="error">
               {errorMessage}
@@ -145,7 +195,9 @@ function LoginPage() {
             value={email}
             disabled={loading}
             onChange={(event) =>
-              setEmail(event.target.value)
+              setEmail(
+                event.target.value
+              )
             }
           />
 
@@ -162,7 +214,9 @@ function LoginPage() {
             value={password}
             disabled={loading}
             onChange={(event) =>
-              setPassword(event.target.value)
+              setPassword(
+                event.target.value
+              )
             }
             slotProps={{
               input: {
@@ -179,7 +233,8 @@ function LoginPage() {
                       disabled={loading}
                       onClick={() =>
                         setShowPassword(
-                          (current) => !current
+                          (current) =>
+                            !current
                         )
                       }
                     >

@@ -11,35 +11,45 @@ import {
 
 dotenv.config();
 
-async function seedAdmin(): Promise<void> {
-  const email =
-    process.env.ADMIN_EMAIL
-      ?.trim()
+interface SeedUserData {
+  name: string;
+
+  email: string;
+
+  password: string;
+
+  phone: string;
+
+  department: string;
+
+  role:
+    | "Administrador"
+    | "Técnico"
+    | "Solicitante";
+
+  storeId: number | null;
+
+  status:
+    | "Ativo"
+    | "Inativo";
+}
+
+async function createUserIfNotExists(
+  data: SeedUserData
+): Promise<void> {
+  const normalizedEmail =
+    data.email
+      .trim()
       .toLowerCase();
-
-  const password =
-    process.env.ADMIN_PASSWORD;
-
-  if (!email) {
-    throw new Error(
-      "ADMIN_EMAIL não foi definido no arquivo .env."
-    );
-  }
-
-  if (!password) {
-    throw new Error(
-      "ADMIN_PASSWORD não foi definido no arquivo .env."
-    );
-  }
 
   const existingUser =
     findUserByEmail(
-      email
+      normalizedEmail
     );
 
   if (existingUser) {
     console.log(
-      `Usuário administrador já existe: ${existingUser.email}`
+      `Usuário já existe: ${existingUser.email}`
     );
 
     return;
@@ -47,62 +57,193 @@ async function seedAdmin(): Promise<void> {
 
   const hashedPassword =
     await hashPassword(
-      password
+      data.password
     );
 
-  const admin =
+  const user =
     createUserRepository({
       name:
-        process.env.ADMIN_NAME?.trim() ||
-        "Administrador",
+        data.name.trim(),
 
-      email,
+      email:
+        normalizedEmail,
 
       password:
         hashedPassword,
 
       phone:
-        process.env.ADMIN_PHONE?.trim() ||
-        "",
+        data.phone.trim(),
 
       department:
-        process.env.ADMIN_DEPARTMENT?.trim() ||
-        "Tecnologia",
+        data.department.trim(),
 
       role:
-        "Administrador",
+        data.role,
 
       storeId:
-        null,
+        data.role ===
+        "Solicitante"
+          ? data.storeId
+          : null,
 
       status:
-        "Ativo",
+        data.status,
 
       createdAt:
         new Date().toISOString(),
     });
 
   console.log(
-    "Usuário administrador criado com sucesso."
+    "Usuário criado com sucesso:"
   );
 
   console.log(
-    `ID: ${admin.id}`
+    `  ID: ${user.id}`
   );
 
   console.log(
-    `E-mail: ${admin.email}`
+    `  Nome: ${user.name}`
   );
 
   console.log(
-    `Perfil: ${admin.role}`
+    `  E-mail: ${user.email}`
+  );
+
+  console.log(
+    `  Perfil: ${user.role}`
   );
 }
 
-seedAdmin().catch(
+async function seedUsers(): Promise<void> {
+  const adminEmail =
+    process.env.ADMIN_EMAIL
+      ?.trim()
+      .toLowerCase();
+
+  const adminPassword =
+    process.env.ADMIN_PASSWORD;
+
+  if (!adminEmail) {
+    throw new Error(
+      "ADMIN_EMAIL não foi definido no arquivo .env."
+    );
+  }
+
+  if (!adminPassword) {
+    throw new Error(
+      "ADMIN_PASSWORD não foi definido no arquivo .env."
+    );
+  }
+
+  /*
+   * Administrador principal.
+   *
+   * Os dados vêm do arquivo .env para que a conta
+   * administrativa continue utilizando a configuração
+   * atual do sistema.
+   */
+  await createUserIfNotExists({
+    name:
+      process.env.ADMIN_NAME?.trim() ||
+      "Administrador",
+
+    email:
+      adminEmail,
+
+    password:
+      adminPassword,
+
+    phone:
+      process.env.ADMIN_PHONE?.trim() ||
+      "",
+
+    department:
+      process.env.ADMIN_DEPARTMENT?.trim() ||
+      "Tecnologia",
+
+    role:
+      "Administrador",
+
+    storeId:
+      null,
+
+    status:
+      "Ativo",
+  });
+
+  /*
+   * Usuário Técnico de demonstração.
+   *
+   * Esta conta existia anteriormente apenas no frontend.
+   * Agora ela também será criada no backend, utilizando
+   * hash PBKDF2 para a senha.
+   */
+  await createUserIfNotExists({
+    name:
+      "Carlos Oliveira",
+
+    email:
+      "carlos@supportdesk.com",
+
+    password:
+      "Tecnico@123",
+
+    phone:
+      "(11) 99999-0002",
+
+    department:
+      "Suporte",
+
+    role:
+      "Técnico",
+
+    storeId:
+      null,
+
+    status:
+      "Ativo",
+  });
+
+  /*
+   * Usuário Solicitante de demonstração.
+   *
+   * Esta conta também será criada no backend.
+   */
+  await createUserIfNotExists({
+    name:
+      "Mariana Souza",
+
+    email:
+      "mariana@supportdesk.com",
+
+    password:
+      "Solicitante@123",
+
+    phone:
+      "(11) 99999-0003",
+
+    department:
+      "Financeiro",
+
+    role:
+      "Solicitante",
+
+    storeId:
+      null,
+
+    status:
+      "Ativo",
+  });
+
+  console.log(
+    "Seed de usuários concluído."
+  );
+}
+
+seedUsers().catch(
   (error) => {
     console.error(
-      "Erro ao criar administrador:",
+      "Erro ao criar usuários:",
       error
     );
 

@@ -15,6 +15,7 @@ export type AuditAction =
   | "Bloqueio de login"
   | "Sessão expirada"
   | "Sessão invalidada"
+  | "Senha alterada"
   | "Criação"
   | "Edição"
   | "Exclusão"

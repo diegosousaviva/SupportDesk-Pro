@@ -27,6 +27,15 @@ export interface User {
   status: UserStatus;
 
   createdAt: string;
+
+  /**
+   * Indica se o usuário precisa trocar a senha
+   * antes de continuar utilizando o sistema.
+   *
+   * true  = troca obrigatória
+   * false/undefined = senha normal
+   */
+  mustChangePassword?: boolean;
 }
 
 export type CreateUserData = Omit<

@@ -11,40 +11,51 @@ import {
 } from "../contexts/AuthContext";
 
 import {
-  getUserById,
-} from "../services/userService";
-
-import {
   useSnackbar,
 } from "./useSnackbar";
+
+import {
+  getAuthToken,
+} from "../services/sessionService";
 
 const VALIDATION_INTERVAL_MILLISECONDS =
   30 * 1000;
 
-function haveUserDataChanged(
-  currentUser: {
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
+
+interface SessionValidationResponse {
+  success: boolean;
+
+  message?: string;
+
+  user?: {
+    id: number;
+
     name: string;
+
     email: string;
-    role: string;
-    status: string;
-  },
-  registeredUser: {
-    name: string;
-    email: string;
-    role: string;
-    status: string;
-  }
-): boolean {
-  return (
-    currentUser.name !==
-      registeredUser.name ||
-    currentUser.email !==
-      registeredUser.email ||
-    currentUser.role !==
-      registeredUser.role ||
-    currentUser.status !==
-      registeredUser.status
-  );
+
+    phone: string;
+
+    department: string;
+
+    role:
+      | "Administrador"
+      | "Técnico"
+      | "Solicitante";
+
+    storeId?: number | null;
+
+    status:
+      | "Ativo"
+      | "Inativo";
+
+    createdAt: string;
+
+    mustChangePassword?: boolean;
+  };
 }
 
 export function useSessionValidation():
@@ -54,9 +65,8 @@ export function useSessionValidation():
 
   const {
     authenticated,
-    user,
-    logout,
     refreshUser,
+    logout,
   } = useAuth();
 
   const {
@@ -65,26 +75,23 @@ export function useSessionValidation():
 
   useEffect(
     () => {
-      if (
-        !authenticated ||
-        !user
-      ) {
+      if (!authenticated) {
         return;
       }
 
-      const activeUser =
-        user;
+      let isMounted =
+        true;
 
-      function validateSession():
-        void {
-        const registeredUser =
-          getUserById(
-            activeUser.id
-          );
+      async function validateSession():
+        Promise<void> {
+        const token =
+          getAuthToken();
 
-        if (
-          !registeredUser
-        ) {
+        if (!token) {
+          if (!isMounted) {
+            return;
+          }
+
           logout(
             "user_deleted"
           );
@@ -98,7 +105,7 @@ export function useSessionValidation():
           );
 
           showSnackbar(
-            "Sua conta não está mais disponível. Faça login novamente.",
+            "Sua sessão não está mais disponível. Faça login novamente.",
             {
               severity:
                 "warning",
@@ -108,63 +115,101 @@ export function useSessionValidation():
           return;
         }
 
-        if (
-          registeredUser.status !==
-          "Ativo"
-        ) {
-          logout(
-            "user_inactive"
-          );
+        try {
+          const response =
+            await fetch(
+              `${API_URL}/api/auth/me`,
+              {
+                method:
+                  "GET",
 
-          navigate(
-            "/login",
-            {
-              replace:
-                true,
+                headers: {
+                  Authorization:
+                    `Bearer ${token}`,
+                },
+              }
+            );
+
+          const result =
+            (await response.json()) as SessionValidationResponse;
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !result.user
+          ) {
+            if (!isMounted) {
+              return;
             }
-          );
 
-          showSnackbar(
-            "Sua conta foi inativada. Entre em contato com o administrador.",
-            {
-              severity:
-                "warning",
-            }
-          );
+            logout(
+              "user_inactive"
+            );
 
-          return;
-        }
+            navigate(
+              "/login",
+              {
+                replace:
+                  true,
+              }
+            );
 
-        if (
-          haveUserDataChanged(
-            activeUser,
-            registeredUser
-          )
-        ) {
-          const {
-            password,
+            showSnackbar(
+              result.message ||
+                "Sua sessão não é mais válida. Faça login novamente.",
+              {
+                severity:
+                  "warning",
+              }
+            );
 
-            ...refreshedUser
-          } =
-            registeredUser;
+            return;
+          }
 
-          void password;
-
-          refreshUser(
-            refreshedUser
-          );
+          /*
+           * Atualiza os dados atuais do usuário
+           * sem reiniciar o efeito de validação.
+           *
+           * O useEffect depende somente de
+           * authenticated. Isso evita que o
+           * refreshUser() provoque uma nova
+           * validação imediatamente.
+           */
+          if (isMounted) {
+            refreshUser(
+              result.user
+            );
+          }
+        } catch {
+          /*
+           * Uma falha momentânea de rede não
+           * encerra a sessão.
+           *
+           * A próxima validação tentará novamente.
+           */
         }
       }
 
-      validateSession();
+      /*
+       * Validação imediata ao iniciar.
+       */
+      void validateSession();
 
+      /*
+       * Depois, valida a sessão a cada 30 segundos.
+       */
       const intervalId =
         window.setInterval(
-          validateSession,
+          () => {
+            void validateSession();
+          },
           VALIDATION_INTERVAL_MILLISECONDS
         );
 
       return () => {
+        isMounted =
+          false;
+
         window.clearInterval(
           intervalId
         );
@@ -172,9 +217,8 @@ export function useSessionValidation():
     },
     [
       authenticated,
-      user,
-      logout,
       refreshUser,
+      logout,
       navigate,
       showSnackbar,
     ]

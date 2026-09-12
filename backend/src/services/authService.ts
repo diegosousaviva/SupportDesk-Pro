@@ -35,6 +35,13 @@ export interface AuthUser {
   status: User["status"];
 
   createdAt: string;
+
+  /**
+   * Indica se o usuário precisa trocar
+   * a senha antes de utilizar normalmente
+   * o sistema.
+   */
+  mustChangePassword?: boolean;
 }
 
 export interface LoginResult {

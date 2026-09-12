@@ -24,6 +24,7 @@ import {
 
 import {
   getCurrentUser,
+  getAuthToken,
 } from "./sessionService";
 
 import {
@@ -83,6 +84,10 @@ const VALID_STATUSES:
     "Ativo",
     "Inativo",
   ];
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 function normalizeText(
   value: string
@@ -305,7 +310,9 @@ function validateStore(
 
   const activeStoreExists =
     getActiveStores().some(
-      (activeStore) =>
+      (
+        activeStore
+      ) =>
         activeStore.id ===
         storeId
     );
@@ -473,7 +480,8 @@ export function getUserById(
     !Number.isInteger(
       id
     ) ||
-    id <= 0
+    id <=
+      0
   ) {
     return undefined;
   }
@@ -643,6 +651,100 @@ function validateEmailAvailability(
   }
 }
 
+interface BackendUsersResponse {
+  success: boolean;
+  message?: string;
+  users?: User[];
+}
+
+interface BackendUserCreateResponse {
+  success: boolean;
+  message?: string;
+  user?: User;
+}
+
+interface BackendUserUpdateResponse {
+  success: boolean;
+  message?: string;
+  user?: User;
+}
+
+async function findBackendUserByEmail(
+  email: string,
+  token: string
+): Promise<User> {
+  let response: Response;
+
+  try {
+    response =
+      await fetch(
+        `${API_URL}/api/users`,
+        {
+          method:
+            "GET",
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      );
+  } catch {
+    throw new Error(
+      "Não foi possível conectar ao servidor de usuários. Verifique se o backend está em execução."
+    );
+  }
+
+  let result:
+    BackendUsersResponse;
+
+  try {
+    result =
+      (await response.json()) as BackendUsersResponse;
+  } catch {
+    throw new Error(
+      "Resposta inválida recebida do servidor de usuários."
+    );
+  }
+
+  if (
+    !response.ok ||
+    !result.success
+  ) {
+    throw new Error(
+      result.message ||
+        "Não foi possível consultar os usuários no servidor."
+    );
+  }
+
+  const users =
+    result.users ?? [];
+
+  const normalizedEmail =
+    normalizeEmail(
+      email
+    );
+
+  const backendUser =
+    users.find(
+      (
+        currentBackendUser
+      ) =>
+        normalizeEmail(
+          currentBackendUser.email
+        ) ===
+        normalizedEmail
+    );
+
+  if (!backendUser) {
+    throw new Error(
+      "O usuário não foi encontrado no servidor."
+    );
+  }
+
+  return backendUser;
+}
+
 export async function createUser(
   userData: CreateUserData
 ): Promise<User> {
@@ -712,6 +814,114 @@ export async function createUser(
     );
   }
 
+  /*
+   * O backend é a fonte oficial para criação
+   * de usuários e armazenamento de senhas.
+   *
+   * A senha em texto puro é enviada somente
+   * por HTTPS em produção e é transformada
+   * em hash pelo backend.
+   */
+  const token =
+    getAuthToken();
+
+  if (!token) {
+    throw new Error(
+      "Sua sessão não está autenticada. Faça login novamente."
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response =
+      await fetch(
+        `${API_URL}/api/users`,
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body:
+            JSON.stringify({
+              name:
+                normalizedName,
+
+              email:
+                normalizedEmail,
+
+              password:
+                normalizedPassword,
+
+              phone:
+                normalizedPhone,
+
+              department:
+                normalizedDepartment,
+
+              role:
+                userData.role,
+
+              storeId:
+                normalizedStoreId,
+
+              status:
+                userData.status,
+            }),
+        }
+      );
+  } catch {
+    throw new Error(
+      "Não foi possível conectar ao servidor de usuários. Verifique se o backend está em execução."
+    );
+  }
+
+  let result:
+    BackendUserCreateResponse;
+
+  try {
+    result =
+      (await response.json()) as BackendUserCreateResponse;
+  } catch {
+    throw new Error(
+      "Resposta inválida recebida do servidor de usuários."
+    );
+  }
+
+  if (
+    !response.ok ||
+    !result.success
+  ) {
+    throw new Error(
+      result.message ||
+        "Não foi possível criar o usuário."
+    );
+  }
+
+  if (
+    !result.user
+  ) {
+    throw new Error(
+      "O servidor não retornou os dados do usuário criado."
+    );
+  }
+
+  /*
+   * Mantemos uma cópia local para preservar
+   * compatibilidade com as telas que ainda
+   * utilizam o repositório local durante
+   * a migração para o backend.
+   *
+   * A senha local é armazenada somente como
+   * hash, nunca em texto puro.
+   */
   const protectedPassword =
     isPasswordHash(
       normalizedPassword
@@ -768,13 +978,7 @@ export async function createUser(
     newUser.id,
     "Criação",
     `Usuário "${newUser.name}" criado.`,
-    `E-mail: ${newUser.email} | Perfil: ${newUser.role} | Status: ${newUser.status} | Loja: ${
-      newUser.storeId
-        ? String(
-            newUser.storeId
-          )
-        : "Todas"
-    }`
+    `E-mail: ${newUser.email} | Perfil: ${newUser.role} | Status: ${newUser.status} | ID oficial no backend: ${result.user.id}`
   );
 
   return newUser;
@@ -921,41 +1125,168 @@ export async function updateUser(
 
   const normalizedData:
     Partial<User> = {
-      ...updatedData,
+    ...updatedData,
 
-      name:
-        normalizedName,
+    name:
+      normalizedName,
 
-      email:
-        normalizedEmail,
+    email:
+      normalizedEmail,
 
-      phone:
-        normalizedPhone,
+    phone:
+      normalizedPhone,
 
-      department:
-        normalizedDepartment,
+    department:
+      normalizedDepartment,
 
-      role:
-        normalizedRole,
+    role:
+      normalizedRole,
 
-      status:
-        normalizedStatus,
+    status:
+      normalizedStatus,
 
-      storeId:
-        normalizedStoreId,
+    storeId:
+      normalizedStoreId,
 
-      password,
-    };
+    password,
+  };
 
-  const updatedUser =
-    updateUserById(
-      id,
-      normalizedData
+  const token =
+    getAuthToken();
+
+  if (!token) {
+    throw new Error(
+      "Sua sessão não está autenticada. Faça login novamente."
+    );
+  }
+
+  /*
+   * O ID do frontend pode ser diferente
+   * do ID oficial do backend durante a
+   * migração.
+   *
+   * Por isso, localizamos o usuário pelo
+   * e-mail e utilizamos o ID retornado pelo
+   * backend.
+   */
+  const backendUser =
+    await findBackendUserByEmail(
+      normalizedEmail,
+      token
     );
 
-  if (!updatedUser) {
-    return undefined;
+  const backendUserId =
+    backendUser.id;
+
+  let response: Response;
+
+  try {
+    response =
+      await fetch(
+        `${API_URL}/api/users/${backendUserId}`,
+        {
+          method:
+            "PUT",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body:
+            JSON.stringify({
+              name:
+                normalizedData.name,
+
+              email:
+                normalizedData.email,
+
+              password:
+                passwordWasChanged
+                  ? normalizedData.password
+                  : "",
+
+              phone:
+                normalizedData.phone,
+
+              department:
+                normalizedData.department,
+
+              role:
+                normalizedData.role,
+
+              storeId:
+                normalizedData.storeId,
+
+              status:
+                normalizedData.status,
+            }),
+        }
+      );
+  } catch {
+    throw new Error(
+      "Não foi possível conectar ao servidor de usuários. Verifique se o backend está em execução."
+    );
   }
+
+  let result:
+    BackendUserUpdateResponse;
+
+  try {
+    result =
+      (await response.json()) as BackendUserUpdateResponse;
+  } catch {
+    throw new Error(
+      "Resposta inválida recebida do servidor de usuários."
+    );
+  }
+
+  if (
+    !response.ok ||
+    !result.success
+  ) {
+    throw new Error(
+      result.message ||
+        "Não foi possível atualizar o usuário."
+    );
+  }
+
+  if (
+    !result.user
+  ) {
+    throw new Error(
+      "O servidor não retornou os dados do usuário atualizado."
+    );
+  }
+
+  /*
+   * Mantemos o ID local para que as telas
+   * antigas continuem funcionando durante
+   * a migração.
+   */
+  const synchronizedLocalUser:
+    User = {
+    ...result.user,
+
+    id:
+      currentUser.id,
+
+    password:
+      passwordWasChanged
+        ? password
+        : currentUser.password,
+  };
+
+  updateUserById(
+    currentUser.id,
+    synchronizedLocalUser
+  );
+
+  const updatedUser =
+    synchronizedLocalUser;
 
   const nameChanged =
     updatedUser.name !==

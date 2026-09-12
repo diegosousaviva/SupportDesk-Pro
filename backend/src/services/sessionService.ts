@@ -6,6 +6,10 @@ import type {
   AuthUser,
 } from "./authService.js";
 
+import {
+  findUserById,
+} from "../repositories/userRepository.js";
+
 const SESSION_DURATION_MS =
   8 * 60 * 60 * 1000;
 
@@ -146,10 +150,62 @@ export function getSessionUser(
       token
     );
 
-  return (
-    session?.user ??
-    null
-  );
+  if (!session) {
+    return null;
+  }
+
+  /*
+   * A sessão não deve continuar válida
+   * caso o usuário tenha sido excluído
+   * ou esteja inativo.
+   *
+   * Buscamos o usuário atual no repositório
+   * em vez de confiar somente na cópia que
+   * foi armazenada quando a sessão foi criada.
+   */
+  const currentUser =
+    findUserById(
+      session.user.id
+    );
+
+  if (!currentUser) {
+    sessions.delete(
+      token
+    );
+
+    return null;
+  }
+
+  if (
+    currentUser.status !==
+    "Ativo"
+  ) {
+    sessions.delete(
+      token
+    );
+
+    return null;
+  }
+
+  /*
+   * Atualiza os dados do usuário dentro
+   * da sessão para refletir alterações
+   * realizadas enquanto a sessão estava ativa.
+   */
+  const {
+    password: _password,
+    ...authenticatedUser
+  } = currentUser;
+
+  const refreshedUser:
+    AuthUser = {
+    ...authenticatedUser,
+  };
+
+  session.user =
+    refreshedUser;
+
+  return refreshedUser;
 }
 
 export function destroySession(

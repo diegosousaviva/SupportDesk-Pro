@@ -20,6 +20,9 @@ export interface User {
 
   department: string;
 
+  /**
+   * Perfil de acesso do usuário.
+   */
   role: UserRole;
 
   /**
@@ -38,4 +41,13 @@ export interface User {
   status: UserStatus;
 
   createdAt: string;
+
+  /**
+   * Indica se o usuário precisa trocar a senha
+   * antes de utilizar normalmente o sistema.
+   *
+   * true = troca obrigatória
+   * false/undefined = acesso normal
+   */
+  mustChangePassword?: boolean;
 }

@@ -61,6 +61,13 @@ const ForbiddenPage = lazy(
     )
 );
 
+const ChangePasswordPage = lazy(
+  () =>
+    import(
+      "../pages/Auth/ChangePasswordPage"
+    )
+);
+
 function AppRoutes() {
   const protectedRoutes =
     buildProtectedRoutes([
@@ -94,6 +101,11 @@ function AppRoutes() {
     {
       element: <ProtectedRoute />,
       children: [
+        {
+          path: "/alterar-senha",
+          element: <ChangePasswordPage />,
+        },
+
         {
           path: "/403",
           element: <ForbiddenPage />,

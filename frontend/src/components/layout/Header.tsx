@@ -27,6 +27,7 @@ import {
 
 import MenuIcon from "@mui/icons-material/Menu";
 import PersonIcon from "@mui/icons-material/Person";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
@@ -67,7 +68,8 @@ function getUserInitials(
       .filter(Boolean);
 
   if (
-    nameParts.length === 1
+    nameParts.length ===
+    1
   ) {
     return nameParts[0]
       .charAt(0)
@@ -182,6 +184,15 @@ function Header({
 
     navigate(
       `/users/${user.id}`
+    );
+  }
+
+  function handleChangePassword():
+    void {
+    handleCloseUserMenu();
+
+    navigate(
+      "/alterar-senha"
     );
   }
 
@@ -540,6 +551,23 @@ function Header({
                   {t(
                     "header.myProfile"
                   )}
+                </MenuItem>
+
+                <MenuItem
+                  onClick={
+                    handleChangePassword
+                  }
+                  disabled={
+                    !user
+                  }
+                >
+                  <ListItemIcon>
+                    <LockOutlinedIcon
+                      fontSize="small"
+                    />
+                  </ListItemIcon>
+
+                  Alterar senha
                 </MenuItem>
 
                 <Divider />

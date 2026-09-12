@@ -28,10 +28,12 @@ function ProtectedRoute({
   every,
   children,
 }: ProtectedRouteProps) {
-  const location = useLocation();
+  const location =
+    useLocation();
 
   const {
     authenticated,
+    user,
   } = useAuth();
 
   const {
@@ -39,6 +41,10 @@ function ProtectedRoute({
     canAny,
     canEvery,
   } = usePermissions();
+
+  // ==========================================================
+  // USUÁRIO NÃO AUTENTICADO
+  // ==========================================================
 
   if (!authenticated) {
     return (
@@ -51,6 +57,41 @@ function ProtectedRoute({
       />
     );
   }
+
+  // ==========================================================
+  // TROCA OBRIGATÓRIA DE SENHA
+  // ==========================================================
+  //
+  // Usuários que ainda precisam trocar a senha não podem
+  // acessar as demais áreas protegidas do sistema.
+  //
+  // A própria página de alteração de senha permanece liberada
+  // para evitar um redirecionamento infinito.
+  // ==========================================================
+
+  const isPasswordChangePage =
+    location.pathname ===
+    "/alterar-senha";
+
+  if (
+    user?.mustChangePassword ===
+      true &&
+    !isPasswordChangePage
+  ) {
+    return (
+      <Navigate
+        to="/alterar-senha"
+        replace
+        state={{
+          from: location,
+        }}
+      />
+    );
+  }
+
+  // ==========================================================
+  // PERMISSÕES
+  // ==========================================================
 
   const hasPermission =
     !permission ||
@@ -80,11 +121,24 @@ function ProtectedRoute({
     );
   }
 
-  if (children !== undefined) {
-    return <>{children}</>;
+  // ==========================================================
+  // RENDERIZAÇÃO
+  // ==========================================================
+
+  if (
+    children !==
+    undefined
+  ) {
+    return (
+      <>
+        {children}
+      </>
+    );
   }
 
-  return <Outlet />;
+  return (
+    <Outlet />
+  );
 }
 
 export default ProtectedRoute;

@@ -2,285 +2,100 @@ import type {
   User,
 } from "../types/User";
 
-const LOCAL_SESSION_KEY =
-  "supportdesk-pro-auth-local";
-
-const TEMPORARY_SESSION_KEY =
-  "supportdesk-pro-auth-session";
-
 export type AuthUser =
-  Omit<
-    User,
-    "password"
-  >;
+  Omit<User, "password">;
+
+const SESSION_STORAGE_KEY =
+  "supportdesk-pro-session";
+
+const LEGACY_USER_STORAGE_KEY =
+  "supportdesk-pro-current-user";
+
+const LEGACY_AUTH_STORAGE_KEY =
+  "supportdesk-pro-auth";
 
 interface StoredSession {
   user: AuthUser;
 
-  startedAt: string;
+  remember: boolean;
 
   token: string;
 
   expiresAt: string;
+
+  createdAt: string;
 }
 
 function isValidAuthUser(
   value: unknown
 ): value is AuthUser {
   if (
+    !value ||
     typeof value !==
-      "object" ||
-    value === null
+      "object"
   ) {
     return false;
   }
 
-  const user =
+  const candidate =
     value as Partial<AuthUser>;
 
   return (
-    typeof user.id ===
+    typeof candidate.id ===
       "number" &&
-    typeof user.name ===
+    Number.isInteger(
+      candidate.id
+    ) &&
+    candidate.id > 0 &&
+    typeof candidate.name ===
       "string" &&
-    typeof user.email ===
+    typeof candidate.email ===
       "string" &&
-    typeof user.role ===
-      "string" &&
-    typeof user.status ===
+    typeof candidate.role ===
       "string"
   );
 }
 
-function isValidDateString(
+function isValidStoredSession(
   value: unknown
-): value is string {
+): value is StoredSession {
   if (
+    !value ||
     typeof value !==
-    "string"
+      "object"
   ) {
     return false;
   }
 
-  const date =
-    new Date(
-      value
-    );
+  const candidate =
+    value as Partial<StoredSession>;
 
-  return !Number.isNaN(
-    date.getTime()
+  return (
+    typeof candidate.token ===
+      "string" &&
+    candidate.token.length >
+      0 &&
+    typeof candidate.expiresAt ===
+      "string" &&
+    typeof candidate.remember ===
+      "boolean" &&
+    isValidAuthUser(
+      candidate.user
+    )
   );
 }
 
-function createStoredSession(
-  user: AuthUser,
-  token: string,
-  expiresAt: string,
-  startedAt: string =
-    new Date().toISOString()
-): StoredSession {
-  return {
-    user,
-
-    startedAt,
-
-    token,
-
-    expiresAt,
-  };
-}
-
-function parseStoredSession(
-  storedValue:
-    string | null
-): StoredSession | null {
-  if (!storedValue) {
-    return null;
-  }
-
-  try {
-    const parsedValue:
-      unknown =
-      JSON.parse(
-        storedValue
-      );
-
-    /*
-     * Formato atual:
-     *
-     * {
-     *   user: {...},
-     *   startedAt: "...",
-     *   token: "...",
-     *   expiresAt: "..."
-     * }
-     */
-    if (
-      typeof parsedValue ===
-        "object" &&
-      parsedValue !==
-        null &&
-      "user" in
-        parsedValue &&
-      "startedAt" in
-        parsedValue &&
-      "token" in
-        parsedValue &&
-      "expiresAt" in
-        parsedValue
-    ) {
-      const storedSession =
-        parsedValue as {
-          user:
-            unknown;
-
-          startedAt:
-            unknown;
-
-          token:
-            unknown;
-
-          expiresAt:
-            unknown;
-        };
-
-      if (
-        !isValidAuthUser(
-          storedSession.user
-        )
-      ) {
-        return null;
-      }
-
-      if (
-        typeof storedSession.startedAt !==
-        "string"
-      ) {
-        return null;
-      }
-
-      if (
-        typeof storedSession.token !==
-        "string" ||
-        storedSession.token.trim()
-          .length === 0
-      ) {
-        return null;
-      }
-
-      if (
-        !isValidDateString(
-          storedSession.startedAt
-        )
-      ) {
-        return null;
-      }
-
-      if (
-        !isValidDateString(
-          storedSession.expiresAt
-        )
-      ) {
-        return null;
-      }
-
-      return {
-        user:
-          storedSession.user,
-
-        startedAt:
-          new Date(
-            storedSession.startedAt
-          ).toISOString(),
-
-        token:
-          storedSession.token,
-
-        expiresAt:
-          new Date(
-            storedSession.expiresAt
-          ).toISOString(),
-      };
-    }
-
-    /*
-     * Compatibilidade com sessões antigas.
-     *
-     * Sessões antigas não possuem token.
-     *
-     * Como agora a autenticação depende do token
-     * emitido pelo backend, essas sessões não podem
-     * ser utilizadas para chamadas autenticadas.
-     *
-     * Retornamos null para forçar um novo login.
-     */
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function getSessionStorageType():
-  "local" | "session" | null {
-  const localSession =
-    localStorage.getItem(
-      LOCAL_SESSION_KEY
-    );
-
-  if (localSession) {
-    return "local";
-  }
-
-  const temporarySession =
-    sessionStorage.getItem(
-      TEMPORARY_SESSION_KEY
-    );
-
-  if (temporarySession) {
-    return "session";
-  }
-
-  return null;
-}
-
-function getStoredSession():
-  StoredSession | null {
-  const localSession =
-    parseStoredSession(
-      localStorage.getItem(
-        LOCAL_SESSION_KEY
-      )
-    );
-
-  if (localSession) {
-    return localSession;
-  }
-
-  const temporarySession =
-    parseStoredSession(
-      sessionStorage.getItem(
-        TEMPORARY_SESSION_KEY
-      )
-    );
-
-  if (temporarySession) {
-    return temporarySession;
-  }
-
-  return null;
-}
-
-function isSessionExpired(
-  session: StoredSession
+function isExpired(
+  expiresAt: string
 ): boolean {
-  const expiresAt =
+  const timestamp =
     new Date(
-      session.expiresAt
-    );
+      expiresAt
+    ).getTime();
 
   if (
     Number.isNaN(
-      expiresAt.getTime()
+      timestamp
     )
   ) {
     return true;
@@ -288,8 +103,59 @@ function isSessionExpired(
 
   return (
     Date.now() >=
-    expiresAt.getTime()
+    timestamp
   );
+}
+
+function readSession():
+  StoredSession | null {
+  const stored =
+    localStorage.getItem(
+      SESSION_STORAGE_KEY
+    );
+
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const parsed =
+      JSON.parse(
+        stored
+      ) as unknown;
+
+    if (
+      !isValidStoredSession(
+        parsed
+      )
+    ) {
+      localStorage.removeItem(
+        SESSION_STORAGE_KEY
+      );
+
+      return null;
+    }
+
+    if (
+      isExpired(
+        parsed.expiresAt
+      )
+    ) {
+      localStorage.removeItem(
+        SESSION_STORAGE_KEY
+      );
+
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    localStorage.removeItem(
+      SESSION_STORAGE_KEY
+    );
+
+    return null;
+  }
 }
 
 export function saveSession(
@@ -298,236 +164,177 @@ export function saveSession(
   token: string,
   expiresAt: string
 ): void {
-  localStorage.removeItem(
-    LOCAL_SESSION_KEY
-  );
-
-  sessionStorage.removeItem(
-    TEMPORARY_SESSION_KEY
-  );
-
-  const session =
-    createStoredSession(
-      user,
-      token,
-      expiresAt
-    );
-
-  const serializedSession =
-    JSON.stringify(
-      session
-    );
-
-  if (remember) {
-    localStorage.setItem(
-      LOCAL_SESSION_KEY,
-      serializedSession
-    );
-
-    return;
-  }
-
-  sessionStorage.setItem(
-    TEMPORARY_SESSION_KEY,
-    serializedSession
-  );
-}
-
-export function updateCurrentSessionUser(
-  user: AuthUser
-): void {
-  const storageType =
-    getSessionStorageType();
-
-  if (!storageType) {
-    return;
-  }
-
-  const currentSession =
-    getStoredSession();
-
-  if (!currentSession) {
-    return;
-  }
-
-  /*
-   * Atualizamos somente os dados do usuário.
-   *
-   * O horário inicial da sessão,
-   * token e validade são preservados.
-   */
-  const updatedSession:
+  const session:
     StoredSession = {
     user,
 
-    startedAt:
-      currentSession.startedAt,
+    remember,
 
-    token:
-      currentSession.token,
+    token,
 
-    expiresAt:
-      currentSession.expiresAt,
+    expiresAt,
+
+    createdAt:
+      new Date().toISOString(),
   };
 
-  const serializedSession =
+  /*
+   * O login atual sempre substitui
+   * completamente a sessão anterior.
+   *
+   * Isso impede que o usuário anterior
+   * continue aparecendo no Header.
+   */
+  localStorage.setItem(
+    SESSION_STORAGE_KEY,
     JSON.stringify(
-      updatedSession
-    );
-
-  if (
-    storageType ===
-    "local"
-  ) {
-    localStorage.setItem(
-      LOCAL_SESSION_KEY,
-      serializedSession
-    );
-
-    return;
-  }
-
-  sessionStorage.setItem(
-    TEMPORARY_SESSION_KEY,
-    serializedSession
+      session
+    )
   );
-}
 
-export function clearSession():
-  void {
+  /*
+   * Remove formatos antigos de sessão
+   * utilizados por versões anteriores.
+   */
   localStorage.removeItem(
-    LOCAL_SESSION_KEY
+    LEGACY_USER_STORAGE_KEY
   );
 
-  sessionStorage.removeItem(
-    TEMPORARY_SESSION_KEY
+  localStorage.removeItem(
+    LEGACY_AUTH_STORAGE_KEY
   );
 }
 
 export function getCurrentUser():
   AuthUser | null {
   const session =
-    getStoredSession();
+    readSession();
 
-  if (!session) {
-    return null;
-  }
-
-  if (
-    isSessionExpired(
-      session
-    )
-  ) {
-    clearSession();
-
-    return null;
-  }
-
-  return session.user;
+  return (
+    session?.user ??
+    null
+  );
 }
 
 export function getAuthToken():
   string | null {
   const session =
-    getStoredSession();
+    readSession();
 
-  if (!session) {
-    return null;
-  }
-
-  if (
-    isSessionExpired(
-      session
-    )
-  ) {
-    clearSession();
-
-    return null;
-  }
-
-  return session.token;
+  return (
+    session?.token ??
+    null
+  );
 }
 
 export function getSessionExpiresAt():
   string | null {
   const session =
-    getStoredSession();
-
-  if (!session) {
-    return null;
-  }
-
-  if (
-    isSessionExpired(
-      session
-    )
-  ) {
-    clearSession();
-
-    return null;
-  }
-
-  return session.expiresAt;
-}
-
-export function getSessionStartedAt():
-  string | null {
-  const session =
-    getStoredSession();
+    readSession();
 
   return (
-    session?.startedAt ??
+    session?.expiresAt ??
     null
   );
 }
 
+/*
+ * Retorna há quanto tempo a sessão atual
+ * foi criada, em milissegundos.
+ *
+ * Essa função é utilizada pelo
+ * useSessionTimeout para acompanhar
+ * a duração da sessão sem depender
+ * diretamente do Header ou do AuthContext.
+ */
 export function getSessionElapsedMilliseconds():
-  number | null {
-  const startedAt =
-    getSessionStartedAt();
+  number {
+  const session =
+    readSession();
 
-  if (!startedAt) {
-    return null;
+  if (!session) {
+    return 0;
   }
 
-  const startedAtDate =
+  /*
+   * Sessões antigas podem não possuir
+   * createdAt.
+   *
+   * Nesse caso utilizamos o momento atual
+   * como referência para evitar quebrar
+   * a aplicação.
+   */
+  if (
+    typeof session.createdAt !==
+      "string"
+  ) {
+    return 0;
+  }
+
+  const createdAt =
     new Date(
-      startedAt
-    );
+      session.createdAt
+    ).getTime();
 
   if (
     Number.isNaN(
-      startedAtDate.getTime()
+      createdAt
     )
   ) {
-    return null;
+    return 0;
   }
 
   return Math.max(
     0,
     Date.now() -
-      startedAtDate.getTime()
+      createdAt
   );
 }
 
 export function isAuthenticated():
   boolean {
+  return (
+    readSession() !==
+    null
+  );
+}
+
+export function updateCurrentSessionUser(
+  user: AuthUser
+): void {
   const session =
-    getStoredSession();
+    readSession();
 
   if (!session) {
-    return false;
+    return;
   }
 
-  if (
-    isSessionExpired(
-      session
+  const updatedSession:
+    StoredSession = {
+    ...session,
+
+    user,
+  };
+
+  localStorage.setItem(
+    SESSION_STORAGE_KEY,
+    JSON.stringify(
+      updatedSession
     )
-  ) {
-    clearSession();
+  );
+}
 
-    return false;
-  }
+export function clearSession():
+  void {
+  localStorage.removeItem(
+    SESSION_STORAGE_KEY
+  );
 
-  return true;
+  localStorage.removeItem(
+    LEGACY_USER_STORAGE_KEY
+  );
+
+  localStorage.removeItem(
+    LEGACY_AUTH_STORAGE_KEY
+  );
 }

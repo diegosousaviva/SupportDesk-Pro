@@ -35,20 +35,23 @@ function normalizeEmail(
 // LISTAR USUÁRIOS
 // ============================================================
 
-export function listUsersService():
-  User[] {
-  return findAllUsers();
+export async function listUsersService():
+  Promise<User[]> {
+  return await findAllUsers();
 }
 
 // ============================================================
 // BUSCAR USUÁRIO POR ID
 // ============================================================
 
-export function getUserByIdService(
+export async function getUserByIdService(
   id: number
-): User {
+):
+  Promise<User> {
   const user =
-    findUserById(id);
+    await findUserById(
+      id
+    );
 
   if (!user) {
     throw new Error(
@@ -63,11 +66,11 @@ export function getUserByIdService(
 // BUSCAR USUÁRIO POR E-MAIL
 // ============================================================
 
-export function getUserByEmailService(
+export async function getUserByEmailService(
   email: string
 ):
-  User | undefined {
-  return findUserByEmail(
+  Promise<User | undefined> {
+  return await findUserByEmail(
     normalizeEmail(
       email
     )
@@ -112,7 +115,7 @@ export async function createUserService(
   }
 
   const existingUser =
-    findUserByEmail(
+    await findUserByEmail(
       normalizedEmail
     );
 
@@ -133,7 +136,7 @@ export async function createUserService(
       data.password
     );
 
-  return createUserRepository({
+  return await createUserRepository({
     ...data,
 
     name:
@@ -164,7 +167,9 @@ export async function updateUserService(
   data: UpdateUserData
 ): Promise<User> {
   const currentUser =
-    findUserById(id);
+    await findUserById(
+      id
+    );
 
   if (!currentUser) {
     throw new Error(
@@ -222,7 +227,7 @@ export async function updateUserService(
     }
 
     const existingUser =
-      findUserByEmail(
+      await findUserByEmail(
         normalizedEmail
       );
 
@@ -305,7 +310,7 @@ export async function updateUserService(
   // ----------------------------------------------------------
 
   const updatedUser =
-    updateUserById(
+    await updateUserById(
       id,
       updateData
     );
@@ -356,7 +361,7 @@ export async function changeOwnPasswordService(
   newPassword: string
 ): Promise<User> {
   const user =
-    findUserById(
+    await findUserById(
       userId
     );
 
@@ -455,7 +460,7 @@ export async function changeOwnPasswordService(
   // ----------------------------------------------------------
 
   const updatedUser =
-    updateUserById(
+    await updateUserById(
       userId,
       {
         password:
@@ -492,11 +497,13 @@ export async function changeOwnPasswordService(
 // EXCLUIR USUÁRIO
 // ============================================================
 
-export function deleteUserService(
+export async function deleteUserService(
   id: number
-): void {
+): Promise<void> {
   const user =
-    findUserById(id);
+    await findUserById(
+      id
+    );
 
   if (!user) {
     throw new Error(
@@ -505,7 +512,9 @@ export function deleteUserService(
   }
 
   const deleted =
-    deleteUserById(id);
+    await deleteUserById(
+      id
+    );
 
   if (
     !deleted

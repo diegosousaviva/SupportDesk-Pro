@@ -86,13 +86,13 @@ router.use(
 
 router.get(
   "/",
-  (
+  async (
     _req: Request,
     res: Response
   ) => {
     try {
       const users =
-        listUsersService();
+        await listUsersService();
 
       const sanitizedUsers =
         users.map(
@@ -129,7 +129,7 @@ router.get(
 
 router.get(
   "/:id",
-  (
+  async (
     req: Request,
     res: Response
   ) => {
@@ -155,7 +155,7 @@ router.get(
 
     try {
       const user =
-        getUserByIdService(
+        await getUserByIdService(
           id
         );
 
@@ -610,7 +610,7 @@ router.put(
 
 router.delete(
   "/:id",
-  (
+  async (
     req: Request,
     res: Response
   ) => {
@@ -651,7 +651,7 @@ router.delete(
     }
 
     try {
-      deleteUserService(
+      await deleteUserService(
         id
       );
 

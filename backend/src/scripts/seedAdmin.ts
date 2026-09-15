@@ -43,7 +43,7 @@ async function createUserIfNotExists(
       .toLowerCase();
 
   const existingUser =
-    findUserByEmail(
+    await findUserByEmail(
       normalizedEmail
     );
 
@@ -61,7 +61,7 @@ async function createUserIfNotExists(
     );
 
   const user =
-    createUserRepository({
+    await createUserRepository({
       name:
         data.name.trim(),
 

@@ -12,7 +12,7 @@ const TEMPORARY_PASSWORD =
 
 async function markTemporaryPasswords(): Promise<void> {
   const users =
-    findAllUsers();
+    await findAllUsers();
 
   let markedCount = 0;
 
@@ -35,7 +35,7 @@ async function markTemporaryPasswords(): Promise<void> {
     }
 
     const updatedUser =
-      updateUserById(
+      await updateUserById(
         user.id,
         {
           mustChangePassword:

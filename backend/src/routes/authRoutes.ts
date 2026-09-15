@@ -97,7 +97,7 @@ router.post(
       }
 
       const users =
-        findAllUsers();
+        await findAllUsers();
 
       const result =
         await authenticateUser(
@@ -149,6 +149,7 @@ router.post(
 // Esta rota NÃO exige perfil de administrador.
 // O ID do usuário é obtido através da sessão autenticada,
 // nunca através do corpo da requisição.
+//
 // ============================================================
 
 router.post(

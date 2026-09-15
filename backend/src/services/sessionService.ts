@@ -141,10 +141,10 @@ export function getSession(
   return session;
 }
 
-export function getSessionUser(
+export async function getSessionUser(
   token: string
 ):
-  AuthUser | null {
+  Promise<AuthUser | null> {
   const session =
     getSession(
       token
@@ -164,7 +164,7 @@ export function getSessionUser(
    * foi armazenada quando a sessão foi criada.
    */
   const currentUser =
-    findUserById(
+    await findUserById(
       session.user.id
     );
 

@@ -14,7 +14,6 @@ import {
 
 import {
   assertStrongPassword,
-  hashPassword,
   isPasswordHash,
 } from "../utils/password";
 
@@ -1093,14 +1092,10 @@ export async function updateUser(
       );
     }
 
-    password =
-      isPasswordHash(
-        normalizedPassword
-      )
-        ? normalizedPassword
-        : await hashPassword(
-            normalizedPassword
-          );
+    // O backend recebe a senha original e gera o hash ao salvar.
+    // Enviar o hash feito no frontend faria a API aplicar hash duas vezes,
+    // impedindo o login com a senha digitada.
+    password = normalizedPassword;
   }
 
   const normalizedData:

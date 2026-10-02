@@ -1,430 +1,109 @@
-import type {
-  AppNotification,
-  NotificationType,
-} from "../types/Notification";
-
-const STORAGE_KEY =
-  "supportdesk-pro-notifications";
-
-const DISMISSED_SLA_STORAGE_KEY =
-  "supportdesk-pro-dismissed-sla-notifications";
+import { createData, deleteData, listData, updateData } from "./dataApi";
+import type { AppNotification, NotificationType } from "../types/Notification";
 
 interface DismissedSlaNotification {
+  id: number;
   ticketId: number;
   type: NotificationType;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-function saveNotifications(
-  notifications: AppNotification[]
-): void {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(
-      notifications
-    )
-  );
+type NewNotification = Omit<AppNotification, "id" | "createdAt">;
+
+const slaTypes = new Set<NotificationType>(["sla_warning", "sla_expired"]);
+let notifications: AppNotification[] = [];
+let dismissedSlaNotifications: DismissedSlaNotification[] = [];
+
+function sortNotifications(rows: AppNotification[]): AppNotification[] {
+  return [...rows].sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
 }
 
-function getDismissedSlaNotifications():
-  DismissedSlaNotification[] {
-  const storedValue =
-    localStorage.getItem(
-      DISMISSED_SLA_STORAGE_KEY
-    );
-
-  if (!storedValue) {
-    return [];
-  }
-
-  try {
-    const parsedValue =
-      JSON.parse(
-        storedValue
-      ) as unknown;
-
-    if (
-      !Array.isArray(
-        parsedValue
-      )
-    ) {
-      return [];
-    }
-
-    return parsedValue.filter(
-      (
-        item
-      ): item is DismissedSlaNotification => {
-        if (
-          typeof item !==
-            "object" ||
-          item ===
-            null
-        ) {
-          return false;
-        }
-
-        const candidate =
-          item as Partial<DismissedSlaNotification>;
-
-        return (
-          typeof candidate.ticketId ===
-            "number" &&
-          typeof candidate.type ===
-            "string"
-        );
-      }
-    );
-  } catch {
-    return [];
-  }
-}
-
-function saveDismissedSlaNotifications(
-  notifications:
-    DismissedSlaNotification[]
-): void {
-  localStorage.setItem(
-    DISMISSED_SLA_STORAGE_KEY,
-    JSON.stringify(
-      notifications
-    )
-  );
-}
-
-function isSlaNotificationType(
-  type:
-    NotificationType
-): boolean {
-  return (
-    type ===
-      "sla_warning" ||
-    type ===
-      "sla_expired"
-  );
-}
-
-function registerDismissedSlaNotification(
-  ticketId:
-    number,
-  type:
-    NotificationType
-): void {
-  if (
-    !isSlaNotificationType(
-      type
-    )
-  ) {
-    return;
-  }
-
-  const dismissedNotifications =
-    getDismissedSlaNotifications();
-
-  const alreadyRegistered =
-    dismissedNotifications.some(
-      (
-        notification
-      ) =>
-        notification.ticketId ===
-          ticketId &&
-        notification.type ===
-          type
-    );
-
-  if (
-    alreadyRegistered
-  ) {
-    return;
-  }
-
-  saveDismissedSlaNotifications([
-    ...dismissedNotifications,
-
-    {
-      ticketId,
-      type,
-    },
+export async function refreshNotifications(): Promise<AppNotification[]> {
+  const [storedNotifications, dismissals] = await Promise.all([
+    listData<AppNotification>("notifications"),
+    listData<DismissedSlaNotification>("sla-notification-dismissals"),
   ]);
+  notifications = sortNotifications(storedNotifications);
+  dismissedSlaNotifications = dismissals;
+  return [...notifications];
 }
 
-export function isSlaNotificationDismissed(
-  ticketId:
-    number,
-  type:
-    NotificationType
-): boolean {
-  if (
-    !isSlaNotificationType(
-      type
-    )
-  ) {
-    return false;
-  }
+export function clearNotificationCache(): void {
+  notifications = [];
+  dismissedSlaNotifications = [];
+}
 
-  return getDismissedSlaNotifications().some(
-    (
-      notification
-    ) =>
-      notification.ticketId ===
-        ticketId &&
-      notification.type ===
-        type
+export function getNotifications(): AppNotification[] {
+  return sortNotifications(notifications);
+}
+
+export function isSlaNotificationDismissed(ticketId: number, type: NotificationType): boolean {
+  return slaTypes.has(type) && dismissedSlaNotifications.some(
+    (entry) => entry.ticketId === ticketId && entry.type === type,
   );
 }
 
-export function getNotifications():
-  AppNotification[] {
-  const storedNotifications =
-    localStorage.getItem(
-      STORAGE_KEY
-    );
+async function recordSlaDismissal(ticketId: number, type: NotificationType): Promise<void> {
+  if (!slaTypes.has(type) || isSlaNotificationDismissed(ticketId, type)) return;
+  const dismissal = await createData<DismissedSlaNotification>("sla-notification-dismissals", { ticketId, type });
+  dismissedSlaNotifications = [...dismissedSlaNotifications, dismissal];
+}
 
-  if (!storedNotifications) {
-    return [];
+export async function addNotification(notification: NewNotification): Promise<AppNotification> {
+  const created = await createData<AppNotification>("notifications", notification);
+  notifications = sortNotifications([created, ...notifications]);
+  return created;
+}
+
+export async function markNotificationAsRead(id: number): Promise<void> {
+  const updated = await updateData<AppNotification>("notifications", id, { read: true });
+  notifications = notifications.map((entry) => entry.id === id ? updated : entry);
+}
+
+export async function markAllNotificationsAsRead(): Promise<void> {
+  const unread = notifications.filter((entry) => !entry.read);
+  const updated = await Promise.all(unread.map((entry) => updateData<AppNotification>("notifications", entry.id, { read: true })));
+  const byId = new Map(updated.map((entry) => [entry.id, entry]));
+  notifications = notifications.map((entry) => byId.get(entry.id) ?? entry);
+}
+
+async function removeNotifications(rows: AppNotification[], rememberSlaDismissals: boolean): Promise<void> {
+  if (rememberSlaDismissals) {
+    const dismissals = rows.filter((entry) => entry.ticketId !== null && slaTypes.has(entry.type));
+    for (const entry of dismissals) await recordSlaDismissal(entry.ticketId!, entry.type);
   }
-
   try {
-    const parsedData =
-      JSON.parse(
-        storedNotifications
-      ) as unknown;
-
-    if (
-      !Array.isArray(
-        parsedData
-      )
-    ) {
-      return [];
-    }
-
-    return parsedData as AppNotification[];
+    await Promise.all(rows.map((entry) => deleteData("notifications", entry.id)));
   } catch (error) {
-    console.error(
-      "Não foi possível carregar as notificações.",
-      error
-    );
-
-    return [];
+    await refreshNotifications().catch(() => undefined);
+    throw error;
   }
+  const removedIds = new Set(rows.map((entry) => entry.id));
+  notifications = notifications.filter((entry) => !removedIds.has(entry.id));
 }
 
-export function addNotification(
-  notification: Omit<
-    AppNotification,
-    "id" | "createdAt"
-  >
-): AppNotification {
-  const notifications =
-    getNotifications();
-
-  const highestId =
-    notifications.reduce(
-      (
-        currentHighestId,
-        currentNotification
-      ) =>
-        Math.max(
-          currentHighestId,
-          currentNotification.id
-        ),
-      0
-    );
-
-  const newNotification:
-    AppNotification = {
-      ...notification,
-
-      id:
-        highestId + 1,
-
-      createdAt:
-        new Date().toISOString(),
-    };
-
-  saveNotifications([
-    newNotification,
-    ...notifications,
-  ]);
-
-  return newNotification;
+export async function removeNotification(id: number): Promise<void> {
+  const selected = notifications.find((entry) => entry.id === id);
+  if (selected) await removeNotifications([selected], true);
 }
 
-export function markNotificationAsRead(
-  id:
-    number
-): void {
-  const notifications =
-    getNotifications().map(
-      (
-        notification
-      ) =>
-        notification.id ===
-        id
-          ? {
-              ...notification,
-              read:
-                true,
-            }
-          : notification
-    );
-
-  saveNotifications(
-    notifications
-  );
+export async function removeNotificationsByTicket(ticketId: number): Promise<void> {
+  await removeNotifications(notifications.filter((entry) => entry.ticketId === ticketId), false);
 }
 
-export function markAllNotificationsAsRead():
-  void {
-  const notifications =
-    getNotifications().map(
-      (
-        notification
-      ) => ({
-        ...notification,
-        read:
-          true,
-      })
-    );
-
-  saveNotifications(
-    notifications
-  );
+export async function removeNotificationsByTicketAndTypes(
+  ticketId: number,
+  types: readonly NotificationType[],
+): Promise<void> {
+  const selected = notifications.filter((entry) => entry.ticketId === ticketId && types.includes(entry.type));
+  await removeNotifications(selected, true);
 }
 
-export function removeNotification(
-  id:
-    number
-): void {
-  const notifications =
-    getNotifications();
-
-  const notificationToRemove =
-    notifications.find(
-      (
-        notification
-      ) =>
-        notification.id ===
-        id
-    );
-
-  if (
-    notificationToRemove &&
-    notificationToRemove.ticketId !==
-      null &&
-    isSlaNotificationType(
-      notificationToRemove.type
-    )
-  ) {
-    registerDismissedSlaNotification(
-      notificationToRemove.ticketId,
-      notificationToRemove.type
-    );
-  }
-
-  const filteredNotifications =
-    notifications.filter(
-      (
-        notification
-      ) =>
-        notification.id !==
-        id
-    );
-
-  saveNotifications(
-    filteredNotifications
-  );
+export async function removeSlaNotificationsByTicket(ticketId: number): Promise<void> {
+  await removeNotificationsByTicketAndTypes(ticketId, ["sla_warning", "sla_expired"]);
 }
 
-export function removeNotificationsByTicket(
-  ticketId:
-    number
-): void {
-  const notifications =
-    getNotifications().filter(
-      (
-        notification
-      ) =>
-        notification.ticketId !==
-        ticketId
-    );
-
-  saveNotifications(
-    notifications
-  );
-}
-
-export function removeNotificationsByTicketAndTypes(
-  ticketId:
-    number,
-  types:
-    readonly NotificationType[]
-): void {
-  const notifications =
-    getNotifications().filter(
-      (
-        notification
-      ) => {
-        const belongsToTicket =
-          notification.ticketId ===
-          ticketId;
-
-        const hasSelectedType =
-          types.includes(
-            notification.type
-          );
-
-        return !(
-          belongsToTicket &&
-          hasSelectedType
-        );
-      }
-    );
-
-  saveNotifications(
-    notifications
-  );
-}
-
-export function removeSlaNotificationsByTicket(
-  ticketId:
-    number
-): void {
-  removeNotificationsByTicketAndTypes(
-    ticketId,
-    [
-      "sla_warning",
-      "sla_expired",
-    ]
-  );
-}
-
-export function clearNotifications():
-  void {
-  const notifications =
-    getNotifications();
-
-  notifications.forEach(
-    (
-      notification
-    ) => {
-      if (
-        notification.ticketId ===
-          null ||
-        !isSlaNotificationType(
-          notification.type
-        )
-      ) {
-        return;
-      }
-
-      registerDismissedSlaNotification(
-        notification.ticketId,
-        notification.type
-      );
-    }
-  );
-
-  localStorage.removeItem(
-    STORAGE_KEY
-  );
+export async function clearNotifications(): Promise<void> {
+  await removeNotifications(notifications, true);
 }

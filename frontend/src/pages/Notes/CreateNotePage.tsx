@@ -448,7 +448,7 @@ function CreateNotePage() {
 
     try {
       const createdNote =
-        createNote(
+        await createNote(
           {
             title:
               title.trim(),

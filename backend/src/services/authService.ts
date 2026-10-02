@@ -163,7 +163,7 @@ export async function authenticateUser(
     );
 
   const session =
-    createSession(
+    await createSession(
       authenticatedUser
     );
 

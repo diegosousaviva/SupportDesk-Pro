@@ -34,10 +34,11 @@ import {
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
+import { useAuth } from "../../contexts/AuthContext";
+import { refreshStores } from "../../repositories/storeRepository";
 
 import {
   deleteStore,
-  getStores,
 } from "../../services/storeService";
 
 import type {
@@ -45,6 +46,7 @@ import type {
 } from "../../types/Store";
 
 function StoreListPage() {
+  const { storeRevision } = useAuth();
   const navigate =
     useNavigate();
 
@@ -85,10 +87,15 @@ function StoreListPage() {
   ] = useState(false);
 
   useEffect(() => {
-    setStores(
-      getStores()
-    );
-  }, []);
+    let active = true;
+    void refreshStores()
+      .then((loadedStores) => { if (active) setStores(loadedStores); })
+      .catch((error: unknown) => {
+        console.error("Não foi possível carregar as lojas.", error);
+        showError(error instanceof Error ? error.message : "Não foi possível carregar as lojas.");
+      });
+    return () => { active = false; };
+  }, [storeRevision, showError]);
 
   const filteredStores =
     useMemo(() => {

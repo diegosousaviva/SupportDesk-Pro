@@ -8,24 +8,20 @@ import {
   getSessionUser,
 } from "../services/sessionService.js";
 
-export function authMiddleware(
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const authorization =
     req.headers.authorization;
 
   if (
-    typeof authorization !==
-    "string"
+    typeof authorization !== "string"
   ) {
     res.status(401).json({
-      success:
-        false,
-
-      message:
-        "Token de autenticação não informado.",
+      success: false,
+      message: "Token de autenticação não informado.",
     });
 
     return;
@@ -34,46 +30,34 @@ export function authMiddleware(
   const [
     scheme,
     token,
-  ] =
-    authorization.trim().split(
-      /\s+/
-    );
+    ...extraParts
+  ] = authorization.trim().split(/\s+/);
 
   if (
-    scheme?.toLowerCase() !==
-      "bearer" ||
-    !token
+    scheme?.toLowerCase() !== "bearer" ||
+    !token ||
+    extraParts.length > 0
   ) {
     res.status(401).json({
-      success:
-        false,
-
-      message:
-        "Token de autenticação inválido.",
+      success: false,
+      message: "Token de autenticação inválido.",
     });
 
     return;
   }
 
-  const user =
-    getSessionUser(
-      token
-    );
+  const user = await getSessionUser(token);
 
   if (!user) {
     res.status(401).json({
-      success:
-        false,
-
-      message:
-        "Sessão inválida ou expirada. Faça login novamente.",
+      success: false,
+      message: "Sessão inválida ou expirada. Faça login novamente.",
     });
 
     return;
   }
 
-  res.locals.authUser =
-    user;
+  res.locals.authUser = user;
 
   next();
 }

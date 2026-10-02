@@ -151,6 +151,34 @@ export async function findUserById(
   );
 }
 
+export async function hasUsersForStore(storeId: number): Promise<boolean> {
+  const [rows] = await pool.execute(
+    "SELECT id FROM users WHERE store_id = ? LIMIT 1",
+    [storeId],
+  );
+  return (rows as Array<{ id: number }>).length > 0;
+}
+
+export async function hasUserReferences(userId: number): Promise<boolean> {
+  const references: Array<[string, string]> = [
+    ["tickets", "requesterUserId"],
+    ["tickets", "assignedTechnicianId"],
+    ["inventory", "responsibleUserId"],
+    ["inventory-history", "performedByUserId"],
+    ["ticket-comments", "authorId"],
+    ["notes", "authorUserId"],
+    ["note-attachments", "uploadedByUserId"],
+  ];
+  for (const [entity, field] of references) {
+    const [rows] = await pool.execute(
+      `SELECT id FROM supportdesk_records WHERE entity_type = ? AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.${field}')) = ? LIMIT 1`,
+      [entity, String(userId)],
+    );
+    if ((rows as Array<{ id: number }>).length > 0) return true;
+  }
+  return false;
+}
+
 export async function findUserByEmail(
   email: string
 ):

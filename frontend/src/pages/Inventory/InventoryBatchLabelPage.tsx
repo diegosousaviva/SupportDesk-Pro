@@ -27,6 +27,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 import InventoryLabelPreview from "../../components/inventory/InventoryLabelPreview";
 import MainLayout from "../../components/layout/MainLayout";
@@ -75,6 +76,7 @@ function parseSelectedIds(
 }
 
 function InventoryBatchLabelPage() {
+  const { storeRevision } = useAuth();
   const navigate =
     useNavigate();
 
@@ -126,6 +128,7 @@ function InventoryBatchLabelPage() {
         );
     }, [
       selectedIds,
+      storeRevision,
     ]);
 
   function updateOption<

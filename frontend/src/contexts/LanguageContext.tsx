@@ -13,7 +13,7 @@ import type {
 
 import {
   getSettings,
-  saveSettings,
+  saveDevicePreferences,
 } from "../services/settingsService";
 
 import type {
@@ -69,7 +69,7 @@ const translations = {
     "settings.restoreError":
       "Não foi possível restaurar as configurações padrão.",
     "settings.resetConfirm":
-      "Esta ação apagará os dados locais do Suporte Droga Viva, incluindo chamados, usuários, categorias e configurações. Deseja continuar?",
+      "Esta ação apagará apenas os dados e a sessão armazenados neste computador. Os registros compartilhados no servidor não serão apagados. Deseja continuar?",
 
     "settings.audit.title":
       "Auditoria",
@@ -315,7 +315,7 @@ const translations = {
     "settings.restoreError":
       "Unable to restore default settings.",
     "settings.resetConfirm":
-      "This action will delete the local Suporte Droga Viva data, including tickets, users, categories, and settings. Do you want to continue?",
+      "This action clears only data and the session stored on this computer. Shared records on the server will not be deleted. Do you want to continue?",
 
     "settings.audit.title":
       "Audit",
@@ -584,15 +584,7 @@ export function LanguageProvider({
         newLanguage:
           SystemLanguage
       ): void => {
-        const currentSettings =
-          getSettings();
-
-        saveSettings({
-          ...currentSettings,
-
-          language:
-            newLanguage,
-        });
+        saveDevicePreferences({ language: newLanguage });
 
         setCurrentLanguage(
           newLanguage

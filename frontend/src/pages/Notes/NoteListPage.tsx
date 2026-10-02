@@ -22,6 +22,7 @@ import {
 } from "@mui/icons-material";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -44,6 +45,7 @@ import {
   deleteNote,
   getNotesForUser,
 } from "../../services/noteService";
+import { refreshNotes } from "../../repositories/noteRepository";
 
 import {
   getUserById,
@@ -114,6 +116,7 @@ function NoteListPage() {
 
   const {
     user,
+    storeRevision,
   } = useAuth();
 
   const {
@@ -153,6 +156,20 @@ function NoteListPage() {
   ] = useState<
     number | null
   >(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void refreshNotes()
+      .then(() => {
+        if (active) setNotes(getNotesForUser(user));
+      })
+      .catch((error: unknown) => {
+        console.error("Não foi possível atualizar as notas.", error);
+        if (active) showSnackbar(error instanceof Error ? error.message : "Não foi possível atualizar as notas.", { severity: "error" });
+      });
+    return () => { active = false; };
+  }, [storeRevision, user, showSnackbar]);
 
   const isAdministrator =
     user?.role ===

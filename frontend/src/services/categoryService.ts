@@ -5,267 +5,62 @@ import {
   findById,
   updateById,
 } from "../repositories/categoryRepository";
+import type { Category, CreateCategoryData, UpdateCategoryData } from "../types/Category";
 
-import type {
-  Category,
-  CreateCategoryData,
-  UpdateCategoryData,
-} from "../types/Category";
+const MINIMUM_NAME_LENGTH = 3;
+const MAXIMUM_NAME_LENGTH = 80;
+const MAXIMUM_DESCRIPTION_LENGTH = 500;
+const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
-const MINIMUM_NAME_LENGTH =
-  3;
-
-const MAXIMUM_NAME_LENGTH =
-  80;
-
-const MAXIMUM_DESCRIPTION_LENGTH =
-  500;
-
-const COLOR_PATTERN =
-  /^#[0-9A-Fa-f]{6}$/;
-
-function normalizeName(
-  name: string
-): string {
-  return name
-    .trim()
-    .toLocaleLowerCase(
-      "pt-BR"
-    );
-}
-
-function normalizeText(
-  value: string
-): string {
-  return value.trim();
-}
-
-function validateCategoryId(
-  id: number
-): boolean {
-  return (
-    Number.isInteger(
-      id
-    ) &&
-    id > 0
-  );
-}
-
-function validateName(
-  name: string,
-  ignoreId?: number
-): void {
-  const trimmedName =
-    name.trim();
-
-  if (!trimmedName) {
-    throw new Error(
-      "Informe o nome da categoria."
-    );
-  }
-
-  if (
-    trimmedName.length <
-    MINIMUM_NAME_LENGTH
-  ) {
-    throw new Error(
-      `O nome da categoria deve possuir pelo menos ${MINIMUM_NAME_LENGTH} caracteres.`
-    );
-  }
-
-  if (
-    trimmedName.length >
-    MAXIMUM_NAME_LENGTH
-  ) {
-    throw new Error(
-      `O nome da categoria deve possuir no máximo ${MAXIMUM_NAME_LENGTH} caracteres.`
-    );
-  }
-
-  const normalized =
-    normalizeName(
-      trimmedName
-    );
-
-  const exists =
-    findAll().some(
-      (category) =>
-        normalizeName(
-          category.name
-        ) ===
-          normalized &&
-        category.id !==
-          ignoreId
-    );
-
-  if (exists) {
-    throw new Error(
-      "Já existe uma categoria com este nome."
-    );
-  }
-}
-
-function validateDescription(
-  description: string
-): void {
-  if (
-    description.length >
-    MAXIMUM_DESCRIPTION_LENGTH
-  ) {
-    throw new Error(
-      `A descrição deve possuir no máximo ${MAXIMUM_DESCRIPTION_LENGTH} caracteres.`
-    );
-  }
-}
-
-function validateColor(
-  color: string
-): void {
-  if (
-    !COLOR_PATTERN.test(
-      color
-    )
-  ) {
-    throw new Error(
-      "Informe uma cor hexadecimal válida."
-    );
-  }
-}
-
-function normalizeCategoryData<
-  T extends
-    CreateCategoryData |
-    UpdateCategoryData,
->(
-  data: T
-): T {
+function normalizeData<T extends CreateCategoryData | UpdateCategoryData>(data: T): T {
   return {
     ...data,
-
-    name:
-      data.name.trim(),
-
-    description:
-      normalizeText(
-        data.description
-      ),
-
-    color:
-      data.color.trim(),
+    name: data.name.trim(),
+    description: data.description.trim(),
+    color: data.color.trim(),
   };
 }
 
-function validateCategoryData(
-  data:
-    CreateCategoryData |
-    UpdateCategoryData,
-  ignoreId?: number
-): void {
-  validateName(
-    data.name,
-    ignoreId
-  );
-
-  validateDescription(
-    data.description
-  );
-
-  validateColor(
-    data.color
-  );
+function validateData(data: CreateCategoryData | UpdateCategoryData): void {
+  if (data.name.length < MINIMUM_NAME_LENGTH || data.name.length > MAXIMUM_NAME_LENGTH) {
+    throw new Error(`O nome da categoria deve possuir entre ${MINIMUM_NAME_LENGTH} e ${MAXIMUM_NAME_LENGTH} caracteres.`);
+  }
+  if (data.description.length > MAXIMUM_DESCRIPTION_LENGTH) {
+    throw new Error(`A descrição deve possuir no máximo ${MAXIMUM_DESCRIPTION_LENGTH} caracteres.`);
+  }
+  if (!COLOR_PATTERN.test(data.color)) {
+    throw new Error("Informe uma cor hexadecimal válida.");
+  }
+  if (typeof data.active !== "boolean") {
+    throw new Error("Informe se a categoria está ativa.");
+  }
 }
 
-export function getCategories():
-  Category[] {
+function validId(id: number): boolean {
+  return Number.isSafeInteger(id) && id > 0;
+}
+
+export function getCategories(): Promise<Category[]> {
   return findAll();
 }
 
-export function getCategoryById(
-  id: number
-): Category | undefined {
-  if (
-    !validateCategoryId(
-      id
-    )
-  ) {
-    return undefined;
-  }
-
-  return findById(
-    id
-  );
+export function getCategoryById(id: number): Promise<Category | undefined> {
+  return validId(id) ? findById(id) : Promise.resolve(undefined);
 }
 
-export async function createCategory(
-  data:
-    CreateCategoryData
-): Promise<Category> {
-  const normalizedData =
-    normalizeCategoryData(
-      data
-    );
-
-  validateCategoryData(
-    normalizedData
-  );
-
-  return create(
-    normalizedData
-  );
+export async function createCategory(data: CreateCategoryData): Promise<Category> {
+  const normalized = normalizeData(data);
+  validateData(normalized);
+  return create(normalized);
 }
 
-export async function updateCategory(
-  id: number,
-  data:
-    UpdateCategoryData
-): Promise<Category | undefined> {
-  if (
-    !validateCategoryId(
-      id
-    )
-  ) {
-    return undefined;
-  }
-
-  const existingCategory =
-    findById(
-      id
-    );
-
-  if (
-    !existingCategory
-  ) {
-    return undefined;
-  }
-
-  const normalizedData =
-    normalizeCategoryData(
-      data
-    );
-
-  validateCategoryData(
-    normalizedData,
-    id
-  );
-
-  return updateById(
-    id,
-    normalizedData
-  );
+export async function updateCategory(id: number, data: UpdateCategoryData): Promise<Category | undefined> {
+  if (!validId(id)) return undefined;
+  const normalized = normalizeData(data);
+  validateData(normalized);
+  return updateById(id, normalized);
 }
 
-export function deleteCategory(
-  id: number
-): boolean {
-  if (
-    !validateCategoryId(
-      id
-    )
-  ) {
-    return false;
-  }
-
-  return deleteById(
-    id
-  );
+export function deleteCategory(id: number): Promise<boolean> {
+  return validId(id) ? deleteById(id) : Promise.resolve(false);
 }

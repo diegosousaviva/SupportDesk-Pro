@@ -179,10 +179,10 @@ function CreateInventoryPage() {
     );
   }
 
-  function handleSubmit(
+  async function handleSubmit(
     event:
       FormEvent<HTMLFormElement>
-  ): void {
+  ): Promise<void> {
     event.preventDefault();
 
     setErrorMessage("");
@@ -213,7 +213,7 @@ function CreateInventoryPage() {
             );
 
       const createdItem =
-        createInventoryItem({
+        await createInventoryItem({
           tagMode:
             formData.tagMode,
 
@@ -269,7 +269,7 @@ function CreateInventoryPage() {
         });
 
       try {
-        addInventoryHistoryEvent({
+        await addInventoryHistoryEvent({
           inventoryItemId:
             createdItem.id,
 

@@ -21,6 +21,7 @@ import {
 import type {
   AuthUser,
 } from "./sessionService";
+import { API_BASE_URL as API_URL } from "./apiBaseUrl";
 
 export type {
   AuthUser,
@@ -60,10 +61,6 @@ interface ChangePasswordApiResponse {
 
   user?: AuthUser;
 }
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000";
 
 function normalizeEmail(
   email: string

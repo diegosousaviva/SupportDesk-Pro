@@ -1,337 +1,160 @@
-export type PreferredTheme =
-  | "light"
-  | "dark"
-  | "system";
+import { listData, saveSharedSettings } from "./dataApi";
 
-export type SystemLanguage =
-  | "pt-BR"
-  | "en-US";
+export type PreferredTheme = "light" | "dark" | "system";
+export type SystemLanguage = "pt-BR" | "en-US";
 
 export interface SettingsData {
   companyName: string;
   supportEmail: string;
   supportPhone: string;
   website: string;
-
   notifyNewTicket: boolean;
   notifyStatusChange: boolean;
   notifyCriticalTicket: boolean;
   notifyAssignedTicket: boolean;
   notifySlaExpired: boolean;
-
   compactMode: boolean;
   preferredTheme: PreferredTheme;
   language: SystemLanguage;
-
   sessionTimeoutMinutes: number;
   maximumSessionDurationMinutes: number;
   requireStrongPassword: boolean;
   automaticLogout: boolean;
 }
 
-const STORAGE_KEY =
-  "supportdesk-pro-settings";
+type DevicePreferences = Pick<SettingsData, "compactMode" | "preferredTheme" | "language">;
+type SharedSettings = Omit<SettingsData, keyof DevicePreferences>;
+type StoredSettings = Partial<SettingsData> & { id?: number };
+
+const LEGACY_STORAGE_KEY = "supportdesk-pro-settings";
+const DEVICE_STORAGE_KEY = "supportdesk-pro-device-preferences";
 
 export const defaultSettings: SettingsData = {
-  companyName:
-    "Suporte Droga Viva",
-
-  supportEmail:
-    "suporte@supportdesk.com",
-
-  supportPhone:
-    "(11) 99999-0000",
-
-  website:
-    "",
-
-  notifyNewTicket:
-    true,
-
-  notifyStatusChange:
-    true,
-
-  notifyCriticalTicket:
-    true,
-
-  notifyAssignedTicket:
-    true,
-
-  notifySlaExpired:
-    true,
-
-  compactMode:
-    false,
-
-  preferredTheme:
-    "light",
-
-  language:
-    "pt-BR",
-
-  sessionTimeoutMinutes:
-    60,
-
-  maximumSessionDurationMinutes:
-    480,
-
-  requireStrongPassword:
-    true,
-
-  automaticLogout:
-    false,
+  companyName: "Suporte Droga Viva",
+  supportEmail: "suporte@supportdesk.com",
+  supportPhone: "(11) 99999-0000",
+  website: "",
+  notifyNewTicket: true,
+  notifyStatusChange: true,
+  notifyCriticalTicket: true,
+  notifyAssignedTicket: true,
+  notifySlaExpired: true,
+  compactMode: false,
+  preferredTheme: "light",
+  language: "pt-BR",
+  sessionTimeoutMinutes: 60,
+  maximumSessionDurationMinutes: 480,
+  requireStrongPassword: true,
+  automaticLogout: false,
 };
 
-function isObject(
-  value: unknown
-): value is Record<string, unknown> {
-  return (
-    typeof value ===
-      "object" &&
-    value !==
-      null &&
-    !Array.isArray(
-      value
-    )
-  );
+let sharedSettings: SharedSettings = toSharedSettings(defaultSettings);
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function normalizePreferredTheme(
-  value: unknown
-): PreferredTheme {
-  if (
-    value === "light" ||
-    value === "dark" ||
-    value === "system"
-  ) {
-    return value;
-  }
-
-  return defaultSettings.preferredTheme;
+function normalizeDevicePreferences(value: unknown): DevicePreferences {
+  const input = isObject(value) ? value : {};
+  return {
+    compactMode: typeof input.compactMode === "boolean" ? input.compactMode : defaultSettings.compactMode,
+    preferredTheme: input.preferredTheme === "light" || input.preferredTheme === "dark" || input.preferredTheme === "system"
+      ? input.preferredTheme : defaultSettings.preferredTheme,
+    language: input.language === "pt-BR" || input.language === "en-US" ? input.language : defaultSettings.language,
+  };
 }
 
-function normalizeLanguage(
-  value: unknown
-): SystemLanguage {
-  if (
-    value === "pt-BR" ||
-    value === "en-US"
-  ) {
-    return value;
-  }
+function getDevicePreferences(): DevicePreferences {
+  try {
+    const current = localStorage.getItem(DEVICE_STORAGE_KEY);
+    if (current) return normalizeDevicePreferences(JSON.parse(current) as unknown);
 
-  return defaultSettings.language;
+    // Keep only per-device preferences from the old browser settings record.
+    // Shared business/security settings are never loaded from this legacy value.
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) return normalizeDevicePreferences(JSON.parse(legacy) as unknown);
+  } catch (error) {
+    console.error("Não foi possível carregar as preferências deste computador.", error);
+  }
+  return normalizeDevicePreferences(undefined);
 }
 
-function normalizePositiveNumber(
-  value: unknown,
-  fallback: number
-): number {
-  if (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
-    value > 0
-  ) {
-    return value;
-  }
-
-  return fallback;
+function toSharedSettings(value: SettingsData): SharedSettings {
+  const { compactMode: _compactMode, preferredTheme: _preferredTheme, language: _language, ...shared } = value;
+  return shared;
 }
 
-function normalizeSettings(
-  value: unknown
-): SettingsData {
-  if (!isObject(value)) {
-    return {
-      ...defaultSettings,
-    };
-  }
+function normalizeSharedSettings(value: unknown): SharedSettings {
+  const input = isObject(value) ? value : {};
+  const stringValue = (key: keyof Pick<SettingsData, "companyName" | "supportEmail" | "supportPhone" | "website">) =>
+    typeof input[key] === "string" ? input[key] as string : defaultSettings[key];
+  const booleanValue = (key: keyof Pick<SettingsData, "notifyNewTicket" | "notifyStatusChange" | "notifyCriticalTicket" | "notifyAssignedTicket" | "notifySlaExpired" | "requireStrongPassword" | "automaticLogout">) =>
+    typeof input[key] === "boolean" ? input[key] as boolean : defaultSettings[key];
+  const positiveNumber = (key: "sessionTimeoutMinutes" | "maximumSessionDurationMinutes") => {
+    const current = input[key];
+    return typeof current === "number" && Number.isSafeInteger(current) && current > 0
+      ? current : defaultSettings[key];
+  };
 
   return {
-    companyName:
-      typeof value.companyName ===
-        "string"
-        ? value.companyName
-        : defaultSettings.companyName,
-
-    supportEmail:
-      typeof value.supportEmail ===
-        "string"
-        ? value.supportEmail
-        : defaultSettings.supportEmail,
-
-    supportPhone:
-      typeof value.supportPhone ===
-        "string"
-        ? value.supportPhone
-        : defaultSettings.supportPhone,
-
-    website:
-      typeof value.website ===
-        "string"
-        ? value.website
-        : defaultSettings.website,
-
-    notifyNewTicket:
-      typeof value.notifyNewTicket ===
-        "boolean"
-        ? value.notifyNewTicket
-        : defaultSettings.notifyNewTicket,
-
-    notifyStatusChange:
-      typeof value.notifyStatusChange ===
-        "boolean"
-        ? value.notifyStatusChange
-        : defaultSettings.notifyStatusChange,
-
-    notifyCriticalTicket:
-      typeof value.notifyCriticalTicket ===
-        "boolean"
-        ? value.notifyCriticalTicket
-        : defaultSettings.notifyCriticalTicket,
-
-    notifyAssignedTicket:
-      typeof value.notifyAssignedTicket ===
-        "boolean"
-        ? value.notifyAssignedTicket
-        : defaultSettings.notifyAssignedTicket,
-
-    notifySlaExpired:
-      typeof value.notifySlaExpired ===
-        "boolean"
-        ? value.notifySlaExpired
-        : defaultSettings.notifySlaExpired,
-
-    compactMode:
-      typeof value.compactMode ===
-        "boolean"
-        ? value.compactMode
-        : defaultSettings.compactMode,
-
-    preferredTheme:
-      normalizePreferredTheme(
-        value.preferredTheme
-      ),
-
-    language:
-      normalizeLanguage(
-        value.language
-      ),
-
-    sessionTimeoutMinutes:
-      normalizePositiveNumber(
-        value.sessionTimeoutMinutes,
-        defaultSettings.sessionTimeoutMinutes
-      ),
-
-    maximumSessionDurationMinutes:
-      normalizePositiveNumber(
-        value.maximumSessionDurationMinutes,
-        defaultSettings.maximumSessionDurationMinutes
-      ),
-
-    requireStrongPassword:
-      typeof value.requireStrongPassword ===
-        "boolean"
-        ? value.requireStrongPassword
-        : defaultSettings.requireStrongPassword,
-
-    automaticLogout:
-      typeof value.automaticLogout ===
-        "boolean"
-        ? value.automaticLogout
-        : defaultSettings.automaticLogout,
+    companyName: stringValue("companyName"),
+    supportEmail: stringValue("supportEmail"),
+    supportPhone: stringValue("supportPhone"),
+    website: stringValue("website"),
+    notifyNewTicket: booleanValue("notifyNewTicket"),
+    notifyStatusChange: booleanValue("notifyStatusChange"),
+    notifyCriticalTicket: booleanValue("notifyCriticalTicket"),
+    notifyAssignedTicket: booleanValue("notifyAssignedTicket"),
+    notifySlaExpired: booleanValue("notifySlaExpired"),
+    sessionTimeoutMinutes: positiveNumber("sessionTimeoutMinutes"),
+    maximumSessionDurationMinutes: positiveNumber("maximumSessionDurationMinutes"),
+    requireStrongPassword: booleanValue("requireStrongPassword"),
+    automaticLogout: booleanValue("automaticLogout"),
   };
 }
 
-export function getSettings():
-  SettingsData {
-  const storedSettings =
-    localStorage.getItem(
-      STORAGE_KEY
-    );
+export function getSettings(): SettingsData {
+  return { ...sharedSettings, ...getDevicePreferences() };
+}
 
-  if (!storedSettings) {
-    return {
-      ...defaultSettings,
-    };
-  }
-
+export function saveDevicePreferences(preferences: Partial<DevicePreferences>): DevicePreferences {
+  const normalized = normalizeDevicePreferences({ ...getDevicePreferences(), ...preferences });
   try {
-    const parsedSettings:
-      unknown =
-        JSON.parse(
-          storedSettings
-        );
-
-    return normalizeSettings(
-      parsedSettings
-    );
+    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(normalized));
   } catch (error) {
-    console.error(
-      "Não foi possível carregar as configurações.",
-      error
-    );
-
-    return {
-      ...defaultSettings,
-    };
+    console.error("Não foi possível salvar as preferências deste computador.", error);
   }
+  return normalized;
 }
 
-export function saveSettings(
-  settings: SettingsData
-): SettingsData {
-  const normalizedSettings =
-    normalizeSettings(
-      settings
-    );
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(
-      normalizedSettings
-    )
-  );
-
-  return normalizedSettings;
+export async function refreshSettings(): Promise<SettingsData> {
+  const records = await listData<StoredSettings>("settings");
+  // The API serializes writes; selecting the newest record also handles pre-existing duplicates safely.
+  const record = records[0];
+  sharedSettings = normalizeSharedSettings(record ?? defaultSettings);
+  return getSettings();
 }
 
-export function restoreDefaultSettings():
-  SettingsData {
-  const restoredSettings = {
-    ...defaultSettings,
+export async function saveSettings(settings: SettingsData): Promise<SettingsData> {
+  const normalized = {
+    ...normalizeSharedSettings(settings),
+    ...normalizeDevicePreferences(settings),
   };
-
-  saveSettings(
-    restoredSettings
-  );
-
-  return restoredSettings;
+  const saved = await saveSharedSettings<StoredSettings>(toSharedSettings(normalized));
+  sharedSettings = normalizeSharedSettings(saved);
+  saveDevicePreferences(normalized);
+  return getSettings();
 }
 
-export function importSettings(
-  value: unknown
-): SettingsData {
-  if (!isObject(value)) {
-    throw new Error(
-      "O arquivo não contém configurações válidas."
-    );
-  }
-
-  const importedSettings =
-    normalizeSettings(
-      value
-    );
-
-  saveSettings(
-    importedSettings
-  );
-
-  return importedSettings;
+export async function restoreDefaultSettings(): Promise<SettingsData> {
+  return saveSettings({ ...defaultSettings });
 }
 
-export function getSettingsStorageKey():
-  string {
-  return STORAGE_KEY;
+export async function importSettings(value: unknown): Promise<SettingsData> {
+  if (!isObject(value)) throw new Error("O arquivo não contém configurações válidas.");
+  return saveSettings({ ...defaultSettings, ...value } as SettingsData);
+}
+
+export function getSettingsStorageKey(): string {
+  return DEVICE_STORAGE_KEY;
 }

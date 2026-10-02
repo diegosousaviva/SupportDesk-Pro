@@ -19,9 +19,9 @@ export function getTicketComments(
   return findCommentsByTicketId(ticketId);
 }
 
-export function createTicketComment(
+export async function createTicketComment(
   commentData: CreateTicketCommentData
-): TicketComment {
+): Promise<TicketComment> {
   const message = commentData.message.trim();
 
   if (!message) {
@@ -36,10 +36,10 @@ export function createTicketComment(
   });
 }
 
-export function updateTicketComment(
+export async function updateTicketComment(
   id: number,
   message: string
-): TicketComment {
+): Promise<TicketComment> {
   const normalizedMessage = message.trim();
 
   if (!normalizedMessage) {
@@ -49,7 +49,7 @@ export function updateTicketComment(
   }
 
   const updatedComment =
-    updateTicketCommentRepository(
+    await updateTicketCommentRepository(
       id,
       normalizedMessage
     );
@@ -63,11 +63,11 @@ export function updateTicketComment(
   return updatedComment;
 }
 
-export function deleteTicketComment(
+export async function deleteTicketComment(
   id: number
-): void {
+): Promise<void> {
   const deleted =
-    deleteTicketCommentById(id);
+    await deleteTicketCommentById(id);
 
   if (!deleted) {
     throw new Error(

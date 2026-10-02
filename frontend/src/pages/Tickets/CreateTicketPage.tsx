@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -73,6 +74,7 @@ import {
 import type {
   Ticket,
 } from "../../types/Ticket";
+import type { Category } from "../../types/Category";
 
 import {
   getCategories,
@@ -113,6 +115,7 @@ function CreateTicketPage() {
 
   const {
     user,
+    storeRevision,
   } =
     useAuth();
 
@@ -132,9 +135,7 @@ function CreateTicketPage() {
   } =
     useSnackbar();
 
-  const [
-    technicians,
-  ] =
+  const [technicians, setTechnicians] =
     useState(() =>
       getUsers()
         .filter(
@@ -158,42 +159,43 @@ function CreateTicketPage() {
         )
     );
 
-  const [
-    stores,
-  ] =
+  const [stores, setStores] =
     useState(() =>
       getActiveStores()
     );
 
-  const [
-    inventoryItems,
-  ] =
+  const [inventoryItems, setInventoryItems] =
     useState(() =>
       getInventoryItems()
     );
 
-  const [
-    categories,
-  ] =
-    useState(() =>
-      getCategories()
-        .filter(
-          (
-            currentCategory
-          ) =>
-            currentCategory.active
-        )
-        .sort(
-          (
-            firstCategory,
-            secondCategory
-          ) =>
-            firstCategory.name.localeCompare(
-              secondCategory.name,
-              "pt-BR"
-            )
-        )
-    );
+  useEffect(() => {
+    setTechnicians(getUsers()
+      .filter((currentUser) => currentUser.role === "Técnico" && currentUser.status === "Ativo")
+      .sort((first, second) => first.name.localeCompare(second.name, "pt-BR")));
+    setStores(getActiveStores());
+    setInventoryItems(getInventoryItems());
+  }, [storeRevision]);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((result) => {
+        if (cancelled) return;
+        setCategories(result
+          .filter((currentCategory) => currentCategory.active)
+          .sort((first, second) => first.name.localeCompare(second.name, "pt-BR")));
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setCategoriesError(error instanceof Error ? error.message : "Não foi possível carregar as categorias.");
+      })
+      .finally(() => { if (!cancelled) setCategoriesLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const initialInventoryItemId =
     (() => {
@@ -500,14 +502,14 @@ function CreateTicketPage() {
     }
   }
 
-  function registerEquipmentHistory(
+  async function registerEquipmentHistory(
     ticketId:
       number,
     ticketTitle:
       string,
     inventoryItemId:
       number
-  ): void {
+  ): Promise<void> {
     const inventoryItem =
       inventoryItems.find(
         (
@@ -524,7 +526,7 @@ function CreateTicketPage() {
     }
 
     try {
-      createTicketHistoryEntry({
+      await createTicketHistoryEntry({
         ticketId,
 
         eventType:
@@ -534,7 +536,7 @@ function CreateTicketPage() {
           `O equipamento ${inventoryItem.tag} — ${inventoryItem.description} foi vinculado ao chamado.`,
       });
 
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId,
 
         type:
@@ -577,10 +579,10 @@ function CreateTicketPage() {
     );
   }
 
-  function handleSubmit(
+  async function handleSubmit(
     event:
       FormEvent<HTMLFormElement>
-  ): void {
+  ): Promise<void> {
     event.preventDefault();
 
     if (
@@ -824,7 +826,7 @@ function CreateTicketPage() {
       }
 
       const createdTicket =
-        createTicket({
+        await createTicket({
           title:
             normalizedTitle,
 
@@ -857,7 +859,7 @@ function CreateTicketPage() {
         inventoryItemId !==
         null
       ) {
-        registerEquipmentHistory(
+        await registerEquipmentHistory(
           createdTicket.id,
           createdTicket.title,
           inventoryItemId
@@ -1182,6 +1184,8 @@ function CreateTicketPage() {
                   required
                   disabled={
                     isSubmitting ||
+                    categoriesLoading ||
+                    Boolean(categoriesError) ||
                     categories.length ===
                       0
                   }
@@ -1228,12 +1232,15 @@ function CreateTicketPage() {
                     )}
                   </Select>
 
-                  {categories.length ===
-                    0 && (
+                  {categoriesLoading ? (
+                    <FormHelperText>Carregando categorias...</FormHelperText>
+                  ) : categoriesError ? (
+                    <FormHelperText>{categoriesError}</FormHelperText>
+                  ) : categories.length === 0 ? (
                     <FormHelperText>
                       Cadastre pelo menos uma categoria ativa antes de abrir um chamado.
                     </FormHelperText>
-                  )}
+                  ) : null}
                 </FormControl>
               </Box>
 

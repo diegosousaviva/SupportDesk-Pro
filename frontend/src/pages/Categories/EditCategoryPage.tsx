@@ -1,7 +1,4 @@
-import {
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import {
   Navigate,
@@ -13,6 +10,7 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Paper,
   Typography,
 } from "@mui/material";
@@ -59,34 +57,35 @@ function EditCategoryPage() {
   const categoryId =
     Number(id);
 
-  const category =
-    useMemo(() => {
-      if (
-        !Number.isInteger(
-          categoryId
-        )
-      ) {
-        return undefined;
-      }
+  const [category, setCategory] = useState<Awaited<ReturnType<typeof getCategoryById>>>();
+  const [loading, setLoading] = useState(true);
 
-      return getCategoryById(
-        categoryId
-      );
-    }, [
-      categoryId,
-    ]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!Number.isSafeInteger(categoryId) || categoryId < 1) {
+      setCategory(undefined);
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    setLoading(true);
+    getCategoryById(categoryId)
+      .then((result) => { if (!cancelled) setCategory(result); })
+      .catch((error: unknown) => {
+        if (!cancelled) setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar a categoria.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [categoryId]);
 
-  if (
-    !Number.isInteger(
-      categoryId
-    ) ||
-    !category
-  ) {
+  if (loading) {
+    return <MainLayout title="Editar Categoria"><Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box></MainLayout>;
+  }
+
+  if (!Number.isInteger(categoryId) || !category) {
     return (
-      <Navigate
-        to="/categories"
-        replace
-      />
+      errorMessage
+        ? <MainLayout title="Editar Categoria"><Alert severity="error">{errorMessage}</Alert><Button onClick={() => navigate("/categories")}>Voltar para categorias</Button></MainLayout>
+        : <Navigate to="/categories" replace />
     );
   }
 

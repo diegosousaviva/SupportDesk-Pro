@@ -47,7 +47,7 @@ import GlobalErrorBoundary from "./components/common/GlobalErrorBoundary";
 
 import {
   getSettings,
-  saveSettings,
+  saveDevicePreferences,
 } from "./services/settingsService";
 
 import "@fontsource/roboto/300.css";
@@ -157,15 +157,7 @@ function Root() {
             newPreference
           );
 
-          const currentSettings =
-            getSettings();
-
-          saveSettings({
-            ...currentSettings,
-
-            preferredTheme:
-              newPreference,
-          });
+          saveDevicePreferences({ preferredTheme: newPreference });
 
           setSettingsVersion(
             (
@@ -189,15 +181,7 @@ function Root() {
               newPreference
             );
 
-            const currentSettings =
-              getSettings();
-
-            saveSettings({
-              ...currentSettings,
-
-              preferredTheme:
-                newPreference,
-            });
+            saveDevicePreferences({ preferredTheme: newPreference });
 
             setSettingsVersion(
               (

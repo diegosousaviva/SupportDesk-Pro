@@ -889,9 +889,9 @@ export function getInventoryItemByAssetNumber(
   );
 }
 
-export function createInventoryItem(
+export async function createInventoryItem(
   itemData: CreateInventoryItemData
-): InventoryItem {
+): Promise<InventoryItem> {
   const description =
     normalizeText(
       itemData.description
@@ -999,7 +999,7 @@ export function createInventoryItem(
   );
 
   const createdItem =
-    createInventoryItemRepository({
+    await createInventoryItemRepository({
       tag,
 
       tagMode:
@@ -1051,10 +1051,10 @@ export function createInventoryItem(
   return createdItem;
 }
 
-export function updateInventoryItem(
+export async function updateInventoryItem(
   itemId: number,
   itemData: UpdateInventoryItemData
-): InventoryItem | undefined {
+): Promise<InventoryItem | undefined> {
   const currentItem =
     getInventoryItemById(
       itemId
@@ -1239,7 +1239,7 @@ export function updateInventoryItem(
   );
 
   const updatedItem =
-    updateInventoryItemById(
+    await updateInventoryItemById(
       itemId,
       {
         tag,
@@ -1292,9 +1292,9 @@ export function updateInventoryItem(
   return updatedItem;
 }
 
-export function deleteInventoryItem(
+export async function deleteInventoryItem(
   itemId: number
-): boolean {
+): Promise<boolean> {
   const currentItem =
     getInventoryItemById(
       itemId
@@ -1305,7 +1305,7 @@ export function deleteInventoryItem(
   }
 
   const deleted =
-    deleteInventoryItemById(
+    await deleteInventoryItemById(
       itemId
     );
 

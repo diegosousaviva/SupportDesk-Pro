@@ -65,10 +65,10 @@ function CreateStorePage() {
     );
   }
 
-  function handleSubmit(
+  async function handleSubmit(
     values:
       StoreFormData
-  ): void {
+  ): Promise<void> {
     if (
       isSaving
     ) {
@@ -83,7 +83,7 @@ function CreateStorePage() {
       );
 
       const createdStore =
-        createStore(
+        await createStore(
           values
         );
 

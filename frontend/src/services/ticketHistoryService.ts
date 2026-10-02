@@ -33,10 +33,10 @@ export function getTicketHistory(
   );
 }
 
-export function createTicketHistoryEntry(
+export async function createTicketHistoryEntry(
   historyData:
     CreateTicketHistoryEntryData
-): TicketHistoryEntry {
+): Promise<TicketHistoryEntry> {
   return createTicketHistoryEntryRepository(
     historyData
   );

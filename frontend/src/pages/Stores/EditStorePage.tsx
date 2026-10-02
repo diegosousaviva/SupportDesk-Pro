@@ -91,10 +91,10 @@ function EditStorePage() {
     );
   }
 
-  function handleSubmit(
+  async function handleSubmit(
     values:
       StoreFormData
-  ): void {
+  ): Promise<void> {
     if (
       isSaving ||
       !store
@@ -110,7 +110,7 @@ function EditStorePage() {
       );
 
       const updatedStore =
-        updateStore(
+        await updateStore(
           store.id,
           values
         );

@@ -128,9 +128,9 @@ function InventoryLabelPage() {
       : null;
   }
 
-  function registerLabelAction(
+  async function registerLabelAction(
     action: "print" | "pdf"
-  ): void {
+  ): Promise<void> {
     if (!equipment) {
       return;
     }
@@ -159,7 +159,7 @@ function InventoryLabelPage() {
     };
 
     const createdEvent =
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           equipment.id,
 
@@ -186,34 +186,18 @@ function InventoryLabelPage() {
     );
   }
 
-  function handlePrint():
-    void {
-    try {
-      registerLabelAction(
-        "print"
-      );
-    } catch (historyError) {
-      console.error(
-        "Não foi possível registrar a impressão no histórico.",
-        historyError
-      );
-    }
+  function handlePrint(): void {
+    void registerLabelAction("print").catch((historyError: unknown) => {
+      console.error("Não foi possível registrar a impressão no histórico.", historyError);
+    });
 
     window.print();
   }
 
-  function handleDownloadPdf():
-    void {
-    try {
-      registerLabelAction(
-        "pdf"
-      );
-    } catch (historyError) {
-      console.error(
-        "Não foi possível registrar a exportação para PDF no histórico.",
-        historyError
-      );
-    }
+  function handleDownloadPdf(): void {
+    void registerLabelAction("pdf").catch((historyError: unknown) => {
+      console.error("Não foi possível registrar a exportação para PDF no histórico.", historyError);
+    });
 
     window.print();
   }

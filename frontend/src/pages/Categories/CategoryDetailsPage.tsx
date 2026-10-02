@@ -1,7 +1,4 @@
-import {
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import {
   Navigate,
@@ -15,6 +12,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Divider,
   Grid,
   Paper,
@@ -89,13 +87,24 @@ function CategoryDetailsPage() {
   ] = useState(false);
 
   const categoryId = Number(id);
+  const [category, setCategory] = useState<Awaited<ReturnType<typeof getCategoryById>>>();
+  const [loading, setLoading] = useState(true);
 
-  const category = useMemo(() => {
-    if (!Number.isInteger(categoryId)) {
-      return undefined;
+  useEffect(() => {
+    let cancelled = false;
+    if (!Number.isSafeInteger(categoryId) || categoryId < 1) {
+      setCategory(undefined);
+      setLoading(false);
+      return () => { cancelled = true; };
     }
-
-    return getCategoryById(categoryId);
+    setLoading(true);
+    getCategoryById(categoryId)
+      .then((result) => { if (!cancelled) setCategory(result); })
+      .catch((error: unknown) => {
+        if (!cancelled) setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar a categoria.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [categoryId]);
 
   const canEdit = can(
@@ -106,15 +115,15 @@ function CategoryDetailsPage() {
     Permissions.categories.delete
   );
 
-  if (
-    !Number.isInteger(categoryId) ||
-    !category
-  ) {
+  if (loading) {
+    return <MainLayout title="Detalhes da Categoria"><Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box></MainLayout>;
+  }
+
+  if (!Number.isInteger(categoryId) || !category) {
     return (
-      <Navigate
-        to="/categories"
-        replace
-      />
+      errorMessage
+        ? <MainLayout title="Detalhes da Categoria"><Alert severity="error">{errorMessage}</Alert><Button onClick={() => navigate("/categories")}>Voltar para categorias</Button></MainLayout>
+        : <Navigate to="/categories" replace />
     );
   }
 
@@ -157,7 +166,7 @@ function CategoryDetailsPage() {
     setDeleteDialogOpen(false);
   }
 
-  function handleDelete(): void {
+  async function handleDelete(): Promise<void> {
     if (!canDelete || deleting) {
       return;
     }
@@ -166,7 +175,7 @@ function CategoryDetailsPage() {
     setErrorMessage("");
 
     try {
-      const deleted = deleteCategory(
+      const deleted = await deleteCategory(
         currentCategoryId
       );
 

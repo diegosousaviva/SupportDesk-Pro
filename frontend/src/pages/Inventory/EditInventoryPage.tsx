@@ -255,14 +255,14 @@ function EditInventoryPage() {
     );
   }
 
-  function registerHistoryEvents(
+  async function registerHistoryEvents(
     updatedEquipment:
       NonNullable<
-        ReturnType<
+        Awaited<ReturnType<
           typeof updateInventoryItem
-        >
+        >>
       >
-  ): void {
+  ): Promise<void> {
     if (!equipment) {
       return;
     }
@@ -303,7 +303,7 @@ function EditInventoryPage() {
       equipment.status !==
       updatedEquipment.status
     ) {
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           updatedEquipment.id,
 
@@ -328,7 +328,7 @@ function EditInventoryPage() {
       equipment.condition !==
       updatedEquipment.condition
     ) {
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           updatedEquipment.id,
 
@@ -353,7 +353,7 @@ function EditInventoryPage() {
       equipment.storeId !==
       updatedEquipment.storeId
     ) {
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           updatedEquipment.id,
 
@@ -378,7 +378,7 @@ function EditInventoryPage() {
       equipment.responsibleUserId !==
       updatedEquipment.responsibleUserId
     ) {
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           updatedEquipment.id,
 
@@ -551,7 +551,7 @@ function EditInventoryPage() {
       generalChanges.length >
       0
     ) {
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           updatedEquipment.id,
 
@@ -577,7 +577,7 @@ function EditInventoryPage() {
         0;
 
     if (!hasAnyChange) {
-      addInventoryHistoryEvent({
+      await addInventoryHistoryEvent({
         inventoryItemId:
           updatedEquipment.id,
 
@@ -595,10 +595,10 @@ function EditInventoryPage() {
     }
   }
 
-  function handleSubmit(
+  async function handleSubmit(
     event:
       FormEvent<HTMLFormElement>
-  ): void {
+  ): Promise<void> {
     event.preventDefault();
 
     if (!equipment) {
@@ -626,7 +626,7 @@ function EditInventoryPage() {
             );
 
       const updatedEquipment =
-        updateInventoryItem(
+        await updateInventoryItem(
           equipment.id,
           {
             tagMode:
@@ -693,7 +693,7 @@ function EditInventoryPage() {
       }
 
       try {
-        registerHistoryEvents(
+        await registerHistoryEvents(
           updatedEquipment
         );
       } catch (historyError) {

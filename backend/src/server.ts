@@ -10,14 +10,42 @@ import type {
   Request,
   Response,
 } from "express";
+import type { RowDataPacket } from "mysql2";
+import pool from "./database/mysql.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import dataRoutes from "./routes/dataRoutes.js";
 
 const app = express();
 
 const PORT =
   Number(process.env.PORT) || 3000;
+
+const categoryIntegrationMode = process.env.SUPPORTDESK_CATEGORIES_TESTS === "1";
+
+function assertCategoryIntegrationApi(): void {
+  if (!categoryIntegrationMode) return;
+  const apiAddress = process.env.LOCAL_TEST_API_URL?.trim();
+  if (!apiAddress) throw new Error("Modo de integração exige LOCAL_TEST_API_URL explícita em loopback.");
+  let url: URL;
+  try {
+    url = new URL(apiAddress);
+  } catch {
+    throw new Error("LOCAL_TEST_API_URL inválida para o modo de integração.");
+  }
+  const apiPort = url.port ? Number(url.port) : url.protocol === "http:" ? 80 : 443;
+  if (url.protocol !== "http:"
+    || url.hostname !== "127.0.0.1"
+    || !url.port
+    || Boolean(url.username || url.password || url.search || url.hash)
+    || apiPort !== PORT) {
+    throw new Error("Modo de integração exige LOCAL_TEST_API_URL=http://127.0.0.1 na mesma porta PORT, sem credenciais.");
+  }
+}
+
+assertCategoryIntegrationApi();
 
 const FRONTEND_URL =
   process.env.FRONTEND_URL ||
@@ -43,9 +71,7 @@ app.use(
 /*
  * JSON
  */
-app.use(
-  express.json()
-);
+app.use(express.json({ limit: "32mb" }));
 
 /*
  * Rate limit global da API
@@ -142,6 +168,46 @@ app.use(
   userRoutes
 );
 
+if (categoryIntegrationMode) {
+  // Local-only and enabled solely in the dedicated integration mode. No credentials are exposed.
+  app.get("/api/test-config", async (_req, res) => {
+    try {
+      const [rows] = await pool.query<RowDataPacket[]>("SELECT DATABASE() AS activeDbName, @@port AS activeDbPort");
+      const configuredDbName = process.env.DB_NAME?.trim();
+      const configuredDbPort = Number(process.env.DB_PORT || 3306);
+      const activeDbName = String(rows[0]?.activeDbName ?? "");
+      const activeDbPort = Number(rows[0]?.activeDbPort);
+      if (activeDbName !== configuredDbName || activeDbPort !== configuredDbPort) {
+        return res.status(503).json({ success: false, message: "A conexão do backend não corresponde ao banco dedicado configurado." });
+      }
+      return res.json({
+        testConfig: {
+          integrationMode: true,
+          dbHost: process.env.DB_HOST?.trim().toLowerCase(),
+          dbPort: configuredDbPort,
+          dbName: configuredDbName,
+          activeDbName,
+          activeDbPort,
+          apiHost: "127.0.0.1",
+          apiPort: PORT,
+        },
+      });
+    } catch {
+      return res.status(503).json({ success: false, message: "Não foi possível confirmar a conexão local do backend." });
+    }
+  });
+}
+
+app.use(
+  "/api/categories",
+  categoryRoutes
+);
+
+app.use(
+  "/api/data",
+  dataRoutes
+);
+
 /*
  * Rota principal
  */
@@ -206,12 +272,31 @@ app.use(
     res: Response,
     _next: NextFunction
   ) => {
+    const statusCode =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : 500;
+    if (statusCode === 413) {
+      return res.status(413).json({
+        success: false,
+        message: "A requisição excede o limite permitido. Anexos podem ter no máximo 20 MB.",
+      });
+    }
+    if (statusCode === 400) {
+      return res.status(400).json({
+        success: false,
+        message: "O corpo JSON da requisição é inválido.",
+      });
+    }
     console.error(
       "Erro interno da API:",
       error
     );
 
-    res.status(500).json({
+    res.status(statusCode).json({
       success: false,
       message:
         "Erro interno do servidor.",
@@ -222,11 +307,12 @@ app.use(
 /*
  * Inicialização
  */
-app.listen(
-  PORT,
-  () => {
-    console.log(
-      `SupportDesk Pro API rodando em http://localhost:${PORT}`
-    );
-  }
-);
+const onListen = () => {
+  console.log(`SupportDesk Pro API rodando em http://127.0.0.1:${PORT}`);
+};
+
+if (categoryIntegrationMode) {
+  app.listen(PORT, "127.0.0.1", onListen);
+} else {
+  app.listen(PORT, onListen);
+}

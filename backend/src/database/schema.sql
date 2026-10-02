@@ -18,5 +18,22 @@ CREATE TABLE IF NOT EXISTS users (
     KEY idx_users_status (status),
     KEY idx_users_role (role)
 ) ENGINE=InnoDB
+  ROW_FORMAT=DYNAMIC
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+-- Shared application records are stored separately from existing users.
+-- This statement is only a schema definition; it is not run by the application.
+CREATE TABLE IF NOT EXISTS supportdesk_records (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    entity_type VARCHAR(40) NOT NULL,
+    owner_user_id INT UNSIGNED NULL,
+    payload JSON NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_supportdesk_records_type_id (entity_type, id),
+    KEY idx_supportdesk_records_owner (entity_type, owner_user_id)
+) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;

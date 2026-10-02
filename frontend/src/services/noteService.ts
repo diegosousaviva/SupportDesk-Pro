@@ -360,7 +360,7 @@ export function getNoteByIdForUser(
   return note;
 }
 
-export function createNote(
+export async function createNote(
   noteData: Omit<
     CreateNoteData,
     "authorUserId"
@@ -369,7 +369,7 @@ export function createNote(
     | NoteAccessUser
     | null
     | undefined
-): Note {
+): Promise<Note> {
   validateUser(
     user
   );
@@ -404,7 +404,7 @@ export function createNote(
   );
 
   const createdNote =
-    createNoteRepository({
+    await createNoteRepository({
       title,
 
       description,
@@ -427,7 +427,7 @@ export function createNote(
   return createdNote;
 }
 
-export function updateNote(
+export async function updateNote(
   noteId: number,
   updatedData:
     UpdateNoteData,
@@ -435,7 +435,7 @@ export function updateNote(
     | NoteAccessUser
     | null
     | undefined
-): Note {
+): Promise<Note> {
   validateUser(
     user
   );
@@ -508,7 +508,7 @@ export function updateNote(
   }
 
   const updatedNote =
-    updateNoteById(
+    await updateNoteById(
       noteId,
       normalizedData
     );
@@ -631,7 +631,7 @@ export async function deleteNote(
   );
 
   const deleted =
-    deleteNoteById(
+    await deleteNoteById(
       noteId
     );
 

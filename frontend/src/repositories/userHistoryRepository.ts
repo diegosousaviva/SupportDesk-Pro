@@ -1,106 +1,25 @@
-import type {
-  UserHistoryEntry,
-} from "../types/UserHistory";
+import type { UserHistoryEntry } from "../types/UserHistory";
 
-const STORAGE_KEY =
-  "supportdesk-pro-user-history";
+let historyCache: UserHistoryEntry[] = [];
 
-function saveHistory(
-  history: UserHistoryEntry[]
-): void {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(history)
-  );
+export function replaceUserHistoryCache(entries: UserHistoryEntry[]): void {
+  historyCache = [...entries];
 }
 
-function loadHistory(): UserHistoryEntry[] {
-  const storedData =
-    localStorage.getItem(STORAGE_KEY);
+export function upsertUserHistoryCache(entry: UserHistoryEntry): void {
+  historyCache = [...historyCache.filter((current) => current.id !== entry.id), entry];
+}
 
-  if (!storedData) {
-    return [];
-  }
-
-  try {
-    const parsedHistory =
-      JSON.parse(
-        storedData
-      ) as UserHistoryEntry[];
-
-    if (!Array.isArray(parsedHistory)) {
-      return [];
-    }
-
-    return parsedHistory;
-  } catch {
-    return [];
-  }
+export function clearUserHistoryCache(): void {
+  historyCache = [];
 }
 
 export function findAllUserHistory(): UserHistoryEntry[] {
-  return loadHistory();
+  return [...historyCache];
 }
 
-export function findUserHistoryByUserId(
-  userId: number
-): UserHistoryEntry[] {
-  return loadHistory()
-    .filter(
-      (entry) =>
-        entry.userId === userId
-    )
-    .sort(
-      (firstEntry, secondEntry) =>
-        new Date(
-          secondEntry.createdAt
-        ).getTime() -
-        new Date(
-          firstEntry.createdAt
-        ).getTime()
-    );
-}
-
-export function createUserHistoryRepository(
-  entry: Omit<
-    UserHistoryEntry,
-    "id"
-  >
-): UserHistoryEntry {
-  const history = loadHistory();
-
-  const nextId =
-    history.length > 0
-      ? Math.max(
-          ...history.map(
-            (currentEntry) =>
-              currentEntry.id
-          )
-        ) + 1
-      : 1;
-
-  const newEntry: UserHistoryEntry = {
-    id: nextId,
-    ...entry,
-  };
-
-  history.push(newEntry);
-
-  saveHistory(history);
-
-  return newEntry;
-}
-
-export function deleteUserHistoryByUserId(
-  userId: number
-): void {
-  const history = loadHistory();
-
-  const filteredHistory =
-    history.filter(
-      (entry) =>
-        entry.userId !== userId
-    );
-
-  saveHistory(filteredHistory);
+export function findUserHistoryByUserId(userId: number): UserHistoryEntry[] {
+  return historyCache
+    .filter((entry) => entry.userId === userId)
+    .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
 }

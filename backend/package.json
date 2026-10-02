@@ -7,7 +7,10 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed:admin": "tsx src/scripts/seedAdmin.ts"
+    "dev:create-admin": "tsx src/scripts/createDevAdmin.ts",
+    "test:create-admin": "tsx src/scripts/createDevAdmin.ts --categories-test",
+    "test:unit": "node --import tsx --test tests/categoryName.test.ts",
+    "test:integration": "node --import tsx --test tests/integration.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

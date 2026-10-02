@@ -3,6 +3,10 @@ import {
 } from "react";
 
 import {
+  useAuth,
+} from "../contexts/AuthContext";
+
+import {
   useNotifications,
 } from "../contexts/NotificationContext";
 
@@ -15,10 +19,16 @@ const SLA_MONITOR_INTERVAL =
 
 export function useSlaMonitor(): void {
   const {
+    authenticated,
+  } = useAuth();
+
+  const {
     refreshNotifications,
   } = useNotifications();
 
   useEffect(() => {
+    if (!authenticated) return;
+
     let checking = false;
     async function checkSla(): Promise<void> {
       if (checking) return;
@@ -54,6 +64,7 @@ export function useSlaMonitor(): void {
       );
     };
   }, [
+    authenticated,
     refreshNotifications,
   ]);
 }

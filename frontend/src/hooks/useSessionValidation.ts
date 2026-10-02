@@ -17,13 +17,10 @@ import {
 import {
   getAuthToken,
 } from "../services/sessionService";
+import { API_BASE_URL as API_URL } from "../services/apiBaseUrl";
 
 const VALIDATION_INTERVAL_MILLISECONDS =
   30 * 1000;
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000";
 
 interface SessionValidationResponse {
   success: boolean;

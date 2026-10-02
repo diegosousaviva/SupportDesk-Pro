@@ -11,6 +11,8 @@ import {
 import {
   Box,
   Button,
+  CircularProgress,
+  Alert,
   Paper,
   TextField,
 } from "@mui/material";
@@ -73,8 +75,22 @@ function CategoryListPage() {
   const [deleting, setDeleting] =
     useState(false);
 
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
   useEffect(() => {
-    setCategories(getCategories());
+    let cancelled = false;
+    getCategories()
+      .then((result) => {
+        if (!cancelled) setCategories(result);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : "Não foi possível carregar as categorias.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const filteredCategories =
@@ -121,9 +137,7 @@ function CategoryListPage() {
     try {
       setDeleting(true);
 
-      await Promise.resolve(
-        deleteCategory(categoryId)
-      );
+      await deleteCategory(categoryId);
 
       setCategories(
         (currentCategories) =>
@@ -213,24 +227,22 @@ function CategoryListPage() {
         </Box>
       </Paper>
 
-      <CategoryTable
-        categories={
-          filteredCategories
-        }
-        onView={(id) =>
-          navigate(
-            `/categories/${id}`
-          )
-        }
-        onEdit={(id) =>
-          navigate(
-            `/categories/${id}/edit`
-          )
-        }
-        onDelete={
-          handleDeleteClick
-        }
-      />
+      {loading ? (
+        <Box display="flex" justifyContent="center" py={5}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <CategoryTable
+          categories={filteredCategories}
+          onView={(id) => navigate(`/categories/${id}`)}
+          onEdit={(id) => navigate(`/categories/${id}/edit`)}
+          onDelete={handleDeleteClick}
+        />
+      )}
+
+      {loadError && (
+        <Alert severity="error" sx={{ mt: 2 }}>{loadError}</Alert>
+      )}
 
       <ConfirmDialog
         open={deleteDialogOpen}

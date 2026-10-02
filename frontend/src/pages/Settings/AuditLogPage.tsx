@@ -7,6 +7,7 @@ import {
 } from "@mui/icons-material";
 
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -26,6 +27,7 @@ import {
 } from "@mui/material";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -38,7 +40,7 @@ import MainLayout from "../../components/layout/MainLayout";
 import PageHeader from "../../components/common/PageHeader";
 
 import {
-  getAuditLogs,
+  refreshAuditLogs,
 } from "../../services/auditLogService";
 
 import type {
@@ -244,8 +246,32 @@ function AuditLogPage() {
     setRowsPerPage,
   ] = useState(25);
 
-  const auditLogs =
-    getAuditLogs();
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+  const [auditError, setAuditError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const records = await refreshAuditLogs();
+        if (active) {
+          setAuditLogs(records);
+          setAuditError("");
+        }
+      } catch (error) {
+        if (active) setAuditError(error instanceof Error ? error.message : "Não foi possível carregar a auditoria.");
+      } finally {
+        if (active) setAuditLoading(false);
+      }
+    };
+    void load();
+    const interval = window.setInterval(() => { void load(); }, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const modules =
     useMemo(
@@ -567,6 +593,8 @@ function AuditLogPage() {
           title="Auditoria"
           subtitle="Consulte o histórico de ações administrativas e eventos importantes registrados pelo sistema."
         />
+
+        {auditError && <Alert severity="error">{auditError}</Alert>}
 
         <Stack
           direction={{
@@ -1036,7 +1064,7 @@ function AuditLogPage() {
                         >
                           {auditLogs.length ===
                           0
-                            ? "Nenhum evento registrado"
+                            ? auditLoading ? "Carregando auditoria..." : "Nenhum evento registrado"
                             : "Nenhum evento encontrado"}
                         </Typography>
 
@@ -1046,7 +1074,7 @@ function AuditLogPage() {
                         >
                           {auditLogs.length ===
                           0
-                            ? "Os eventos de auditoria aparecerão aqui conforme as ações forem realizadas no sistema."
+                            ? auditLoading ? "Consultando os registros do servidor." : "Os eventos de auditoria aparecerão aqui conforme as ações forem realizadas no sistema."
                             : "Altere ou limpe os filtros para visualizar outros eventos."}
                         </Typography>
 

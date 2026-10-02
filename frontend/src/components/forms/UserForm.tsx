@@ -32,6 +32,7 @@ import {
 import {
   getActiveStores,
 } from "../../services/storeService";
+import { getSettings } from "../../services/settingsService";
 
 import type {
   User,
@@ -68,9 +69,6 @@ interface FormErrors {
   department?: string;
   storeId?: string;
 }
-
-const SETTINGS_STORAGE_KEY =
-  "supportdesk-pro-settings";
 
 const MINIMUM_NAME_LENGTH =
   3;
@@ -123,31 +121,7 @@ const defaultValues:
 
 function isStrongPasswordRequired():
   boolean {
-  try {
-    const storedSettings =
-      localStorage.getItem(
-        SETTINGS_STORAGE_KEY
-      );
-
-    if (!storedSettings) {
-      return true;
-    }
-
-    const parsedSettings =
-      JSON.parse(
-        storedSettings
-      ) as {
-        requireStrongPassword?:
-          unknown;
-      };
-
-    return (
-      parsedSettings.requireStrongPassword !==
-      false
-    );
-  } catch {
-    return true;
-  }
+  return getSettings().requireStrongPassword;
 }
 
 function UserForm({

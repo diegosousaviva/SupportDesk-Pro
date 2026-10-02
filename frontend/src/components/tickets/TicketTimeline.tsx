@@ -29,7 +29,9 @@ import {
   Typography,
 } from "@mui/material";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { refreshTicketComments } from "../../repositories/ticketCommentRepository";
+import { refreshTicketHistory } from "../../repositories/ticketHistoryRepository";
 
 import {
   deleteTicketComment,
@@ -277,6 +279,24 @@ export default function TicketTimeline({
     setEditedMessage,
   ] = useState("");
 
+  useEffect(() => {
+    let active = true;
+    const loadTimeline = async () => {
+      try {
+        await Promise.all([refreshTicketComments(), refreshTicketHistory()]);
+        if (active) setRefreshKey((key) => key + 1);
+      } catch (error) {
+        console.error("Não foi possível atualizar a linha do tempo do chamado.", error);
+      }
+    };
+    void loadTimeline();
+    const interval = window.setInterval(() => { void loadTimeline(); }, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [ticketId]);
+
   const [
     editingError,
     setEditingError,
@@ -352,7 +372,7 @@ export default function TicketTimeline({
     setEditingError("");
   }
 
-  function saveEditing(): void {
+  async function saveEditing(): Promise<void> {
     if (
       editingCommentId === null ||
       isSaving
@@ -375,7 +395,7 @@ export default function TicketTimeline({
     setIsSaving(true);
 
     try {
-      updateTicketComment(
+      await updateTicketComment(
         editingCommentId,
         normalizedMessage
       );
@@ -431,7 +451,7 @@ export default function TicketTimeline({
     setDeleteError("");
   }
 
-  function confirmDeleteComment(): void {
+  async function confirmDeleteComment(): Promise<void> {
     if (
       deletingCommentId === null ||
       isDeleting
@@ -443,7 +463,7 @@ export default function TicketTimeline({
     setDeleteError("");
 
     try {
-      deleteTicketComment(
+      await deleteTicketComment(
         deletingCommentId
       );
 

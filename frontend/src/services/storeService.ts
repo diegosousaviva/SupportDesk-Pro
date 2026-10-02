@@ -598,10 +598,10 @@ export function getStoreById(
   );
 }
 
-export function createStore(
+export async function createStore(
   storeData:
     CreateStoreData
-): Store {
+): Promise<Store> {
   const normalizedData:
     CreateStoreData = {
       code:
@@ -667,7 +667,7 @@ export function createStore(
   );
 
   const createdStore =
-    createStoreRepository(
+    await createStoreRepository(
       normalizedData
     );
 
@@ -681,11 +681,11 @@ export function createStore(
   return createdStore;
 }
 
-export function updateStore(
+export async function updateStore(
   storeId: number,
   storeData:
     UpdateStoreData
-): Store | undefined {
+): Promise<Store | undefined> {
   const currentStore =
     getStoreById(
       storeId
@@ -792,7 +792,7 @@ export function updateStore(
   );
 
   const updatedStore =
-    updateStoreById(
+    await updateStoreById(
       storeId,
       updatedData
     );
@@ -809,9 +809,9 @@ export function updateStore(
   return updatedStore;
 }
 
-export function deleteStore(
+export async function deleteStore(
   storeId: number
-): boolean {
+): Promise<boolean> {
   const currentStore =
     getStoreById(
       storeId
@@ -822,7 +822,7 @@ export function deleteStore(
   }
 
   const deleted =
-    deleteStoreById(
+    await deleteStoreById(
       storeId
     );
 

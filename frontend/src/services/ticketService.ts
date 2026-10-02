@@ -126,10 +126,10 @@ function registerAuditEvent(
   });
 }
 
-function registerTicketChanges(
+async function registerTicketChanges(
   currentTicket: Ticket,
   updatedTicket: Ticket
-): void {
+): Promise<void> {
   const generalChanges:
     string[] = [];
 
@@ -141,7 +141,7 @@ function registerTicketChanges(
       updatedTicket.title
     )
   ) {
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         updatedTicket.id,
 
@@ -165,7 +165,7 @@ function registerTicketChanges(
       updatedTicket.description
     )
   ) {
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         updatedTicket.id,
 
@@ -185,7 +185,7 @@ function registerTicketChanges(
     currentTicket.category !==
     updatedTicket.category
   ) {
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         updatedTicket.id,
 
@@ -205,7 +205,7 @@ function registerTicketChanges(
     currentTicket.priority !==
     updatedTicket.priority
   ) {
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         updatedTicket.id,
 
@@ -248,7 +248,7 @@ function registerTicketChanges(
     currentTicket.status !==
     updatedTicket.status
   ) {
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         updatedTicket.id,
 
@@ -284,7 +284,7 @@ function registerTicketChanges(
         updatedTicket.assignedTechnicianId
       );
 
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         updatedTicket.id,
 
@@ -359,15 +359,15 @@ export function getTicketById(
   );
 }
 
-export function createTicket(
+export async function createTicket(
   ticketData: CreateTicketData
-): Ticket {
+): Promise<Ticket> {
   const createdTicket =
-    createTicketRepository(
+    await createTicketRepository(
       ticketData
     );
 
-  createTicketHistoryEntry({
+  await createTicketHistoryEntry({
     ticketId:
       createdTicket.id,
 
@@ -394,7 +394,7 @@ export function createTicket(
         createdTicket.assignedTechnicianId
       );
 
-    createTicketHistoryEntry({
+    await createTicketHistoryEntry({
       ticketId:
         createdTicket.id,
 
@@ -428,10 +428,10 @@ export function createTicket(
   return createdTicket;
 }
 
-export function updateTicket(
+export async function updateTicket(
   id: number,
   updatedData: UpdateTicketData
-): Ticket | undefined {
+): Promise<Ticket | undefined> {
   const currentTicket =
     findTicketById(
       id
@@ -442,7 +442,7 @@ export function updateTicket(
   }
 
   const updatedTicket =
-    updateTicketById(
+    await updateTicketById(
       id,
       updatedData
     );
@@ -451,7 +451,7 @@ export function updateTicket(
     return undefined;
   }
 
-  registerTicketChanges(
+  await registerTicketChanges(
     currentTicket,
     updatedTicket
   );
@@ -459,9 +459,9 @@ export function updateTicket(
   return updatedTicket;
 }
 
-export function deleteTicket(
+export async function deleteTicket(
   id: number
-): boolean {
+): Promise<boolean> {
   const currentTicket =
     findTicketById(
       id
@@ -472,7 +472,7 @@ export function deleteTicket(
   }
 
   const deleted =
-    deleteTicketById(
+    await deleteTicketById(
       id
     );
 

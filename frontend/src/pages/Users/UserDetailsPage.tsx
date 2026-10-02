@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -44,6 +45,7 @@ import {
 } from "../../auth/permissions";
 
 import MainLayout from "../../components/layout/MainLayout";
+import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../../components/common/PageHeader";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 
@@ -70,6 +72,7 @@ import {
 
 import type {
   UserHistoryAction,
+  UserHistoryEntry,
 } from "../../types/UserHistory";
 
 function getInitials(
@@ -176,6 +179,7 @@ function getHistoryColor(
 }
 
 function UserDetailsPage() {
+  useAuth();
   const navigate = useNavigate();
 
   const { id } = useParams();
@@ -213,17 +217,23 @@ function UserDetailsPage() {
     return getUserById(userId);
   }, [userId]);
 
-  const userHistory =
-    useMemo(() => {
-      if (!user) {
-        return [];
-      }
+  const [userHistory, setUserHistory] = useState<UserHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
-      return getUserHistory(
-        user.id,
-        user.createdAt
-      );
-    }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    setHistoryLoading(true);
+    setHistoryError("");
+    void getUserHistory(user.id)
+      .then((entries) => { if (active) setUserHistory(entries); })
+      .catch((error: unknown) => {
+        if (active) setHistoryError(error instanceof Error ? error.message : "Não foi possível carregar o histórico.");
+      })
+      .finally(() => { if (active) setHistoryLoading(false); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   const userStore =
     useMemo(() => {
@@ -777,7 +787,11 @@ function UserDetailsPage() {
             </Box>
           </Stack>
 
-          {userHistory.length ===
+          {historyError ? (
+            <Alert severity="error">{historyError}</Alert>
+          ) : historyLoading ? (
+            <Typography color="text.secondary">Carregando histórico...</Typography>
+          ) : userHistory.length ===
           0 ? (
             <Typography
               color="text.secondary"

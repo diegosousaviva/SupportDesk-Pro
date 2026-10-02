@@ -2,6 +2,7 @@ import {
   addNotification,
   getNotifications,
   isSlaNotificationDismissed,
+  refreshNotifications,
 } from "../services/notificationService";
 
 import {
@@ -59,10 +60,10 @@ function notificationAlreadyExists(
   );
 }
 
-function createSlaWarningNotification(
+async function createSlaWarningNotification(
   ticket:
     Ticket
-): AppNotification | null {
+): Promise<AppNotification | null> {
   if (
     notificationAlreadyExists(
       ticket.id,
@@ -103,10 +104,10 @@ function createSlaWarningNotification(
   });
 }
 
-function createSlaExpiredNotification(
+async function createSlaExpiredNotification(
   ticket:
     Ticket
-): AppNotification | null {
+): Promise<AppNotification | null> {
   if (
     notificationAlreadyExists(
       ticket.id,
@@ -158,8 +159,8 @@ export interface SlaMonitorResult {
     number;
 }
 
-export function runSlaMonitor():
-  SlaMonitorResult {
+export async function runSlaMonitor(): Promise<SlaMonitorResult> {
+  await refreshNotifications();
   const activeTickets =
     getTickets().filter(
       (
@@ -175,10 +176,7 @@ export function runSlaMonitor():
   let expiredNotificationsCreated =
     0;
 
-  activeTickets.forEach(
-    (
-      ticket
-    ) => {
+  for (const ticket of activeTickets) {
       try {
         const sla =
           calculateTicketSla(
@@ -189,10 +187,7 @@ export function runSlaMonitor():
           sla.status ===
           "warning"
         ) {
-          const notification =
-            createSlaWarningNotification(
-              ticket
-            );
+          const notification = await createSlaWarningNotification(ticket);
 
           if (
             notification
@@ -201,17 +196,14 @@ export function runSlaMonitor():
               1;
           }
 
-          return;
+          continue;
         }
 
         if (
           sla.status ===
           "expired"
         ) {
-          const notification =
-            createSlaExpiredNotification(
-              ticket
-            );
+          const notification = await createSlaExpiredNotification(ticket);
 
           if (
             notification
@@ -228,8 +220,7 @@ export function runSlaMonitor():
           error
         );
       }
-    }
-  );
+  }
 
   return {
     checkedTickets:

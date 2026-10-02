@@ -438,7 +438,7 @@ export default function TicketDetailsPage() {
         );
       }
 
-      createTicketHistoryEntry({
+      await createTicketHistoryEntry({
         ticketId:
           currentTicketId,
 
@@ -577,7 +577,7 @@ export default function TicketDetailsPage() {
         );
       }
 
-      createTicketHistoryEntry({
+      await createTicketHistoryEntry({
         ticketId:
           currentTicketId,
 
@@ -677,9 +677,9 @@ export default function TicketDetailsPage() {
     setDeleteDialogOpen(false);
   }
 
-  function handleAddComment(
+  async function handleAddComment(
     message: string
-  ): void {
+  ): Promise<void> {
     if (
       !user ||
       !mayComment ||
@@ -692,7 +692,7 @@ export default function TicketDetailsPage() {
     setIsAddingComment(true);
 
     try {
-      createTicketComment({
+      await createTicketComment({
         ticketId:
           currentTicketId,
 
@@ -705,7 +705,7 @@ export default function TicketDetailsPage() {
         message,
       });
 
-      createTicketHistoryEntry({
+      await createTicketHistoryEntry({
         ticketId:
           currentTicketId,
 
@@ -757,7 +757,7 @@ export default function TicketDetailsPage() {
     }
   }
 
-  function handleDelete(): void {
+  async function handleDelete(): Promise<void> {
     if (
       !mayDeleteTicket ||
       isDeleting
@@ -774,7 +774,7 @@ export default function TicketDetailsPage() {
 
     try {
       const deleted =
-        deleteTicket(
+        await deleteTicket(
           currentTicketId
         );
 

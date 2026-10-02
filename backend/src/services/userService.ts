@@ -7,11 +7,13 @@ import type {
 import {
   createUserRepository,
   deleteUserById,
+  hasUserReferences,
   findAllUsers,
   findUserByEmail,
   findUserById,
   updateUserById,
 } from "../repositories/userRepository.js";
+import { findRecord, listRecords } from "../repositories/recordRepository.js";
 
 import {
   assertStrongPassword,
@@ -29,6 +31,15 @@ function normalizeEmail(
   return email
     .trim()
     .toLowerCase();
+}
+
+async function validateConfiguredPassword(password: string): Promise<void> {
+  const settings = await listRecords<{ requireStrongPassword?: unknown }>("settings");
+  if (settings[0]?.payload.requireStrongPassword === false) {
+    if (password.length < 6) throw new Error("A senha deve possuir pelo menos 6 caracteres.");
+    return;
+  }
+  assertStrongPassword(password);
 }
 
 // ============================================================
@@ -84,6 +95,11 @@ export async function getUserByEmailService(
 export async function createUserService(
   data: CreateUserData
 ): Promise<User> {
+  if (data.storeId !== undefined && data.storeId !== null) {
+    if (!Number.isSafeInteger(data.storeId) || data.storeId < 1 || !(await findRecord("stores", data.storeId))) {
+      throw new Error("A loja vinculada ao usuário não existe.");
+    }
+  }
   const normalizedEmail =
     normalizeEmail(
       data.email
@@ -127,7 +143,7 @@ export async function createUserService(
     );
   }
 
-  assertStrongPassword(
+  await validateConfiguredPassword(
     data.password
   );
 
@@ -175,6 +191,12 @@ export async function updateUserService(
     throw new Error(
       "Usuário não encontrado."
     );
+  }
+
+  if (data.storeId !== undefined && data.storeId !== null && data.storeId !== currentUser.storeId) {
+    if (!Number.isSafeInteger(data.storeId) || data.storeId < 1 || !(await findRecord("stores", data.storeId))) {
+      throw new Error("A nova loja vinculada ao usuário não existe.");
+    }
   }
 
   const updateData:
@@ -286,7 +308,7 @@ export async function updateUserService(
     ) {
       delete updateData.password;
     } else {
-      assertStrongPassword(
+      await validateConfiguredPassword(
         data.password
       );
 
@@ -442,7 +464,7 @@ export async function changeOwnPasswordService(
   // Validar força da nova senha
   // ----------------------------------------------------------
 
-  assertStrongPassword(
+  await validateConfiguredPassword(
     newPassword
   );
 
@@ -508,6 +530,12 @@ export async function deleteUserService(
   if (!user) {
     throw new Error(
       "Usuário não encontrado."
+    );
+  }
+
+  if (await hasUserReferences(id)) {
+    throw new Error(
+      "Este usuário está vinculado a chamados, inventário, comentários ou notas e não pode ser excluído."
     );
   }
 

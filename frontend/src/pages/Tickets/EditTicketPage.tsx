@@ -18,6 +18,7 @@ import {
 } from "@mui/icons-material";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -85,6 +86,8 @@ import {
 import type {
   Ticket,
 } from "../../types/Ticket";
+import type { Category } from "../../types/Category";
+import { getCategories } from "../../services/categoryService";
 
 type TicketPriority =
   Ticket["priority"];
@@ -153,6 +156,25 @@ export default function EditTicketPage() {
     getTicketById(
       ticketId
     );
+
+  const [categoryOptions, setCategoryOptions] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((result) => {
+        if (cancelled) return;
+        const available = result.filter((item) => item.active || item.name === ticket?.category);
+        setCategoryOptions(available.sort((first, second) => first.name.localeCompare(second.name, "pt-BR")));
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setCategoriesError(error instanceof Error ? error.message : "Não foi possível carregar as categorias.");
+      })
+      .finally(() => { if (!cancelled) setCategoriesLoading(false); });
+    return () => { cancelled = true; };
+  }, [ticket?.category]);
 
   const technicians =
     getUsers().filter(
@@ -529,12 +551,12 @@ export default function EditTicketPage() {
     return `${inventoryItem.tag} — ${inventoryItem.description}`;
   }
 
-  function registerEquipmentChangeHistory(
+  async function registerEquipmentChangeHistory(
     previousInventoryItemId:
       number | null,
     newInventoryItemId:
       number | null
-  ): void {
+  ): Promise<void> {
     if (
       previousInventoryItemId ===
       newInventoryItemId
@@ -555,7 +577,7 @@ export default function EditTicketPage() {
           );
 
         if (previousEquipment) {
-          addInventoryHistoryEvent({
+          await addInventoryHistoryEvent({
             inventoryItemId:
               previousInventoryItemId,
 
@@ -587,7 +609,7 @@ export default function EditTicketPage() {
           );
 
         if (newEquipment) {
-          addInventoryHistoryEvent({
+          await addInventoryHistoryEvent({
             inventoryItemId:
               newInventoryItemId,
 
@@ -613,7 +635,7 @@ export default function EditTicketPage() {
         newInventoryItemId !==
           null
       ) {
-        createTicketHistoryEntry({
+        await createTicketHistoryEntry({
           ticketId:
             currentTicketId,
 
@@ -635,7 +657,7 @@ export default function EditTicketPage() {
         newInventoryItemId ===
           null
       ) {
-        createTicketHistoryEntry({
+        await createTicketHistoryEntry({
           ticketId:
             currentTicketId,
 
@@ -657,7 +679,7 @@ export default function EditTicketPage() {
         newInventoryItemId !==
           null
       ) {
-        createTicketHistoryEntry({
+        await createTicketHistoryEntry({
           ticketId:
             currentTicketId,
 
@@ -696,8 +718,8 @@ export default function EditTicketPage() {
     );
   }
 
-  function handleSave():
-    void {
+  async function handleSave():
+    Promise<void> {
     if (
       isSaving ||
       !mayEditTicket
@@ -887,7 +909,7 @@ export default function EditTicketPage() {
         currentTicket.inventoryItemId;
 
       const updatedTicket =
-        updateTicket(
+        await updateTicket(
           currentTicketId,
           {
             title:
@@ -946,7 +968,7 @@ export default function EditTicketPage() {
       if (
         equipmentChanged
       ) {
-        registerEquipmentChangeHistory(
+        await registerEquipmentChangeHistory(
           previousInventoryItemId,
           updatedTicket.inventoryItemId
         );
@@ -1261,30 +1283,24 @@ export default function EditTicketPage() {
               }}
             />
 
-            <TextField
-              label="Categoria"
-              value={
-                category
-              }
-              onChange={(event) =>
-                setCategory(
-                  event.target
-                    .value
-                )
-              }
-              fullWidth
-              required
-              disabled={
-                isSaving
-              }
-              helperText={`${category.length}/${MAXIMUM_CATEGORY_LENGTH} caracteres`}
-              slotProps={{
-                htmlInput: {
-                  maxLength:
-                    MAXIMUM_CATEGORY_LENGTH,
-                },
-              }}
-            />
+            <FormControl fullWidth required disabled={isSaving || categoriesLoading} error={Boolean(categoriesError)}>
+              <InputLabel id="edit-ticket-category-label">Categoria</InputLabel>
+              <Select
+                labelId="edit-ticket-category-label"
+                id="edit-ticket-category"
+                label="Categoria"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+              >
+                {category && !categoryOptions.some((item) => item.name === category) && (
+                  <MenuItem value={category}>{category} (atual)</MenuItem>
+                )}
+                {categoryOptions.map((item) => <MenuItem key={item.id} value={item.name}>{item.name}</MenuItem>)}
+              </Select>
+              <FormHelperText>
+                {categoriesLoading ? "Carregando categorias..." : categoriesError || `${category.length}/${MAXIMUM_CATEGORY_LENGTH} caracteres`}
+              </FormHelperText>
+            </FormControl>
 
             <TextField
               label="Descrição"

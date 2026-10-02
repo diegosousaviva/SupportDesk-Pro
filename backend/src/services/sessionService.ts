@@ -9,9 +9,9 @@ import type {
 import {
   findUserById,
 } from "../repositories/userRepository.js";
+import { listRecords } from "../repositories/recordRepository.js";
 
-const SESSION_DURATION_MS =
-  8 * 60 * 60 * 1000;
+const DEFAULT_MAXIMUM_SESSION_DURATION_MINUTES = 480;
 
 interface Session {
   token: string;
@@ -67,14 +67,23 @@ function removeExpiredSessions(): void {
   }
 }
 
-export function createSession(
+export async function createSession(
   user: AuthUser
-): {
+): Promise<{
   token: string;
 
   expiresAt: string;
-} {
+}> {
   removeExpiredSessions();
+
+  const settings = await listRecords<{ maximumSessionDurationMinutes?: unknown }>("settings");
+  const configuredDuration = settings[0]?.payload.maximumSessionDurationMinutes;
+  const durationMinutes = typeof configuredDuration === "number"
+    && Number.isSafeInteger(configuredDuration)
+    && configuredDuration > 0
+    && configuredDuration <= 10080
+    ? configuredDuration
+    : DEFAULT_MAXIMUM_SESSION_DURATION_MINUTES;
 
   const token =
     generateToken();
@@ -85,7 +94,7 @@ export function createSession(
   const expiresAt =
     new Date(
       createdAt.getTime() +
-        SESSION_DURATION_MS
+        durationMinutes * 60 * 1000
     );
 
   sessions.set(

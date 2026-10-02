@@ -711,7 +711,7 @@ function EditNotePage() {
 
     try {
       const updatedNote =
-        updateNote(
+        await updateNote(
           note.id,
           {
             title:

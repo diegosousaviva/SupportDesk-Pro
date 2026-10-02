@@ -10,6 +10,7 @@ import {
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -49,10 +50,12 @@ import {
   deleteTicket,
   getTickets,
 } from "../../services/ticketService";
+import { refreshTickets } from "../../repositories/ticketRepository";
 
 import {
   getUsers,
 } from "../../services/userService";
+import { refreshUsers as refreshUserCache } from "../../repositories/userRepository";
 
 import type {
   Ticket,
@@ -64,6 +67,7 @@ export default function TicketListPage() {
 
   const {
     user,
+    storeRevision,
   } = useAuth();
 
   const {
@@ -114,18 +118,25 @@ export default function TicketListPage() {
       Permissions.tickets.delete
     );
 
-  const [
-    tickets,
-    setTickets,
-  ] = useState(() =>
-    getTickets()
-  );
+  const [tickets, setTickets] = useState<Ticket[]>([]);
 
-  const [
-    users,
-  ] = useState(() =>
-    getUsers()
-  );
+  const [users, setUsers] = useState(() => getUsers());
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([refreshTickets(), refreshUserCache(user ?? undefined)])
+      .then(([loadedTickets, loadedUsers]) => {
+        if (active) {
+          setTickets(loadedTickets);
+          setUsers(loadedUsers);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Não foi possível atualizar os chamados.", error);
+        showSnackbar(error instanceof Error ? error.message : "Não foi possível atualizar os chamados.", { severity: "error" });
+      });
+    return () => { active = false; };
+  }, [storeRevision, user, showSnackbar]);
 
   /*
    * Define quais chamados o usuário atual pode
@@ -420,9 +431,9 @@ export default function TicketListPage() {
     );
   }
 
-  function handleDeleteTicket(
+  async function handleDeleteTicket(
     ticketId: number
-  ): void {
+  ): Promise<void> {
     if (
       !canDelete
     ) {
@@ -463,7 +474,7 @@ export default function TicketListPage() {
 
     try {
       const deleted =
-        deleteTicket(
+        await deleteTicket(
           ticketId
         );
 

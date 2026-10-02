@@ -5,11 +5,11 @@ import type {
 } from "../types/User";
 
 import {
-  createUserRepository,
-  deleteUserById,
   findAllUsers,
   findUserById,
   updateUserById,
+  upsertUserCache,
+  removeUserFromCache,
 } from "../repositories/userRepository";
 
 import {
@@ -39,6 +39,7 @@ import {
   getStoreById,
   getActiveStores,
 } from "./storeService";
+import { API_BASE_URL as API_URL } from "./apiBaseUrl";
 
 export type CreateUserData = Omit<
   User,
@@ -84,10 +85,6 @@ const VALID_STATUSES:
     "Ativo",
     "Inativo",
   ];
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000";
 
 function normalizeText(
   value: string
@@ -466,6 +463,16 @@ function registerUserAudit(
 
     details,
   });
+}
+
+async function registerUserHistory(
+  entry: Parameters<typeof createUserHistory>[0]
+): Promise<void> {
+  try {
+    await createUserHistory(entry);
+  } catch (error) {
+    console.error("Não foi possível registrar o histórico do usuário.", error);
+  }
 }
 
 export function getUsers():
@@ -922,39 +929,12 @@ export async function createUser(
    * A senha local é armazenada somente como
    * hash, nunca em texto puro.
    */
-  const protectedPassword =
-    isPasswordHash(
-      normalizedPassword
-    )
-      ? normalizedPassword
-      : await hashPassword(
-          normalizedPassword
-        );
+  const newUser = upsertUserCache({
+    ...result.user,
+    password: "",
+  });
 
-  const newUser =
-    createUserRepository({
-      ...userData,
-
-      name:
-        normalizedName,
-
-      email:
-        normalizedEmail,
-
-      password:
-        protectedPassword,
-
-      phone:
-        normalizedPhone,
-
-      department:
-        normalizedDepartment,
-
-      storeId:
-        normalizedStoreId,
-    });
-
-  createUserHistory({
+  await registerUserHistory({
     userId:
       newUser.id,
 
@@ -1267,23 +1247,11 @@ export async function updateUser(
    * antigas continuem funcionando durante
    * a migração.
    */
-  const synchronizedLocalUser:
-    User = {
+  const synchronizedLocalUser: User = {
     ...result.user,
-
-    id:
-      currentUser.id,
-
-    password:
-      passwordWasChanged
-        ? password
-        : currentUser.password,
+    password: "",
   };
-
-  updateUserById(
-    currentUser.id,
-    synchronizedLocalUser
-  );
+  updateUserById(currentUser.id, synchronizedLocalUser);
 
   const updatedUser =
     synchronizedLocalUser;
@@ -1378,7 +1346,7 @@ export async function updateUser(
       );
     }
 
-    createUserHistory({
+    await registerUserHistory({
       userId:
         id,
 
@@ -1410,7 +1378,7 @@ export async function updateUser(
   if (
     roleChanged
   ) {
-    createUserHistory({
+    await registerUserHistory({
       userId:
         id,
 
@@ -1442,7 +1410,7 @@ export async function updateUser(
       updatedUser.status ===
       "Ativo";
 
-    createUserHistory({
+    await registerUserHistory({
       userId:
         id,
 
@@ -1514,9 +1482,9 @@ export async function changeUserStatus(
   return updatedUser;
 }
 
-export function deleteUser(
+export async function deleteUser(
   id: number
-): boolean {
+): Promise<boolean> {
   const currentUser =
     getUserById(
       id
@@ -1530,7 +1498,21 @@ export function deleteUser(
     currentUser
   );
 
-  createUserHistory({
+  const token = getAuthToken();
+  if (!token) throw new Error("Sua sessão não está autenticada. Faça login novamente.");
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/users/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error("Não foi possível conectar ao servidor de usuários.");
+  }
+  const result = await response.json() as { success?: boolean; message?: string };
+  if (!response.ok || !result.success) throw new Error(result.message || "Não foi possível excluir o usuário.");
+
+  await registerUserHistory({
     userId:
       id,
 
@@ -1547,10 +1529,8 @@ export function deleteUser(
       "Sistema",
   });
 
-  const deleted =
-    deleteUserById(
-      id
-    );
+  removeUserFromCache(id);
+  const deleted = true;
 
   if (
     deleted

@@ -19,27 +19,32 @@ export function useSlaMonitor(): void {
   } = useNotifications();
 
   useEffect(() => {
-    function checkSla(): void {
-      const result =
-        runSlaMonitor();
+    let checking = false;
+    async function checkSla(): Promise<void> {
+      if (checking) return;
+      checking = true;
+      try {
+        const result = await runSlaMonitor();
 
-      const notificationsCreated =
-        result.warningNotificationsCreated +
-        result.expiredNotificationsCreated;
+        const notificationsCreated =
+          result.warningNotificationsCreated +
+          result.expiredNotificationsCreated;
 
-      if (
-        notificationsCreated >
-        0
-      ) {
-        refreshNotifications();
+        if (notificationsCreated > 0) {
+          await refreshNotifications();
+        }
+      } catch (error) {
+        console.error("Não foi possível atualizar as notificações de SLA.", error);
+      } finally {
+        checking = false;
       }
     }
 
-    checkSla();
+    void checkSla();
 
     const intervalId =
       window.setInterval(
-        checkSla,
+        () => { void checkSla(); },
         SLA_MONITOR_INTERVAL
       );
 

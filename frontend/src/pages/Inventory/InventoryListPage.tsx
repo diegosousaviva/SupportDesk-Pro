@@ -42,10 +42,11 @@ import {
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
+import { useAuth } from "../../contexts/AuthContext";
+import { refreshInventoryItems } from "../../repositories/inventoryRepository";
 
 import {
   deleteInventoryItem,
-  getInventoryItems,
 } from "../../services/inventoryService";
 
 import {
@@ -80,6 +81,7 @@ type ConditionFilter =
   | typeof ALL_CONDITIONS_VALUE;
 
 function InventoryListPage() {
+  const { storeRevision } = useAuth();
   const navigate =
     useNavigate();
 
@@ -151,10 +153,15 @@ function InventoryListPage() {
     getUsers();
 
   useEffect(() => {
-    setItems(
-      getInventoryItems()
-    );
-  }, []);
+    let active = true;
+    void refreshInventoryItems()
+      .then((loadedItems) => { if (active) setItems(loadedItems); })
+      .catch((error: unknown) => {
+        console.error("Não foi possível carregar o inventário.", error);
+        showSnackbar(error instanceof Error ? error.message : "Não foi possível carregar o inventário.", { severity: "error" });
+      });
+    return () => { active = false; };
+  }, [storeRevision, showSnackbar]);
 
   const filteredItems =
     useMemo(() => {

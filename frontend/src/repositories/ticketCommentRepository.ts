@@ -1,174 +1,33 @@
 import type { TicketComment } from "../types/TicketComment";
+import { createData, deleteData, listData, updateData } from "../services/dataApi";
 
-const STORAGE_KEY =
-  "supportdesk-pro-ticket-comments";
+export type CreateTicketCommentData = Omit<TicketComment, "id" | "createdAt" | "updatedAt">;
+let comments: TicketComment[] = [];
 
-export type CreateTicketCommentData = Omit<
-  TicketComment,
-  "id" | "createdAt" | "updatedAt"
->;
-
-function saveCommentsToStorage(
-  commentsToSave: TicketComment[]
-): void {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(commentsToSave)
-    );
-  } catch (error) {
-    console.error(
-      "Não foi possível salvar os comentários no Local Storage.",
-      error
-    );
-  }
+export async function refreshTicketComments(): Promise<TicketComment[]> {
+  comments = await listData<TicketComment>("ticket-comments");
+  return [...comments];
 }
-
-function loadCommentsFromStorage(): TicketComment[] {
-  try {
-    const storedComments =
-      localStorage.getItem(STORAGE_KEY);
-
-    if (!storedComments) {
-      return [];
-    }
-
-    const parsedData: unknown =
-      JSON.parse(storedComments);
-
-    if (!Array.isArray(parsedData)) {
-      return [];
-    }
-
-    return parsedData.filter(
-      (comment): comment is TicketComment =>
-        typeof comment === "object" &&
-        comment !== null &&
-        typeof comment.id === "number" &&
-        typeof comment.ticketId === "number" &&
-        typeof comment.authorId === "number" &&
-        typeof comment.authorName === "string" &&
-        typeof comment.message === "string" &&
-        typeof comment.createdAt === "string"
-    );
-  } catch (error) {
-    console.error(
-      "Não foi possível carregar os comentários do Local Storage.",
-      error
-    );
-
-    return [];
-  }
+export function findCommentsByTicketId(ticketId: number): TicketComment[] {
+  return comments.filter((comment) => comment.ticketId === ticketId).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
 }
-
-let comments: TicketComment[] =
-  loadCommentsFromStorage();
-
-export function findCommentsByTicketId(
-  ticketId: number
-): TicketComment[] {
-  return comments
-    .filter(
-      (comment) =>
-        comment.ticketId === ticketId
-    )
-    .sort(
-      (firstComment, secondComment) =>
-        new Date(
-          firstComment.createdAt
-        ).getTime() -
-        new Date(
-          secondComment.createdAt
-        ).getTime()
-    );
+export async function createTicketCommentRepository(data: CreateTicketCommentData): Promise<TicketComment> {
+  const record = await createData<TicketComment>("ticket-comments", data);
+  comments = [...comments, record];
+  return record;
 }
-
-export function createTicketCommentRepository(
-  commentData: CreateTicketCommentData
-): TicketComment {
-  const highestId = comments.reduce(
-    (currentHighestId, comment) =>
-      Math.max(
-        currentHighestId,
-        comment.id
-      ),
-    0
-  );
-
-  const newComment: TicketComment = {
-    ...commentData,
-    id: highestId + 1,
-    createdAt: new Date().toISOString(),
-  };
-
-  comments = [
-    ...comments,
-    newComment,
-  ];
-
-  saveCommentsToStorage(comments);
-
-  return newComment;
+export async function updateTicketCommentRepository(id: number, message: string): Promise<TicketComment | null> {
+  const current = comments.find((comment) => comment.id === id);
+  if (!current) return null;
+  const updated = await updateData<TicketComment>("ticket-comments", id, { message });
+  comments = comments.map((comment) => comment.id === id ? updated : comment);
+  return updated;
 }
-
-export function updateTicketCommentRepository(
-  id: number,
-  message: string
-): TicketComment | null {
-  let updatedComment: TicketComment | null =
-    null;
-
-  comments = comments.map((comment) => {
-    if (comment.id !== id) {
-      return comment;
-    }
-
-    updatedComment = {
-      ...comment,
-      message,
-      updatedAt:
-        new Date().toISOString(),
-    };
-
-    return updatedComment;
-  });
-
-  if (!updatedComment) {
-    return null;
-  }
-
-  saveCommentsToStorage(comments);
-
-  return updatedComment;
-}
-
-export function deleteTicketCommentById(
-  id: number
-): boolean {
-  const commentExists = comments.some(
-    (comment) => comment.id === id
-  );
-
-  if (!commentExists) {
-    return false;
-  }
-
-  comments = comments.filter(
-    (comment) => comment.id !== id
-  );
-
-  saveCommentsToStorage(comments);
-
+export async function deleteTicketCommentById(id: number): Promise<boolean> {
+  await deleteData("ticket-comments", id);
+  comments = comments.filter((comment) => comment.id !== id);
   return true;
 }
-
-export function deleteCommentsByTicketId(
-  ticketId: number
-): void {
-  comments = comments.filter(
-    (comment) =>
-      comment.ticketId !== ticketId
-  );
-
-  saveCommentsToStorage(comments);
+export function deleteCommentsByTicketId(ticketId: number): void {
+  comments = comments.filter((comment) => comment.ticketId !== ticketId);
 }

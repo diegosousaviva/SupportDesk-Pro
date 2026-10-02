@@ -47,6 +47,8 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import {
   Permissions,
 } from "../../auth/permissions";
+import { useAuth } from "../../contexts/AuthContext";
+import { refreshUsers as refreshUserCache } from "../../repositories/userRepository";
 
 import DataTablePagination from "../../components/common/DataTablePagination";
 import DataTableToolbar from "../../components/common/DataTableToolbar";
@@ -111,6 +113,7 @@ function compareText(
 }
 
 function UserListPage() {
+  const { user, storeRevision } = useAuth();
   const navigate = useNavigate();
 
   const { can } = usePermissions();
@@ -166,6 +169,18 @@ function UserListPage() {
     users,
     setUsers,
   ] = useState(() => getUsers());
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void refreshUserCache(user)
+      .then((loadedUsers) => { if (active) setUsers(loadedUsers); })
+      .catch((error: unknown) => {
+        console.error("Não foi possível carregar os usuários.", error);
+        showSnackbar(error instanceof Error ? error.message : "Não foi possível carregar os usuários.", { severity: "error" });
+      });
+    return () => { active = false; };
+  }, [storeRevision, user, showSnackbar]);
 
   const [
     selectedUser,

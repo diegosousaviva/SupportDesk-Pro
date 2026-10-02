@@ -1,12 +1,6 @@
-import {
-  createUserHistoryRepository,
-  findUserHistoryByUserId,
-} from "../repositories/userHistoryRepository";
-
-import type {
-  UserHistoryAction,
-  UserHistoryEntry,
-} from "../types/UserHistory";
+import { createData, listData } from "./dataApi";
+import { replaceUserHistoryCache, upsertUserHistoryCache } from "../repositories/userHistoryRepository";
+import type { UserHistoryAction, UserHistoryEntry } from "../types/UserHistory";
 
 interface CreateUserHistoryData {
   userId: number;
@@ -17,50 +11,21 @@ interface CreateUserHistoryData {
   createdAt?: string;
 }
 
-export function createUserHistory(
-  historyData: CreateUserHistoryData
-): UserHistoryEntry {
-  return createUserHistoryRepository({
-    userId: historyData.userId,
-    action: historyData.action,
-    title: historyData.title,
-    description:
-      historyData.description,
-    performedBy:
-      historyData.performedBy ??
-      "Sistema",
-    createdAt:
-      historyData.createdAt ??
-      new Date().toISOString(),
+export async function createUserHistory(data: CreateUserHistoryData): Promise<UserHistoryEntry> {
+  const created = await createData<UserHistoryEntry>("user-history", {
+    userId: data.userId,
+    action: data.action,
+    title: data.title,
+    description: data.description,
   });
+  upsertUserHistoryCache(created);
+  return created;
 }
 
-export function getUserHistory(
-  userId: number,
-  userCreatedAt: string
-): UserHistoryEntry[] {
-  const currentHistory =
-    findUserHistoryByUserId(userId);
-
-  const hasCreatedEntry =
-    currentHistory.some(
-      (entry) =>
-        entry.action === "created"
-    );
-
-  if (!hasCreatedEntry) {
-    createUserHistory({
-      userId,
-      action: "created",
-      title: "Usuário criado",
-      description:
-        "O cadastro do usuário foi criado no sistema.",
-      performedBy: "Sistema",
-      createdAt: userCreatedAt,
-    });
-  }
-
-  return findUserHistoryByUserId(
-    userId
-  );
+export async function getUserHistory(userId: number): Promise<UserHistoryEntry[]> {
+  const entries = await listData<UserHistoryEntry>("user-history");
+  replaceUserHistoryCache(entries);
+  return entries
+    .filter((entry) => entry.userId === userId)
+    .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
 }

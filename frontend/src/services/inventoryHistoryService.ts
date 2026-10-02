@@ -131,10 +131,10 @@ export function getInventoryHistory(
   );
 }
 
-export function addInventoryHistoryEvent(
+export async function addInventoryHistoryEvent(
   eventData:
     CreateInventoryHistoryEventData
-): InventoryHistoryEvent {
+): Promise<InventoryHistoryEvent> {
   validateInventoryItem(
     eventData.inventoryItemId
   );
@@ -195,9 +195,9 @@ export function addInventoryHistoryEvent(
   );
 }
 
-export function removeInventoryHistory(
+export async function removeInventoryHistory(
   inventoryItemId: number
-): void {
+): Promise<void> {
   if (
     !Number.isInteger(
       inventoryItemId
@@ -207,7 +207,7 @@ export function removeInventoryHistory(
     return;
   }
 
-  deleteInventoryHistoryByItemId(
+  await deleteInventoryHistoryByItemId(
     inventoryItemId
   );
 }

@@ -70,6 +70,7 @@ import {
 import {
   getSettings,
   importSettings,
+  refreshSettings,
   restoreDefaultSettings,
   saveSettings,
 } from "../../services/settingsService";
@@ -114,6 +115,8 @@ function SettingsPage() {
       null
     );
 
+  const settingsDirtyRef = useRef(false);
+
   const [
     settings,
     setSettings,
@@ -136,6 +139,21 @@ function SettingsPage() {
     useState(
       false
     );
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void refreshSettings()
+      .then((latestSettings) => {
+        if (active && !settingsDirtyRef.current) setSettings({ ...latestSettings, preferredTheme: preference, language });
+      })
+      .catch((error: unknown) => {
+        console.error("Não foi possível carregar as configurações compartilhadas.", error);
+        if (active) showSnackbar(t("settings.saveError"), { severity: "error" });
+      });
+    return () => { active = false; };
+  }, []);
 
   const canViewAudit =
     can(
@@ -173,6 +191,7 @@ function SettingsPage() {
 
   function markAsChanged():
     void {
+    settingsDirtyRef.current = true;
     if (
       saved
     ) {
@@ -354,17 +373,20 @@ function SettingsPage() {
     markAsChanged();
   }
 
-  function handleSave():
-    void {
+  async function handleSave():
+    Promise<void> {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
       const savedSettings =
-        saveSettings(
+        await saveSettings(
           settings
         );
 
       setSettings(
         savedSettings
       );
+      settingsDirtyRef.current = false;
 
       setColorMode(
         savedSettings.preferredTheme
@@ -402,6 +424,8 @@ function SettingsPage() {
             "error",
         }
       );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -531,7 +555,7 @@ function SettingsPage() {
       }
 
       const restoredSettings =
-        importSettings(
+        await importSettings(
           (
             parsedBackup as {
               settings:
@@ -543,6 +567,7 @@ function SettingsPage() {
       setSettings(
         restoredSettings
       );
+      settingsDirtyRef.current = false;
 
       setColorMode(
         restoredSettings.preferredTheme
@@ -583,8 +608,8 @@ function SettingsPage() {
     }
   }
 
-  function handleRestoreDefaults():
-    void {
+  async function handleRestoreDefaults():
+    Promise<void> {
     const confirmed =
       window.confirm(
         t(
@@ -600,11 +625,12 @@ function SettingsPage() {
 
     try {
       const restoredSettings =
-        restoreDefaultSettings();
+        await restoreDefaultSettings();
 
       setSettings(
         restoredSettings
       );
+      settingsDirtyRef.current = false;
 
       setColorMode(
         restoredSettings.preferredTheme
@@ -1020,6 +1046,7 @@ function SettingsPage() {
             onClick={
               handleSave
             }
+            disabled={isSaving}
           >
             {t(
               "settings.saveButton"

@@ -1,296 +1,185 @@
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
-
-import type {
-  ReactNode,
-} from "react";
-
+import type { ReactNode } from "react";
+import { useAuth } from "./AuthContext";
+import { useSnackbar } from "../hooks/useSnackbar";
 import {
   addNotification as addNotificationService,
+  clearNotificationCache,
   clearNotifications as clearNotificationsService,
   getNotifications,
   markAllNotificationsAsRead as markAllNotificationsAsReadService,
   markNotificationAsRead as markNotificationAsReadService,
+  refreshNotifications as refreshNotificationsService,
   removeNotification as removeNotificationService,
   removeNotificationsByTicket as removeNotificationsByTicketService,
   removeNotificationsByTicketAndTypes as removeNotificationsByTicketAndTypesService,
   removeSlaNotificationsByTicket as removeSlaNotificationsByTicketService,
 } from "../services/notificationService";
+import type { AppNotification, NotificationType } from "../types/Notification";
 
-import type {
-  AppNotification,
-  NotificationType,
-} from "../types/Notification";
-
-export type CreateNotificationData = Omit<
-  AppNotification,
-  "id" | "createdAt"
->;
+export type CreateNotificationData = Omit<AppNotification, "id" | "createdAt">;
 
 interface NotificationContextValue {
   notifications: AppNotification[];
-
   unreadCount: number;
+  addNotification: (notification: CreateNotificationData) => Promise<AppNotification | undefined>;
+  markAsRead: (notificationId: number) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  removeNotification: (notificationId: number) => Promise<void>;
+  removeNotificationsByTicket: (ticketId: number) => Promise<void>;
+  removeNotificationsByTicketAndTypes: (ticketId: number, types: readonly NotificationType[]) => Promise<void>;
+  removeSlaNotificationsByTicket: (ticketId: number) => Promise<void>;
+  clearNotifications: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
+}
 
-  addNotification: (
-    notification: CreateNotificationData
-  ) => AppNotification;
+const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
-  markAsRead: (
-    notificationId: number
-  ) => void;
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Não foi possível salvar a notificação.";
+}
 
-  markAllAsRead: () => void;
+export function NotificationProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const { showError } = useSnackbar();
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
-  removeNotification: (
-    notificationId: number
-  ) => void;
+  const refreshNotifications = useCallback(async (): Promise<void> => {
+    if (!user) return;
+    try {
+      setNotifications(await refreshNotificationsService());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError, user?.id]);
 
-  removeNotificationsByTicket: (
-    ticketId: number
-  ) => void;
+  useEffect(() => {
+    if (!user) {
+      clearNotificationCache();
+      setNotifications([]);
+      return;
+    }
+    void refreshNotifications();
+    const interval = window.setInterval(() => { void refreshNotifications(); }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [refreshNotifications, user]);
 
-  removeNotificationsByTicketAndTypes: (
+  const addNotification = useCallback(async (data: CreateNotificationData): Promise<AppNotification | undefined> => {
+    try {
+      const created = await addNotificationService(data);
+      setNotifications(getNotifications());
+      return created;
+    } catch (error) {
+      showError(errorMessage(error));
+      return undefined;
+    }
+  }, [showError]);
+
+  const markAsRead = useCallback(async (id: number): Promise<void> => {
+    try {
+      await markNotificationAsReadService(id);
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
+
+  const markAllAsRead = useCallback(async (): Promise<void> => {
+    try {
+      await markAllNotificationsAsReadService();
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
+
+  const removeNotification = useCallback(async (id: number): Promise<void> => {
+    try {
+      await removeNotificationService(id);
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
+
+  const removeNotificationsByTicket = useCallback(async (ticketId: number): Promise<void> => {
+    try {
+      await removeNotificationsByTicketService(ticketId);
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
+
+  const removeNotificationsByTicketAndTypes = useCallback(async (
     ticketId: number,
-    types: readonly NotificationType[]
-  ) => void;
+    types: readonly NotificationType[],
+  ): Promise<void> => {
+    try {
+      await removeNotificationsByTicketAndTypesService(ticketId, types);
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
 
-  removeSlaNotificationsByTicket: (
-    ticketId: number
-  ) => void;
+  const removeSlaNotificationsByTicket = useCallback(async (ticketId: number): Promise<void> => {
+    try {
+      await removeSlaNotificationsByTicketService(ticketId);
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
 
-  clearNotifications: () => void;
+  const clearNotifications = useCallback(async (): Promise<void> => {
+    try {
+      await clearNotificationsService();
+      setNotifications(getNotifications());
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }, [showError]);
 
-  refreshNotifications: () => void;
-}
-
-interface NotificationProviderProps {
-  children: ReactNode;
-}
-
-const NotificationContext =
-  createContext<
-    NotificationContextValue | undefined
-  >(undefined);
-
-export function NotificationProvider({
-  children,
-}: NotificationProviderProps) {
-  const [
+  const value = useMemo<NotificationContextValue>(() => ({
     notifications,
-    setNotifications,
-  ] = useState<AppNotification[]>(
-    getNotifications
-  );
+    unreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    removeNotificationsByTicket,
+    removeNotificationsByTicketAndTypes,
+    removeSlaNotificationsByTicket,
+    clearNotifications,
+    refreshNotifications,
+  }), [
+    notifications,
+    unreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    removeNotificationsByTicket,
+    removeNotificationsByTicketAndTypes,
+    removeSlaNotificationsByTicket,
+    clearNotifications,
+    refreshNotifications,
+  ]);
 
-  const unreadCount =
-    notifications.filter(
-      (notification) =>
-        !notification.read
-    ).length;
-
-  function refreshNotifications(): void {
-    setNotifications(
-      getNotifications()
-    );
-  }
-
-  function addNotification(
-    notification:
-      CreateNotificationData
-  ): AppNotification {
-    const createdNotification =
-      addNotificationService(
-        notification
-      );
-
-    setNotifications(
-      (currentNotifications) => [
-        createdNotification,
-        ...currentNotifications,
-      ]
-    );
-
-    return createdNotification;
-  }
-
-  function markAsRead(
-    notificationId: number
-  ): void {
-    markNotificationAsReadService(
-      notificationId
-    );
-
-    setNotifications(
-      (currentNotifications) =>
-        currentNotifications.map(
-          (notification) =>
-            notification.id ===
-            notificationId
-              ? {
-                  ...notification,
-                  read: true,
-                }
-              : notification
-        )
-    );
-  }
-
-  function markAllAsRead(): void {
-    markAllNotificationsAsReadService();
-
-    setNotifications(
-      (currentNotifications) =>
-        currentNotifications.map(
-          (notification) => ({
-            ...notification,
-            read: true,
-          })
-        )
-    );
-  }
-
-  function removeNotification(
-    notificationId: number
-  ): void {
-    removeNotificationService(
-      notificationId
-    );
-
-    setNotifications(
-      (currentNotifications) =>
-        currentNotifications.filter(
-          (notification) =>
-            notification.id !==
-            notificationId
-        )
-    );
-  }
-
-  function removeNotificationsByTicket(
-    ticketId: number
-  ): void {
-    removeNotificationsByTicketService(
-      ticketId
-    );
-
-    setNotifications(
-      (currentNotifications) =>
-        currentNotifications.filter(
-          (notification) =>
-            notification.ticketId !==
-            ticketId
-        )
-    );
-  }
-
-  function removeNotificationsByTicketAndTypes(
-    ticketId: number,
-    types: readonly NotificationType[]
-  ): void {
-    removeNotificationsByTicketAndTypesService(
-      ticketId,
-      types
-    );
-
-    setNotifications(
-      (currentNotifications) =>
-        currentNotifications.filter(
-          (notification) => {
-            const belongsToTicket =
-              notification.ticketId ===
-              ticketId;
-
-            const hasSelectedType =
-              types.includes(
-                notification.type
-              );
-
-            return !(
-              belongsToTicket &&
-              hasSelectedType
-            );
-          }
-        )
-    );
-  }
-
-  function removeSlaNotificationsByTicket(
-    ticketId: number
-  ): void {
-    removeSlaNotificationsByTicketService(
-      ticketId
-    );
-
-    setNotifications(
-      (currentNotifications) =>
-        currentNotifications.filter(
-          (notification) =>
-            !(
-              notification.ticketId ===
-                ticketId &&
-              (
-                notification.type ===
-                  "sla_warning" ||
-                notification.type ===
-                  "sla_expired"
-              )
-            )
-        )
-    );
-  }
-
-  function clearNotifications(): void {
-    clearNotificationsService();
-
-    setNotifications([]);
-  }
-
-  const contextValue =
-    useMemo<NotificationContextValue>(
-      () => ({
-        notifications,
-        unreadCount,
-        addNotification,
-        markAsRead,
-        markAllAsRead,
-        removeNotification,
-        removeNotificationsByTicket,
-        removeNotificationsByTicketAndTypes,
-        removeSlaNotificationsByTicket,
-        clearNotifications,
-        refreshNotifications,
-      }),
-      [
-        notifications,
-        unreadCount,
-      ]
-    );
-
-  return (
-    <NotificationContext.Provider
-      value={contextValue}
-    >
-      {children}
-    </NotificationContext.Provider>
-  );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
 
 export function useNotifications(): NotificationContextValue {
-  const context =
-    useContext(
-      NotificationContext
-    );
-
-  if (!context) {
-    throw new Error(
-      "useNotifications deve ser usado dentro de NotificationProvider."
-    );
-  }
-
+  const context = useContext(NotificationContext);
+  if (!context) throw new Error("useNotifications deve ser usado dentro de NotificationProvider.");
   return context;
 }

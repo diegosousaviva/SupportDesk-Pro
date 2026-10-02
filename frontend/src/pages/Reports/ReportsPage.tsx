@@ -49,6 +49,7 @@ import type {
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
+import { useAuth } from "../../contexts/AuthContext";
 
 import {
   calculateSlaSummary,
@@ -160,6 +161,7 @@ function getPeriodStartDate(
 }
 
 function ReportsPage() {
+  useAuth();
   const navigate =
     useNavigate();
 

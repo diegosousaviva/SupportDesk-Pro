@@ -1,13 +1,11 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useSnackbar } from "../hooks/useSnackbar";
 import {
   addNotification as addNotificationService,
@@ -23,24 +21,10 @@ import {
   removeSlaNotificationsByTicket as removeSlaNotificationsByTicketService,
 } from "../services/notificationService";
 import type { AppNotification, NotificationType } from "../types/Notification";
+import { NotificationContext } from "./NotificationContextValue";
+import type { CreateNotificationData, NotificationContextValue } from "./NotificationContextValue";
 
-export type CreateNotificationData = Omit<AppNotification, "id" | "createdAt">;
-
-interface NotificationContextValue {
-  notifications: AppNotification[];
-  unreadCount: number;
-  addNotification: (notification: CreateNotificationData) => Promise<AppNotification | undefined>;
-  markAsRead: (notificationId: number) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  removeNotification: (notificationId: number) => Promise<void>;
-  removeNotificationsByTicket: (ticketId: number) => Promise<void>;
-  removeNotificationsByTicketAndTypes: (ticketId: number, types: readonly NotificationType[]) => Promise<void>;
-  removeSlaNotificationsByTicket: (ticketId: number) => Promise<void>;
-  clearNotifications: () => Promise<void>;
-  refreshNotifications: () => Promise<void>;
-}
-
-const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
+const EMPTY_NOTIFICATIONS: AppNotification[] = [];
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Não foi possível salvar a notificação.";
@@ -49,7 +33,9 @@ function errorMessage(error: unknown): string {
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { showError } = useSnackbar();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notificationState, setNotificationState] = useState<{ user: typeof user; items: AppNotification[] }>(() => ({ user, items: [] }));
+  const notifications = notificationState.user === user ? notificationState.items : EMPTY_NOTIFICATIONS;
+  const setNotifications = useCallback((items: AppNotification[]) => setNotificationState({ user, items }), [user]);
   const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   const refreshNotifications = useCallback(async (): Promise<void> => {
@@ -59,18 +45,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError, user?.id]);
+  }, [setNotifications, showError, user]);
 
   useEffect(() => {
     if (!user) {
       clearNotificationCache();
-      setNotifications([]);
       return;
     }
-    void refreshNotifications();
+    void refreshNotificationsService()
+      .then(setNotifications)
+      .catch((error: unknown) => showError(errorMessage(error)));
     const interval = window.setInterval(() => { void refreshNotifications(); }, 60_000);
     return () => window.clearInterval(interval);
-  }, [refreshNotifications, user]);
+  }, [refreshNotifications, setNotifications, showError, user]);
 
   const addNotification = useCallback(async (data: CreateNotificationData): Promise<AppNotification | undefined> => {
     try {
@@ -81,7 +68,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       showError(errorMessage(error));
       return undefined;
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const markAsRead = useCallback(async (id: number): Promise<void> => {
     try {
@@ -90,7 +77,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const markAllAsRead = useCallback(async (): Promise<void> => {
     try {
@@ -99,7 +86,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const removeNotification = useCallback(async (id: number): Promise<void> => {
     try {
@@ -108,7 +95,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const removeNotificationsByTicket = useCallback(async (ticketId: number): Promise<void> => {
     try {
@@ -117,7 +104,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const removeNotificationsByTicketAndTypes = useCallback(async (
     ticketId: number,
@@ -129,7 +116,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const removeSlaNotificationsByTicket = useCallback(async (ticketId: number): Promise<void> => {
     try {
@@ -138,7 +125,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const clearNotifications = useCallback(async (): Promise<void> => {
     try {
@@ -147,7 +134,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showError(errorMessage(error));
     }
-  }, [showError]);
+  }, [setNotifications, showError]);
 
   const value = useMemo<NotificationContextValue>(() => ({
     notifications,
@@ -176,10 +163,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   ]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
-}
-
-export function useNotifications(): NotificationContextValue {
-  const context = useContext(NotificationContext);
-  if (!context) throw new Error("useNotifications deve ser usado dentro de NotificationProvider.");
-  return context;
 }

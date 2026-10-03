@@ -19,7 +19,7 @@ import {
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 export interface SecuritySettingsData {
   sessionTimeoutMinutes: number;

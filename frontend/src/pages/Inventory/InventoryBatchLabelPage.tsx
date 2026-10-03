@@ -27,7 +27,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 import InventoryLabelPreview from "../../components/inventory/InventoryLabelPreview";
 import MainLayout from "../../components/layout/MainLayout";
@@ -76,7 +76,7 @@ function parseSelectedIds(
 }
 
 function InventoryBatchLabelPage() {
-  const { storeRevision } = useAuth();
+  useAuth();
   const navigate =
     useNavigate();
 
@@ -105,31 +105,10 @@ function InventoryBatchLabelPage() {
       ]
     );
 
-  const selectedItems =
-    useMemo(() => {
-      const inventoryItems =
-        getInventoryItems();
-
-      return selectedIds
-        .map((selectedId) =>
-          inventoryItems.find(
-            (item) =>
-              item.id ===
-              selectedId
-          )
-        )
-        .filter(
-          (
-            item
-          ): item is NonNullable<
-            typeof item
-          > =>
-            Boolean(item)
-        );
-    }, [
-      selectedIds,
-      storeRevision,
-    ]);
+  const inventoryItems = getInventoryItems();
+  const selectedItems = selectedIds
+    .map((selectedId) => inventoryItems.find((item) => item.id === selectedId))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   function updateOption<
     Key extends keyof InventoryLabelOptions,

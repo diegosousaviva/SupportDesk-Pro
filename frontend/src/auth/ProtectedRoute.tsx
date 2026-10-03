@@ -8,7 +8,7 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { usePermissions } from "../hooks/usePermissions";
 
 import type {

@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { lazy } from "react";
 
 import { Permissions } from "../auth/permissions";
@@ -15,6 +16,6 @@ export const dashboardRoutes: AppRoute[] = [
     path: "/dashboard",
     permission:
       Permissions.dashboard.view,
-    element: <DashboardPage />,
+    element: createElement(DashboardPage),
   },
 ];

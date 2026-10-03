@@ -27,18 +27,22 @@ import {
 } from "@mui/material/styles";
 
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import {
+  collapsedDrawerWidth,
+  drawerWidth,
+} from "./sidebarDimensions";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import type {
   TranslationKey,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import {
   buildMenu,
@@ -52,9 +56,6 @@ import type {
 import {
   getTickets,
 } from "../../services/ticketService";
-
-const drawerWidth = 260;
-const collapsedDrawerWidth = 76;
 
 interface SidebarProps {
   desktopOpen: boolean;
@@ -1085,8 +1086,3 @@ function Sidebar({
 }
 
 export default Sidebar;
-
-export {
-  collapsedDrawerWidth,
-  drawerWidth,
-};

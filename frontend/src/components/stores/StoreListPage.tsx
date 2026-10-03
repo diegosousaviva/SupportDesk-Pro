@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -65,7 +64,7 @@ function StoreListPage() {
   const [
     stores,
     setStores,
-  ] = useState<Store[]>([]);
+  ] = useState<Store[]>(getStores);
 
   const [
     selectedStoreId,
@@ -83,12 +82,6 @@ function StoreListPage() {
     deleting,
     setDeleting,
   ] = useState(false);
-
-  useEffect(() => {
-    setStores(
-      getStores()
-    );
-  }, []);
 
   const filteredStores =
     useMemo(() => {

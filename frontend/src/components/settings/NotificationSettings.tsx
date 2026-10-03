@@ -12,7 +12,7 @@ import {
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 export interface NotificationSettingsData {
   notifyNewTicket: boolean;

@@ -49,7 +49,7 @@ import type {
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 import {
   calculateSlaSummary,

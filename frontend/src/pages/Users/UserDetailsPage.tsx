@@ -45,7 +45,7 @@ import {
 } from "../../auth/permissions";
 
 import MainLayout from "../../components/layout/MainLayout";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 
@@ -217,23 +217,27 @@ function UserDetailsPage() {
     return getUserById(userId);
   }, [userId]);
 
-  const [userHistory, setUserHistory] = useState<UserHistoryEntry[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState("");
+  const [historyState, setHistoryState] = useState<{
+    userId: number | null;
+    entries: UserHistoryEntry[];
+    loading: boolean;
+    error: string;
+  }>(() => ({ userId: user?.id ?? null, entries: [], loading: Boolean(user), error: "" }));
+  const isCurrentUserHistory = historyState.userId === user?.id;
+  const userHistory = isCurrentUserHistory ? historyState.entries : [];
+  const historyLoading = Boolean(user) && (!isCurrentUserHistory || historyState.loading);
+  const historyError = isCurrentUserHistory ? historyState.error : "";
 
   useEffect(() => {
     if (!user) return;
     let active = true;
-    setHistoryLoading(true);
-    setHistoryError("");
     void getUserHistory(user.id)
-      .then((entries) => { if (active) setUserHistory(entries); })
+      .then((entries) => { if (active) setHistoryState({ userId: user.id, entries, loading: false, error: "" }); })
       .catch((error: unknown) => {
-        if (active) setHistoryError(error instanceof Error ? error.message : "Não foi possível carregar o histórico.");
-      })
-      .finally(() => { if (active) setHistoryLoading(false); });
+        if (active) setHistoryState({ userId: user.id, entries: [], loading: false, error: error instanceof Error ? error.message : "Não foi possível carregar o histórico." });
+      });
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user]);
 
   const userStore =
     useMemo(() => {

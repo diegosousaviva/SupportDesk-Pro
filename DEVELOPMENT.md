@@ -13,7 +13,7 @@ O esquema correspondente está em `backend/src/database/development.sql` e deriv
 
 ## Pré-requisitos e configuração
 
-Use Node.js 20.11 ou mais recente, npm e MySQL 8 local. As dependências do projeto devem estar instaladas (`npm install` em `backend` e `frontend`, se necessário).
+Use Node.js 20.19 ou mais recente na linha 20, ou Node.js 22.12 ou mais recente na linha 22, npm e MySQL 8 local. Essa versão mínima atende ao Vite usado pelo frontend. As dependências do projeto devem estar instaladas (`npm install` em `backend` e `frontend`, se necessário).
 
 1. Inicie uma instância MySQL local e, com uma conta administrativa local, aplique manualmente o script de desenvolvimento:
 
@@ -67,7 +67,7 @@ Set-Location C:\Projetos\SupportDesk-Pro\frontend
 npm run dev -- --host 127.0.0.1
 ```
 
-Abra o endereço local que o Vite informar (normalmente `http://127.0.0.1:5173`) e entre com o administrador local. Categorias permanece pendente de recuperação da integração testada em produção; esta preparação não altera sua implementação.
+Abra o endereço local que o Vite informar (normalmente `http://127.0.0.1:5173`) e entre com o administrador local. Este passo inicia a aplicação; os testes de integração de Categorias são uma atividade separada e usam somente o banco descartável descrito no guia dedicado.
 
 ## Build e testes
 

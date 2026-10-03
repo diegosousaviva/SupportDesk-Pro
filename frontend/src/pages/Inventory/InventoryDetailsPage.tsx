@@ -40,7 +40,7 @@ import {
 } from "../../components/inventory/inventoryHistoryTimelineMapper";
 
 import MainLayout from "../../components/layout/MainLayout";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 import {
   Timeline,

@@ -47,7 +47,7 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import {
   Permissions,
 } from "../../auth/permissions";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { refreshUsers as refreshUserCache } from "../../repositories/userRepository";
 
 import DataTablePagination from "../../components/common/DataTablePagination";
@@ -289,6 +289,11 @@ function UserListPage() {
     setSearch("");
     setRoleFilter("Todos");
     setStatusFilter("Todos");
+    setPage(0);
+  }
+
+  function handleSearchChange(value: string): void {
+    setSearch(value);
     setPage(0);
   }
 
@@ -661,11 +666,9 @@ function UserListPage() {
       users,
     ]);
 
-  const sortedUsers =
-    useMemo(() => {
-      return [
-        ...filteredUsers,
-      ].sort(
+  const sortedUsers = [
+    ...filteredUsers,
+  ].sort(
         (
           firstUser,
           secondUser
@@ -686,56 +689,12 @@ function UserListPage() {
             : -comparison;
         }
       );
-    }, [
-      filteredUsers,
-      sortDirection,
-      sortField,
-    ]);
 
-  const paginatedUsers =
-    useMemo(() => {
-      const start =
-        page * rowsPerPage;
+  const maximumPage = Math.max(0, Math.ceil(filteredUsers.length / rowsPerPage) - 1);
+  const visiblePage = Math.min(page, maximumPage);
 
-      const end =
-        start + rowsPerPage;
-
-      return sortedUsers.slice(
-        start,
-        end
-      );
-    }, [
-      page,
-      rowsPerPage,
-      sortedUsers,
-    ]);
-
-  useEffect(() => {
-    const maximumPage =
-      Math.max(
-        0,
-        Math.ceil(
-          filteredUsers.length /
-            rowsPerPage
-        ) - 1
-      );
-
-    if (page > maximumPage) {
-      setPage(maximumPage);
-    }
-  }, [
-    filteredUsers.length,
-    page,
-    rowsPerPage,
-  ]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [
-    roleFilter,
-    search,
-    statusFilter,
-  ]);
+  const start = visiblePage * rowsPerPage;
+  const paginatedUsers = sortedUsers.slice(start, start + rowsPerPage);
 
   return (
     <MainLayout title="Usuários">
@@ -829,7 +788,7 @@ function UserListPage() {
             >
               <SearchBar
                 value={search}
-                onChange={setSearch}
+                onChange={handleSearchChange}
                 placeholder="Pesquisar por nome ou e-mail..."
               />
             </Box>
@@ -854,10 +813,10 @@ function UserListPage() {
                 value={roleFilter}
                 label="Perfil"
                 onChange={(event) =>
-                  setRoleFilter(
-                    event.target
-                      .value as UserRoleFilter
-                  )
+                  {
+                    setRoleFilter(event.target.value as UserRoleFilter);
+                    setPage(0);
+                  }
                 }
               >
                 <MenuItem value="Todos">
@@ -898,10 +857,10 @@ function UserListPage() {
                 value={statusFilter}
                 label="Status"
                 onChange={(event) =>
-                  setStatusFilter(
-                    event.target
-                      .value as UserStatusFilter
-                  )
+                  {
+                    setStatusFilter(event.target.value as UserStatusFilter);
+                    setPage(0);
+                  }
                 }
               >
                 <MenuItem value="Todos">
@@ -1115,7 +1074,7 @@ function UserListPage() {
                 count={
                   filteredUsers.length
                 }
-                page={page}
+                page={visiblePage}
                 rowsPerPage={
                   rowsPerPage
                 }

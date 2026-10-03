@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { lazy } from "react";
 
 import type { RouteObject } from "react-router-dom";
@@ -9,6 +10,6 @@ const LoginPage = lazy(
 export const publicRoutes: RouteObject[] = [
   {
     path: "/login",
-    element: <LoginPage />,
+    element: createElement(LoginPage),
   },
 ];

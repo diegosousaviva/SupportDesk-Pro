@@ -26,7 +26,7 @@ import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 const PASSWORD_CHANGED_KEY =
   "supportdesk-password-changed";
@@ -54,23 +54,16 @@ function LoginPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [passwordChanged, setPasswordChanged] =
-    useState(false);
+  const [passwordChanged] =
+    useState(() => sessionStorage.getItem(PASSWORD_CHANGED_KEY) === "true");
 
   useEffect(() => {
-    const passwordWasChanged =
-      sessionStorage.getItem(
-        PASSWORD_CHANGED_KEY
-      ) === "true";
-
-    if (passwordWasChanged) {
-      setPasswordChanged(true);
-
+    if (passwordChanged) {
       sessionStorage.removeItem(
         PASSWORD_CHANGED_KEY
       );
     }
-  }, []);
+  }, [passwordChanged]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>

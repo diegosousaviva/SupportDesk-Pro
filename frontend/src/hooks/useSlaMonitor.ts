@@ -4,11 +4,11 @@ import {
 
 import {
   useAuth,
-} from "../contexts/AuthContext";
+} from "../hooks/useAuth";
 
 import {
   useNotifications,
-} from "../contexts/NotificationContext";
+} from "../hooks/useNotifications";
 
 import {
   runSlaMonitor,

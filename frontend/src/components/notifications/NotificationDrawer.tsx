@@ -23,11 +23,11 @@ import {
 
 import {
   useNotifications,
-} from "../../contexts/NotificationContext";
+} from "../../hooks/useNotifications";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import type {
   AppNotification,

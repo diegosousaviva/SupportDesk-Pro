@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { lazy } from "react";
 
 import { Permissions } from "../auth/permissions";
@@ -27,27 +28,27 @@ export const userRoutes: AppRoute[] = [
     path: "/users",
     permission:
       Permissions.users.view,
-    element: <UserListPage />,
+    element: createElement(UserListPage),
   },
 
   {
     path: "/users/new",
     permission:
       Permissions.users.create,
-    element: <CreateUserPage />,
+    element: createElement(CreateUserPage),
   },
 
   {
     path: "/users/:id",
     permission:
       Permissions.users.view,
-    element: <UserDetailsPage />,
+    element: createElement(UserDetailsPage),
   },
 
   {
     path: "/users/:id/edit",
     permission:
       Permissions.users.edit,
-    element: <EditUserPage />,
+    element: createElement(EditUserPage),
   },
 ];

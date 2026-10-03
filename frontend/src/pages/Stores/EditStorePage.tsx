@@ -311,6 +311,7 @@ function EditStorePage() {
           }}
         >
           <StoreForm
+            key={store.id}
             initialValues={
               initialValues
             }

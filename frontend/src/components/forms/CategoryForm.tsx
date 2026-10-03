@@ -1,7 +1,4 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useState } from "react";
 
 import type {
   FormEvent,
@@ -103,23 +100,6 @@ function CategoryForm({
     setIsSubmitting,
   ] =
     useState(false);
-
-  useEffect(() => {
-    setValues(
-      initialValues ??
-        defaultValues
-    );
-
-    setErrors(
-      {}
-    );
-
-    setFormError(
-      ""
-    );
-  }, [
-    initialValues,
-  ]);
 
   function handleChange<
     K extends keyof CategoryFormData,

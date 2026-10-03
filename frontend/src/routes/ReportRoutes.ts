@@ -1,6 +1,5 @@
-import {
-  lazy,
-} from "react";
+import { createElement } from "react";
+import { lazy } from "react";
 
 import {
   Permissions,
@@ -21,7 +20,7 @@ export const reportRoutes: readonly AppRoute[] =
   [
     {
       path: "/reports",
-      element: <ReportsPage />,
+      element: createElement(ReportsPage),
       permission:
         Permissions.reports.view,
     },

@@ -8,11 +8,11 @@ import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined
 
 import {
   useNotifications,
-} from "../../contexts/NotificationContext";
+} from "../../hooks/useNotifications";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 interface NotificationBellProps {
   onClick: () => void;

@@ -1,6 +1,5 @@
-import {
-  lazy,
-} from "react";
+import { createElement } from "react";
+import { lazy } from "react";
 
 import {
   Permissions,
@@ -33,7 +32,7 @@ export const settingsRoutes:
         "/settings",
 
       element:
-        <SettingsPage />,
+        createElement(SettingsPage),
 
       permission:
         Permissions.settings.view,
@@ -44,7 +43,7 @@ export const settingsRoutes:
         "/settings/audit",
 
       element:
-        <AuditLogPage />,
+        createElement(AuditLogPage),
 
       permission:
         Permissions.audit.view,

@@ -32,7 +32,7 @@ import TicketStatistics from "../../components/tickets/TicketStatistics";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   usePermissions,

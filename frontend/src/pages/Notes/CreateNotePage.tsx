@@ -41,7 +41,7 @@ import MainLayout from "../../components/layout/MainLayout";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useSnackbar,

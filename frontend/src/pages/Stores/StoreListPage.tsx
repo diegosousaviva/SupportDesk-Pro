@@ -34,7 +34,7 @@ import {
 import {
   useSnackbar,
 } from "../../hooks/useSnackbar";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { refreshStores } from "../../repositories/storeRepository";
 
 import {

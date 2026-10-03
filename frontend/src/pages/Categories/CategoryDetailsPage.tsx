@@ -87,23 +87,23 @@ function CategoryDetailsPage() {
   ] = useState(false);
 
   const categoryId = Number(id);
-  const [category, setCategory] = useState<Awaited<ReturnType<typeof getCategoryById>>>();
-  const [loading, setLoading] = useState(true);
+  const [categoryLoad, setCategoryLoad] = useState<{ id: number; value: Awaited<ReturnType<typeof getCategoryById>> }>();
+  const category = categoryLoad?.id === categoryId ? categoryLoad.value : undefined;
+  const loading = Number.isSafeInteger(categoryId) && categoryId > 0 && categoryLoad?.id !== categoryId;
 
   useEffect(() => {
     let cancelled = false;
     if (!Number.isSafeInteger(categoryId) || categoryId < 1) {
-      setCategory(undefined);
-      setLoading(false);
       return () => { cancelled = true; };
     }
-    setLoading(true);
     getCategoryById(categoryId)
-      .then((result) => { if (!cancelled) setCategory(result); })
+      .then((result) => { if (!cancelled) setCategoryLoad({ id: categoryId, value: result }); })
       .catch((error: unknown) => {
-        if (!cancelled) setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar a categoria.");
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
+        if (!cancelled) {
+          setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar a categoria.");
+          setCategoryLoad({ id: categoryId, value: undefined });
+        }
+      });
     return () => { cancelled = true; };
   }, [categoryId]);
 
@@ -114,6 +114,10 @@ function CategoryDetailsPage() {
   const canDelete = can(
     Permissions.categories.delete
   );
+
+  if (!Number.isSafeInteger(categoryId) || categoryId < 1) {
+    return <Navigate to="/categories" replace />;
+  }
 
   if (loading) {
     return <MainLayout title="Detalhes da Categoria"><Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box></MainLayout>;

@@ -34,7 +34,7 @@ import InventoryLabelPreview from "../../components/inventory/InventoryLabelPrev
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   addInventoryHistoryEvent,
@@ -59,6 +59,10 @@ import {
 import type {
   InventoryLabelOptions,
 } from "../../types/InventoryLabel";
+
+function getLabelActionTimestamp(): number {
+  return Date.now();
+}
 
 function InventoryLabelPage() {
   const navigate =
@@ -135,8 +139,7 @@ function InventoryLabelPage() {
       return;
     }
 
-    const currentTimestamp =
-      Date.now();
+    const currentTimestamp = getLabelActionTimestamp();
 
     const lastAction =
       lastActionRef.current;

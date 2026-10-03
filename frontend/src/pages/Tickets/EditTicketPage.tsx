@@ -39,15 +39,15 @@ import MainLayout from "../../components/layout/MainLayout";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import {
   useNotifications,
-} from "../../contexts/NotificationContext";
+} from "../../hooks/useNotifications";
 
 import {
   usePermissions,

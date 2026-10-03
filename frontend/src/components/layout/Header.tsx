@@ -36,11 +36,11 @@ import NotificationDrawer from "../notifications/NotificationDrawer";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import type {
   AppNotification,

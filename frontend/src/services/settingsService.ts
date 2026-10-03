@@ -80,8 +80,21 @@ function getDevicePreferences(): DevicePreferences {
 }
 
 function toSharedSettings(value: SettingsData): SharedSettings {
-  const { compactMode: _compactMode, preferredTheme: _preferredTheme, language: _language, ...shared } = value;
-  return shared;
+  return {
+    companyName: value.companyName,
+    supportEmail: value.supportEmail,
+    supportPhone: value.supportPhone,
+    website: value.website,
+    notifyNewTicket: value.notifyNewTicket,
+    notifyStatusChange: value.notifyStatusChange,
+    notifyCriticalTicket: value.notifyCriticalTicket,
+    notifyAssignedTicket: value.notifyAssignedTicket,
+    notifySlaExpired: value.notifySlaExpired,
+    sessionTimeoutMinutes: value.sessionTimeoutMinutes,
+    maximumSessionDurationMinutes: value.maximumSessionDurationMinutes,
+    requireStrongPassword: value.requireStrongPassword,
+    automaticLogout: value.automaticLogout,
+  };
 }
 
 function normalizeSharedSettings(value: unknown): SharedSettings {

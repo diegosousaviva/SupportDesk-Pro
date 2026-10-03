@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -19,18 +17,8 @@ import {
 import type {
   SystemLanguage,
 } from "../services/settingsService";
-
-interface LanguageContextValue {
-  language: SystemLanguage;
-
-  setLanguage: (
-    language: SystemLanguage
-  ) => void;
-
-  t: (
-    key: TranslationKey
-  ) => string;
-}
+import { LanguageContext } from "./LanguageContextValue";
+import type { LanguageContextValue } from "./LanguageContextValue";
 
 interface LanguageProviderProps {
   children: ReactNode;
@@ -221,9 +209,9 @@ const translations = {
     "system.version":
       "Versão 1.0.0",
     "system.description":
-      "Faça backup, restaure preferências ou redefina os dados locais do sistema.",
+      "Gerencie as configurações do sistema e as preferências deste computador.",
     "system.info":
-      "Nesta versão, os dados são armazenados no navegador. O backup completo com banco de dados será implementado na fase de backend.",
+      "Os dados de chamados e cadastros ficam no banco central e podem ser acessados por diferentes computadores. O arquivo de backup desta tela inclui somente as configurações do sistema.",
     "system.export":
       "Exportar configurações",
     "system.import":
@@ -467,9 +455,9 @@ const translations = {
     "system.version":
       "Version 1.0.0",
     "system.description":
-      "Back up, restore preferences, or reset the system's local data.",
+      "Manage system settings and preferences for this computer.",
     "system.info":
-      "In this version, data is stored in the browser. Full database backup will be implemented during the backend phase.",
+      "Tickets and records are stored in the central database and can be accessed from different computers. The backup file on this screen includes system settings only.",
     "system.export":
       "Export settings",
     "system.import":
@@ -537,11 +525,6 @@ type TranslationLanguage =
 
 export type TranslationKey =
   keyof typeof translations["pt-BR"];
-
-const LanguageContext =
-  createContext<
-    LanguageContextValue | undefined
-  >(undefined);
 
 export function LanguageProvider({
   children,
@@ -647,20 +630,4 @@ export function LanguageProvider({
       {children}
     </LanguageContext.Provider>
   );
-}
-
-export function useLanguage():
-  LanguageContextValue {
-  const context =
-    useContext(
-      LanguageContext
-    );
-
-  if (!context) {
-    throw new Error(
-      "useLanguage deve ser utilizado dentro de LanguageProvider."
-    );
-  }
-
-  return context;
 }

@@ -50,11 +50,11 @@ import TicketTimeline from "../../components/tickets/TicketTimeline";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useNotifications,
-} from "../../contexts/NotificationContext";
+} from "../../hooks/useNotifications";
 
 import {
   usePermissions,

@@ -29,7 +29,7 @@ import {
 } from "../../auth/permissions";
 
 import MainLayout from "../../components/layout/MainLayout";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 import {
   usePermissions,

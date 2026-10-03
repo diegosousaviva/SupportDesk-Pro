@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -135,7 +134,9 @@ function UserForm({
     setFormData,
   ] =
     useState<UserFormData>(
-      defaultValues
+      initialValues
+        ? { ...initialValues, storeId: initialValues.storeId ?? null }
+        : defaultValues
     );
 
   const [
@@ -171,28 +172,6 @@ function UserForm({
         getActiveStores(),
       []
     );
-
-  useEffect(() => {
-    if (initialValues) {
-      setFormData(
-        {
-          ...initialValues,
-
-          storeId:
-            initialValues.storeId ??
-            null,
-        }
-      );
-
-      return;
-    }
-
-    setFormData(
-      defaultValues
-    );
-  }, [
-    initialValues,
-  ]);
 
   function handleChange<
     K extends keyof UserFormData,

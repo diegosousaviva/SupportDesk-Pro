@@ -36,7 +36,7 @@ import type {
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   usePermissions,

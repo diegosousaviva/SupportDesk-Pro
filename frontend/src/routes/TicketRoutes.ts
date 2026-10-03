@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { lazy } from "react";
 
 import { Permissions } from "../auth/permissions";
@@ -27,21 +28,21 @@ export const ticketRoutes: AppRoute[] = [
     path: "/tickets",
     permission:
       Permissions.tickets.view,
-    element: <TicketListPage />,
+    element: createElement(TicketListPage),
   },
 
   {
     path: "/tickets/new",
     permission:
       Permissions.tickets.create,
-    element: <CreateTicketPage />,
+    element: createElement(CreateTicketPage),
   },
 
   {
     path: "/tickets/:id",
     permission:
       Permissions.tickets.view,
-    element: <TicketDetailsPage />,
+    element: createElement(TicketDetailsPage),
   },
 
   {
@@ -50,6 +51,6 @@ export const ticketRoutes: AppRoute[] = [
       Permissions.tickets.edit,
       Permissions.tickets.editOwn,
     ],
-    element: <EditTicketPage />,
+    element: createElement(EditTicketPage),
   },
 ];

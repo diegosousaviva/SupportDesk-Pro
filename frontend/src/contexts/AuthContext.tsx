@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useMemo,
   useState,
   useEffect,
@@ -10,6 +8,8 @@ import {
 import type {
   ReactNode,
 } from "react";
+import { AuthContext } from "./authContextValue";
+import type { AuthContextValue } from "./authContextValue";
 
 import {
   getCurrentUser,
@@ -36,34 +36,9 @@ import { refreshUsers } from "../repositories/userRepository";
 import { refreshInventoryHistory } from "../repositories/inventoryHistoryRepository";
 import { refreshSettings } from "../services/settingsService";
 
-interface AuthContextValue {
-  user: AuthUser | null;
-
-  authenticated: boolean;
-
-  login: (
-    loginData: LoginData
-  ) => Promise<AuthUser>;
-
-  logout: (
-    reason?: LogoutReason
-  ) => void;
-
-  refreshUser: (
-    user: AuthUser
-  ) => void;
-
-  storeRevision: number;
-}
-
 interface AuthProviderProps {
   children: ReactNode;
 }
-
-const AuthContext =
-  createContext<AuthContextValue | null>(
-    null
-  );
 
 export function AuthProvider({
   children,
@@ -88,7 +63,7 @@ export function AuthProvider({
         if (active) setStoreRevision((revision) => revision + 1);
       });
     return () => { active = false; };
-  }, [user?.id, user?.role]);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -207,20 +182,4 @@ export function AuthProvider({
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth():
-  AuthContextValue {
-  const context =
-    useContext(
-      AuthContext
-    );
-
-  if (!context) {
-    throw new Error(
-      "useAuth deve ser utilizado dentro de AuthProvider."
-    );
-  }
-
-  return context;
 }

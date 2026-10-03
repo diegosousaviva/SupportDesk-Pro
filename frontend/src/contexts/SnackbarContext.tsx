@@ -3,13 +3,9 @@ import {
   Snackbar,
 } from "@mui/material";
 
-import type {
-  AlertColor,
-  SnackbarCloseReason,
-} from "@mui/material";
+import type { AlertColor, SnackbarCloseReason } from "@mui/material";
 
 import {
-  createContext,
   useCallback,
   useMemo,
   useState,
@@ -18,30 +14,8 @@ import {
 import type {
   ReactNode,
 } from "react";
-
-export interface SnackbarOptions {
-  severity?: AlertColor;
-  duration?: number;
-}
-
-export interface SnackbarContextValue {
-  showSnackbar: (
-    message: string,
-    options?: SnackbarOptions
-  ) => void;
-
-  showSuccess: (
-    message: string,
-    duration?: number
-  ) => void;
-
-  showError: (
-    message: string,
-    duration?: number
-  ) => void;
-
-  closeSnackbar: () => void;
-}
+import { SnackbarContext } from "./SnackbarContextValue";
+import type { SnackbarContextValue, SnackbarOptions } from "./SnackbarContextValue";
 
 interface SnackbarProviderProps {
   children: ReactNode;
@@ -55,11 +29,6 @@ interface SnackbarState {
 }
 
 const DEFAULT_DURATION = 4000;
-
-export const SnackbarContext =
-  createContext<SnackbarContextValue | null>(
-    null
-  );
 
 export function SnackbarProvider({
   children,

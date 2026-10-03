@@ -27,7 +27,7 @@ import {
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 const PASSWORD_CHANGED_KEY =
   "supportdesk-password-changed";

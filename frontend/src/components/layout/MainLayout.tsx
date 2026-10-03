@@ -10,10 +10,11 @@ import {
 
 import Header from "./Header";
 
-import Sidebar, {
+import Sidebar from "./Sidebar";
+import {
   collapsedDrawerWidth,
   drawerWidth,
-} from "./Sidebar";
+} from "./sidebarDimensions";
 
 interface MainLayoutProps {
   title: string;

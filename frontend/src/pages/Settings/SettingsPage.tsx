@@ -53,11 +53,11 @@ import type {
 
 import {
   useColorMode,
-} from "../../contexts/ColorModeContext";
+} from "../../hooks/useColorMode";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import {
   usePermissions,
@@ -153,41 +153,12 @@ function SettingsPage() {
         if (active) showSnackbar(t("settings.saveError"), { severity: "error" });
       });
     return () => { active = false; };
-  }, []);
+  }, [language, preference, showSnackbar, t]);
 
   const canViewAudit =
     can(
       Permissions.audit.view
     );
-
-  useEffect(() => {
-    setSettings(
-      (
-        currentSettings
-      ) => ({
-        ...currentSettings,
-
-        preferredTheme:
-          preference,
-      })
-    );
-  }, [
-    preference,
-  ]);
-
-  useEffect(() => {
-    setSettings(
-      (
-        currentSettings
-      ) => ({
-        ...currentSettings,
-
-        language,
-      })
-    );
-  }, [
-    language,
-  ]);
 
   function markAsChanged():
     void {

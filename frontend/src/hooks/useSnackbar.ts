@@ -2,11 +2,11 @@ import { useContext } from "react";
 
 import {
   SnackbarContext,
-} from "../contexts/SnackbarContext";
+} from "../contexts/SnackbarContextValue";
 
 import type {
   SnackbarContextValue,
-} from "../contexts/SnackbarContext";
+} from "../contexts/SnackbarContextValue";
 
 export function useSnackbar():
   SnackbarContextValue {

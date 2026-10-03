@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { lazy } from "react";
 
 import { Permissions } from "../auth/permissions";
@@ -24,24 +25,24 @@ export const categoryRoutes: AppRoute[] = [
   {
     path: "/categories",
     permission: Permissions.categories.view,
-    element: <CategoryListPage />,
+    element: createElement(CategoryListPage),
   },
 
   {
     path: "/categories/new",
     permission: Permissions.categories.create,
-    element: <CreateCategoryPage />,
+    element: createElement(CreateCategoryPage),
   },
 
   {
     path: "/categories/:id",
     permission: Permissions.categories.view,
-    element: <CategoryDetailsPage />,
+    element: createElement(CategoryDetailsPage),
   },
 
   {
     path: "/categories/:id/edit",
     permission: Permissions.categories.edit,
-    element: <EditCategoryPage />,
+    element: createElement(EditCategoryPage),
   },
 ];

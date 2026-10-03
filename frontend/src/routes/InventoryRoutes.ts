@@ -1,6 +1,5 @@
-import {
-  lazy,
-} from "react";
+import { createElement } from "react";
+import { lazy } from "react";
 
 import {
   Permissions,
@@ -56,14 +55,14 @@ export const inventoryRoutes:
   readonly AppRoute[] = [
     {
       path: "/inventory",
-      element: <InventoryListPage />,
+      element: createElement(InventoryListPage),
       permission:
         Permissions.inventory.view,
     },
 
     {
       path: "/inventory/new",
-      element: <CreateInventoryPage />,
+      element: createElement(CreateInventoryPage),
       permission:
         Permissions.inventory.create,
     },
@@ -74,28 +73,28 @@ export const inventoryRoutes:
      */
     {
       path: "/inventory/labels",
-      element: <InventoryBatchLabelPage />,
+      element: createElement(InventoryBatchLabelPage),
       permission:
         Permissions.inventory.view,
     },
 
     {
       path: "/inventory/:id",
-      element: <InventoryDetailsPage />,
+      element: createElement(InventoryDetailsPage),
       permission:
         Permissions.inventory.view,
     },
 
     {
       path: "/inventory/:id/edit",
-      element: <EditInventoryPage />,
+      element: createElement(EditInventoryPage),
       permission:
         Permissions.inventory.edit,
     },
 
     {
       path: "/inventory/:id/label",
-      element: <InventoryLabelPage />,
+      element: createElement(InventoryLabelPage),
       permission:
         Permissions.inventory.view,
     },

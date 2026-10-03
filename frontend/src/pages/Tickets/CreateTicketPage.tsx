@@ -32,15 +32,15 @@ import MainLayout from "../../components/layout/MainLayout";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 import {
   useNotifications,
-} from "../../contexts/NotificationContext";
+} from "../../hooks/useNotifications";
 
 import {
   useSnackbar,
@@ -115,7 +115,6 @@ function CreateTicketPage() {
 
   const {
     user,
-    storeRevision,
   } =
     useAuth();
 
@@ -135,9 +134,7 @@ function CreateTicketPage() {
   } =
     useSnackbar();
 
-  const [technicians, setTechnicians] =
-    useState(() =>
-      getUsers()
+  const technicians = getUsers()
         .filter(
           (
             currentUser
@@ -156,26 +153,11 @@ function CreateTicketPage() {
               secondTechnician.name,
               "pt-BR"
             )
-        )
-    );
+        );
 
-  const [stores, setStores] =
-    useState(() =>
-      getActiveStores()
-    );
+  const stores = getActiveStores();
 
-  const [inventoryItems, setInventoryItems] =
-    useState(() =>
-      getInventoryItems()
-    );
-
-  useEffect(() => {
-    setTechnicians(getUsers()
-      .filter((currentUser) => currentUser.role === "Técnico" && currentUser.status === "Ativo")
-      .sort((first, second) => first.name.localeCompare(second.name, "pt-BR")));
-    setStores(getActiveStores());
-    setInventoryItems(getInventoryItems());
-  }, [storeRevision]);
+  const inventoryItems = getInventoryItems();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);

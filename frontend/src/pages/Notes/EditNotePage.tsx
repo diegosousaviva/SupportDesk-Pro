@@ -45,7 +45,7 @@ import MainLayout from "../../components/layout/MainLayout";
 
 import {
   useAuth,
-} from "../../contexts/AuthContext";
+} from "../../hooks/useAuth";
 
 import {
   useSnackbar,
@@ -118,7 +118,7 @@ function formatFileSize(
   ).toFixed(1)} MB`;
 }
 
-function EditNotePage() {
+function EditNotePageContent() {
   const navigate =
     useNavigate();
 
@@ -227,37 +227,6 @@ function EditNotePage() {
 
   useEffect(
     () => {
-      if (!note) {
-        return;
-      }
-
-      setTitle(
-        note.title
-      );
-
-      setCategory(
-        note.category
-      );
-
-      setDescription(
-        note.description
-      );
-
-      setTitleError(
-        ""
-      );
-
-      setDescriptionError(
-        ""
-      );
-    },
-    [
-      note?.id,
-    ]
-  );
-
-  useEffect(
-    () => {
       let cancelled =
         false;
 
@@ -317,7 +286,7 @@ function EditNotePage() {
       };
     },
     [
-      note?.id,
+      note,
       user,
     ]
   );
@@ -1411,6 +1380,11 @@ function EditNotePage() {
       </Box>
     </MainLayout>
   );
+}
+
+function EditNotePage() {
+  const { id } = useParams();
+  return <EditNotePageContent key={id} />;
 }
 
 export default EditNotePage;

@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -37,34 +36,15 @@ export function useTicketPagination<T>(
     setRowsPerPage,
   ] = useState(defaultRowsPerPage);
 
-  useEffect(() => {
-    setPage(0);
-  }, [
-    items,
-    rowsPerPage,
-  ]);
-
-  useEffect(() => {
-    const maximumPage = Math.max(
-      0,
-      Math.ceil(
-        items.length /
-          rowsPerPage
-      ) - 1
-    );
-
-    if (page > maximumPage) {
-      setPage(maximumPage);
-    }
-  }, [
-    items.length,
-    page,
-    rowsPerPage,
-  ]);
+  const maximumPage = Math.max(
+    0,
+    Math.ceil(items.length / rowsPerPage) - 1
+  );
+  const visiblePage = Math.min(page, maximumPage);
 
   const paginatedItems = useMemo(() => {
     const firstIndex =
-      page * rowsPerPage;
+      visiblePage * rowsPerPage;
 
     return items.slice(
       firstIndex,
@@ -73,7 +53,7 @@ export function useTicketPagination<T>(
     );
   }, [
     items,
-    page,
+    visiblePage,
     rowsPerPage,
   ]);
 
@@ -106,7 +86,7 @@ export function useTicketPagination<T>(
     );
 
   return {
-    page,
+    page: visiblePage,
     rowsPerPage,
     paginatedItems,
     handlePageChange,

@@ -1,6 +1,5 @@
-import {
-  lazy,
-} from "react";
+import { createElement } from "react";
+import { lazy } from "react";
 
 import {
   Permissions,
@@ -42,28 +41,28 @@ export const noteRoutes:
   readonly AppRoute[] = [
     {
       path: "/notes",
-      element: <NoteListPage />,
+      element: createElement(NoteListPage),
       permission:
         Permissions.notes.view,
     },
 
     {
       path: "/notes/new",
-      element: <CreateNotePage />,
+      element: createElement(CreateNotePage),
       permission:
         Permissions.notes.create,
     },
 
     {
       path: "/notes/:id",
-      element: <NoteDetailsPage />,
+      element: createElement(NoteDetailsPage),
       permission:
         Permissions.notes.view,
     },
 
     {
       path: "/notes/:id/edit",
-      element: <EditNotePage />,
+      element: createElement(EditNotePage),
       anyOf: [
         Permissions.notes.edit,
         Permissions.notes.editOwn,

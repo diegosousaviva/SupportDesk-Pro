@@ -278,6 +278,7 @@ function EditUserPage() {
         )}
 
         <UserForm
+          key={currentUserId}
           isEdit
           initialValues={
             initialValues

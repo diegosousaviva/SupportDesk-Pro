@@ -18,7 +18,7 @@ import {
 
 import {
   useLanguage,
-} from "../../contexts/LanguageContext";
+} from "../../hooks/useLanguage";
 
 interface SystemSettingsProps {
   onExportBackup:

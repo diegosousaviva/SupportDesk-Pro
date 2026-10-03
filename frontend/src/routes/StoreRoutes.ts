@@ -1,6 +1,5 @@
-import {
-  lazy,
-} from "react";
+import { createElement } from "react";
+import { lazy } from "react";
 
 import {
   Permissions,
@@ -42,28 +41,28 @@ export const storeRoutes:
   readonly AppRoute[] = [
     {
       path: "/stores",
-      element: <StoreListPage />,
+      element: createElement(StoreListPage),
       permission:
         Permissions.stores.view,
     },
 
     {
       path: "/stores/new",
-      element: <CreateStorePage />,
+      element: createElement(CreateStorePage),
       permission:
         Permissions.stores.create,
     },
 
     {
       path: "/stores/:id",
-      element: <StoreDetailsPage />,
+      element: createElement(StoreDetailsPage),
       permission:
         Permissions.stores.view,
     },
 
     {
       path: "/stores/:id/edit",
-      element: <EditStorePage />,
+      element: createElement(EditStorePage),
       permission:
         Permissions.stores.edit,
     },

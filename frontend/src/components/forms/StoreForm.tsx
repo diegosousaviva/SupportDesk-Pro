@@ -1,7 +1,4 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useState } from "react";
 
 import type {
   FormEvent,
@@ -157,23 +154,6 @@ function StoreForm({
     formError,
     setFormError,
   ] = useState("");
-
-  useEffect(() => {
-    setFormData(
-      initialValues ??
-        defaultValues
-    );
-
-    setErrors(
-      {}
-    );
-
-    setFormError(
-      ""
-    );
-  }, [
-    initialValues,
-  ]);
 
   function handleChange<
     K extends keyof StoreFormData,

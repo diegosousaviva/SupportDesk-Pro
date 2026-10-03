@@ -63,30 +63,18 @@ function getStoreInfo(
   storeName:
     string;
 } {
-  if (
-    ticket.inventoryItemId ===
-    null
-  ) {
-    return {
-      storeId:
-        null,
-
-      storeCode:
-        "-",
-
-      storeName:
-        "Sem loja vinculada",
-    };
-  }
-
   const inventoryItem =
-    inventoryItems.find(
-      (item) =>
-        item.id ===
-        ticket.inventoryItemId
-    );
+    ticket.inventoryItemId === null
+      ? undefined
+      : inventoryItems.find(
+          (item) => item.id === ticket.inventoryItemId
+        );
 
-  if (!inventoryItem) {
+  // The ticket's store is authoritative. Older tickets may only have a store
+  // indirectly through their linked inventory item, so retain that fallback.
+  const storeId = ticket.storeId ?? inventoryItem?.storeId ?? null;
+
+  if (storeId === null) {
     return {
       storeId:
         null,
@@ -103,17 +91,17 @@ function getStoreInfo(
     stores.find(
       (currentStore) =>
         currentStore.id ===
-        inventoryItem.storeId
+        storeId
     );
 
   if (!store) {
     return {
       storeId:
-        inventoryItem.storeId,
+        storeId,
 
       storeCode:
         String(
-          inventoryItem.storeId
+          storeId
         ),
 
       storeName:

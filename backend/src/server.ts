@@ -20,6 +20,10 @@ import dataRoutes from "./routes/dataRoutes.js";
 
 const app = express();
 
+// A API recebe tráfego do Nginx local. Confiamos apenas no proxy de loopback
+// para que os rate limiters usem o IP do cliente encaminhado pelo Nginx.
+app.set("trust proxy", "loopback");
+
 const PORT =
   Number(process.env.PORT) || 3000;
 

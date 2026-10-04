@@ -130,12 +130,32 @@ export function useSessionValidation():
           const result =
             (await response.json()) as SessionValidationResponse;
 
+          // Limites de requisição e falhas do servidor são temporários; não
+          // significam que o token atual deixou de ser válido.
+          if (
+            response.status === 429 ||
+            response.status >= 500
+          ) {
+            return;
+          }
+
           if (
             !response.ok ||
             !result.success ||
             !result.user
           ) {
-            if (!isMounted) {
+            // Só respostas explícitas de autenticação/autorização inválida
+            // encerram a sessão; outros erros podem ser temporários.
+            if (
+              response.status !== 401 &&
+              response.status !== 403
+            ) {
+              return;
+            }
+
+            if (
+              !isMounted
+            ) {
               return;
             }
 
@@ -164,13 +184,9 @@ export function useSessionValidation():
           }
 
           /*
-           * Atualiza os dados atuais do usuário
-           * sem reiniciar o efeito de validação.
-           *
-           * O useEffect depende somente de
-           * authenticated. Isso evita que o
-           * refreshUser() provoque uma nova
-           * validação imediatamente.
+           * Atualiza os dados atuais do usuário sem reiniciar o efeito.
+           * O useEffect depende somente de authenticated, para evitar
+           * uma validação imediata após refreshUser().
            */
           if (isMounted) {
             refreshUser(

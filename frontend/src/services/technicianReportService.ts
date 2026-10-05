@@ -40,7 +40,8 @@ function getTechnicianName(
   technicianId:
     number | null,
   users:
-    User[]
+    User[],
+  tickets: Ticket[] = [],
 ): string {
   if (
     technicianId ===
@@ -57,7 +58,10 @@ function getTechnicianName(
     );
 
   if (!technician) {
-    return `Técnico não encontrado (#${technicianId})`;
+    const displayName = tickets.find(
+      (ticket) => ticket.assignedTechnicianId === technicianId && ticket.assignedTechnicianName,
+    )?.assignedTechnicianName;
+    return displayName ?? `Técnico não encontrado (#${technicianId})`;
   }
 
   return technician.status ===
@@ -152,7 +156,8 @@ export function createTechnicianReport(
           technicianName:
             getTechnicianName(
               technicianId,
-              users
+              users,
+              tickets,
             ),
 
           assignedTickets,

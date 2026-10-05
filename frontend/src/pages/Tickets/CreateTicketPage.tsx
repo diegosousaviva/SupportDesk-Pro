@@ -157,6 +157,8 @@ function CreateTicketPage() {
 
   const stores = getActiveStores();
 
+  const canAssignTechnician = user?.role === "Administrador";
+
   const inventoryItems = getInventoryItems();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -1367,81 +1369,38 @@ function CreateTicketPage() {
                 </Alert>
               )}
 
-              <Box>
-                <Typography
-                  component="div"
-                  variant="body2"
-                  fontWeight={
-                    500
-                  }
-                  sx={{
-                    mb:
-                      0.75,
-                  }}
-                >
-                  Técnico responsável
-                </Typography>
-
-                <FormControl
-                  fullWidth
-                  disabled={
-                    isSubmitting
-                  }
-                >
-                  <Select
-                    id="ticket-technician"
-                    name="assignedTechnicianId"
-                    value={
-                      assignedTechnicianId
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      setAssignedTechnicianId(
-                        event.target.value
-                      )
-                    }
-                    inputProps={{
-                      "aria-label":
-                        "Técnico responsável",
-                    }}
-                  >
-                    <MenuItem
-                      value={
-                        UNASSIGNED_TECHNICIAN_VALUE
-                      }
-                    >
-                      Não atribuído
-                    </MenuItem>
-
-                    {technicians.map(
-                      (
-                        technician
-                      ) => (
-                        <MenuItem
-                          key={
-                            technician.id
-                          }
-                          value={String(
-                            technician.id
-                          )}
-                        >
-                          {
-                            technician.name
-                          }
-                        </MenuItem>
-                      )
-                    )}
-                  </Select>
-                </FormControl>
-              </Box>
-
-              {technicians.length ===
-                0 && (
-                <Alert
-                  severity="info"
-                >
-                  Não há técnicos ativos cadastrados. O chamado será criado sem técnico responsável.
+              {canAssignTechnician ? (
+                <>
+                  <Box>
+                    <Typography component="div" variant="body2" fontWeight={500} sx={{ mb: 0.75 }}>
+                      Técnico responsável
+                    </Typography>
+                    <FormControl fullWidth disabled={isSubmitting}>
+                      <Select
+                        id="ticket-technician"
+                        name="assignedTechnicianId"
+                        value={assignedTechnicianId}
+                        onChange={(event) => setAssignedTechnicianId(event.target.value)}
+                        inputProps={{ "aria-label": "Técnico responsável" }}
+                      >
+                        <MenuItem value={UNASSIGNED_TECHNICIAN_VALUE}>Não atribuído</MenuItem>
+                        {technicians.map((technician) => (
+                          <MenuItem key={technician.id} value={String(technician.id)}>
+                            {technician.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {technicians.length === 0 && (
+                    <Alert severity="info">
+                      Não há técnicos ativos cadastrados. O chamado será criado sem técnico responsável.
+                    </Alert>
+                  )}
+                </>
+              ) : (
+                <Alert severity="info">
+                  A equipe de suporte atribuirá um técnico após a abertura do chamado.
                 </Alert>
               )}
 

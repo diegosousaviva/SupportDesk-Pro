@@ -1013,7 +1013,8 @@ function createCategoryChartData(
 function getTechnicianName(
   technicianId:
     number | null,
-  users: User[]
+  users: User[],
+  displayName?: string,
 ): string {
   if (
     technicianId ===
@@ -1030,7 +1031,7 @@ function getTechnicianName(
     );
 
   if (!technician) {
-    return `Técnico não encontrado (#${technicianId})`;
+    return displayName ?? `Técnico não encontrado (#${technicianId})`;
   }
 
   return (
@@ -1056,7 +1057,8 @@ function createTechnicianChartData(
       const technicianName =
         getTechnicianName(
           ticket.assignedTechnicianId,
-          users
+          users,
+          ticket.assignedTechnicianName,
         );
 
       technicianTotals.set(
@@ -1252,7 +1254,8 @@ function createTechnicianRanking(
       const technicianName =
         getTechnicianName(
           technicianId,
-          users
+          users,
+          ticket.assignedTechnicianName,
         );
 
       const currentData =

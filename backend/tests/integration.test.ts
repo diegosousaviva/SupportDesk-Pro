@@ -263,6 +263,14 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
   }), 201);
   const storeId = recordId(storeReply);
   createdStoreIds.push(storeId);
+  expectStatus(await callApi(`/api/users/${requester.id}`, adminToken, "PUT", { storeId }), 200);
+  const requesterStores = expectStatus(await callApi("/api/data/stores", requesterLogin.token), 200);
+  assert.equal(requesterStores.records?.length, 1, "A requester must only see their assigned store.");
+  assert.equal(requesterStores.records?.[0]?.id, storeId);
+  assert.equal(requesterStores.records?.[0]?.name, "Loja de teste local");
+  assert.equal("address" in (requesterStores.records?.[0] ?? {}), false, "Requester store responses must omit unrelated contact/address fields.");
+  assert.equal("email" in (requesterStores.records?.[0] ?? {}), false);
+  assert.equal((expectStatus(await callApi("/api/data/stores", outsiderLogin.token), 200).records ?? []).length, 0);
   const updatedStore = expectStatus(await callApi(`/api/data/stores/${storeId}`, adminToken, "PUT", {
     notes: "Loja de desenvolvimento",
   }), 200);
@@ -316,6 +324,12 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
   }), 201);
   const ticketId = recordId(ticketReply);
   createdTicketIds.push(ticketId);
+  const requesterTicket = expectStatus(await callApi(`/api/data/tickets/${ticketId}`, requesterLogin.token), 200);
+  assert.equal(requesterTicket.record?.assignedTechnicianName, "Teste local tecnico");
+  assert.equal(requesterTicket.record?.storeCode, storeReply.record?.code);
+  assert.equal(requesterTicket.record?.storeName, "Loja de teste local");
+  const requesterTickets = expectStatus(await callApi("/api/data/tickets", requesterLogin.token), 200);
+  assert.equal(requesterTickets.records?.find((record) => record.id === ticketId)?.assignedTechnicianName, "Teste local tecnico");
   expectStatus(await callApi(`/api/categories/${categoryId}`, adminToken, "PUT", {
     ...categoryInput,
     name: "Categoria renomeada enquanto vinculada",

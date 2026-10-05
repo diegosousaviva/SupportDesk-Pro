@@ -92,7 +92,9 @@ const apiRateLimiter =
     windowMs:
       15 * 60 * 1000,
 
-    limit: 300,
+    // The authenticated UI refreshes several shared resources in the
+    // background. A low per-IP cap blocks active users and teams behind NAT.
+    limit: 3000,
 
     standardHeaders:
       "draft-8",
@@ -117,10 +119,9 @@ const apiRateLimiter =
  * O /api/auth/me é consultado automaticamente
  * pelo frontend para validar a sessão.
  *
- * Como essa verificação ocorre a cada 30 segundos,
- * precisamos de um limite maior que o usado para
- * tentativas de login, mas ainda suficiente para
- * proteger a API contra abuso.
+ * Apenas tentativas de login consomem este limite.
+ * /me é consultado automaticamente a cada 30 segundos
+ * e não deve bloquear o login de sessões legítimas.
  */
 const authRateLimiter =
   rateLimit({
@@ -140,6 +141,7 @@ const authRateLimiter =
       message:
         "Muitas requisições de autenticação. Tente novamente em alguns minutos.",
     },
+    skip: (req) => req.path !== "/login",
   });
 
 /*

@@ -53,6 +53,7 @@ function canReadEntity(entity: RecordEntity, role: string): boolean {
   if (role === "Administrador") return true;
   if (entity === "settings") return true;
   if (["tickets", "ticket-comments", "ticket-history", "notes", "note-attachments", "notifications", "sla-notification-dismissals"].includes(entity)) return true;
+  if (role === "Solicitante" && entity === "stores") return true;
   return role === "Técnico" && ["stores", "inventory", "inventory-history"].includes(entity);
 }
 
@@ -204,11 +205,15 @@ async function validateReferences(
 
 async function canReadRecord(
   entity: RecordEntity,
-  record: { ownerUserId: number | null; payload: Record<string, unknown> },
+  record: { id?: number; ownerUserId: number | null; payload: Record<string, unknown> },
   role: string,
   userId: number,
 ): Promise<boolean> {
   if (role === "Administrador") return true;
+  if (entity === "stores" && role === "Solicitante") {
+    const requester = await findUserById(userId);
+    return Boolean(requester && requester.storeId === record.id);
+  }
   if (entity === "tickets") return ticketBelongsToUser(record.payload, userId);
   if (entity === "notes" || entity === "notifications") return record.ownerUserId === userId;
   if (entity === "sla-notification-dismissals") return record.ownerUserId === userId;
@@ -225,6 +230,31 @@ async function canReadRecord(
     return Boolean(ticket && ticketBelongsToUser(ticket.payload, userId));
   }
   return canReadEntity(entity, role);
+}
+
+async function addTicketDisplayReferences<T extends Record<string, unknown>>(
+  record: T,
+): Promise<T & { assignedTechnicianName?: string; storeCode?: string; storeName?: string }> {
+  const result = { ...record } as T & { assignedTechnicianName?: string; storeCode?: string; storeName?: string };
+  const technicianId = Number(record.assignedTechnicianId);
+  if (Number.isSafeInteger(technicianId) && technicianId > 0) {
+    const technician = await findUserById(technicianId);
+    if (technician) result.assignedTechnicianName = technician.name;
+  }
+  const storeId = Number(record.storeId);
+  if (Number.isSafeInteger(storeId) && storeId > 0) {
+    const store = await findRecord<Record<string, unknown>>("stores", storeId);
+    if (store) {
+      if (typeof store.payload.code === "string") result.storeCode = store.payload.code;
+      if (typeof store.payload.name === "string") result.storeName = store.payload.name;
+    }
+  }
+  return result;
+}
+
+function requesterStoreSummary(record: Record<string, unknown>): Record<string, unknown> {
+  const { id, code, name, status, city, state, createdAt, updatedAt } = record;
+  return { id, code, name, status, city, state, createdAt, updatedAt };
 }
 
 async function canWriteRecord(
@@ -291,10 +321,14 @@ router.get("/:entity", async (req, res) => {
     for (const record of allRecords) {
       if (await canReadRecord(entity, record, user.role, user.id)) records.push(record);
     }
-    return res.json({ success: true, records: records.map((record) => {
+    const serializedRecords = await Promise.all(records.map(async (record) => {
       const { contentBase64: _contentBase64, ...metadata } = entity === "note-attachments" ? record.payload : {};
-      return { id: record.id, ...(entity === "note-attachments" ? metadata : record.payload), createdAt: record.createdAt, updatedAt: record.updatedAt };
-    }) });
+      const serialized = { id: record.id, ...(entity === "note-attachments" ? metadata : record.payload), createdAt: record.createdAt, updatedAt: record.updatedAt };
+      if (entity === "tickets") return addTicketDisplayReferences(serialized);
+      if (entity === "stores" && user.role === "Solicitante") return requesterStoreSummary(serialized);
+      return serialized;
+    }));
+    return res.json({ success: true, records: serializedRecords });
   } catch (error) {
     console.error("Failed to list records", error);
     return res.status(500).json({ success: false, message: "Unable to load records." });
@@ -312,7 +346,10 @@ router.get("/:entity/:id", async (req, res) => {
     if (!record || !(await canReadRecord(entity, record, user.role, user.id))) {
       return res.status(404).json({ success: false, message: "Record not found." });
     }
-    return res.json({ success: true, record: { id: record.id, ...record.payload, createdAt: record.createdAt, updatedAt: record.updatedAt } });
+    const serialized = { id: record.id, ...record.payload, createdAt: record.createdAt, updatedAt: record.updatedAt };
+    if (entity === "tickets") return res.json({ success: true, record: await addTicketDisplayReferences(serialized) });
+    if (entity === "stores" && user.role === "Solicitante") return res.json({ success: true, record: requesterStoreSummary(serialized) });
+    return res.json({ success: true, record: serialized });
   } catch (error) {
     console.error("Failed to read record", error);
     return res.status(500).json({ success: false, message: "Unable to load record." });

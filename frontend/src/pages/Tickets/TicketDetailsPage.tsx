@@ -311,7 +311,7 @@ export default function TicketDetailsPage() {
     technicianName =
       assignedTechnician
         ? assignedTechnician.name
-        : `Técnico não encontrado (#${currentTicket.assignedTechnicianId})`;
+        : currentTicket.assignedTechnicianName ?? `Técnico não encontrado (#${currentTicket.assignedTechnicianId})`;
   }
 
   const store =
@@ -332,7 +332,9 @@ export default function TicketDetailsPage() {
     storeName =
       store
         ? `${store.code} — ${store.name}`
-        : `Loja não encontrada (#${currentTicket.storeId})`;
+        : currentTicket.storeCode && currentTicket.storeName
+          ? `${currentTicket.storeCode} — ${currentTicket.storeName}`
+          : `Loja não encontrada (#${currentTicket.storeId})`;
   }
 
   const sla =

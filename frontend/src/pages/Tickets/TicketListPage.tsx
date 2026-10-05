@@ -238,7 +238,10 @@ export default function TicketListPage() {
         if (
           !technician
         ) {
-          return `Técnico não encontrado (#${technicianId})`;
+          const technicianName = accessibleTickets.find(
+            (ticket) => ticket.assignedTechnicianId === technicianId && ticket.assignedTechnicianName,
+          )?.assignedTechnicianName;
+          return technicianName ?? `Técnico não encontrado (#${technicianId})`;
         }
 
         if (
@@ -252,6 +255,7 @@ export default function TicketListPage() {
       },
       [
         users,
+        accessibleTickets,
       ]
     );
 

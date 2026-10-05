@@ -32,6 +32,11 @@ export interface Ticket {
 
   assignedTechnicianId: number | null;
 
+  /** Safe display values returned with tickets the current user may access. */
+  assignedTechnicianName?: string;
+  storeCode?: string;
+  storeName?: string;
+
   /**
    * Equipamento vinculado ao chamado.
    * null = chamado não está relacionado a nenhum equipamento.

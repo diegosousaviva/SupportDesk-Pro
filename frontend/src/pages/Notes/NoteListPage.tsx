@@ -496,6 +496,14 @@ function NoteListPage() {
                   getUserById(
                     note.authorUserId
                   );
+                const storeLabel = note.storeId == null
+                  ? "Loja não informada"
+                  : getStoreById(note.storeId)
+                    ? `${getStoreById(note.storeId)?.code} — ${getStoreById(note.storeId)?.name}`
+                    : `Loja #${note.storeId}`;
+                const amountLabel = note.amount == null
+                  ? "Valor não informado"
+                  : note.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
                 const canManage =
                   isAdministrator ||
@@ -579,8 +587,8 @@ function NoteListPage() {
                             )}
                             variant="outlined"
                           />
-                          {note.storeId != null && <Chip size="small" label={getStoreById(note.storeId) ? `${getStoreById(note.storeId)?.code} — ${getStoreById(note.storeId)?.name}` : `Loja #${note.storeId}`} variant="outlined" />}
-                          {note.amount != null && <Chip size="small" color="success" label={note.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />}
+                          <Chip size="small" label={storeLabel} variant="outlined" />
+                          <Chip size="small" color={note.amount == null ? "default" : "success"} label={amountLabel} variant={note.amount == null ? "outlined" : "filled"} />
                         </Stack>
 
                         <Typography

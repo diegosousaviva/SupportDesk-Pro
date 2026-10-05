@@ -142,6 +142,13 @@ function CreateNotePage() {
 
   const [storeId, setStoreId] = useState("");
   const [amount, setAmount] = useState("");
+  const [noteDate, setNoteDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
 
   const [
     selectedFiles,
@@ -471,6 +478,8 @@ function CreateNotePage() {
             storeId: storeId ? Number(storeId) : null,
 
             amount: amount.trim() ? Number(amount.trim().replace(",", ".")) : null,
+
+            noteDate,
           },
           user
         );
@@ -751,6 +760,8 @@ function CreateNotePage() {
               </FormControl>
 
               <TextField label="Valor (opcional)" placeholder="0,00" value={amount} onChange={(event) => setAmount(event.target.value)} inputProps={{ inputMode: "decimal" }} helperText="Informe em reais, usando até duas casas decimais." fullWidth disabled={isSubmitting} />
+
+              <TextField label="Data da nota" type="date" value={noteDate} onChange={(event) => setNoteDate(event.target.value)} fullWidth required disabled={isSubmitting} slotProps={{ inputLabel: { shrink: true } }} />
 
               <TextField
                 label="Descrição"

@@ -101,6 +101,15 @@ function getCategoryColor(
   }
 }
 
+function formatNoteDate(value: string | undefined, fallback: string): string {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+  const date = new Date(fallback);
+  return Number.isNaN(date.getTime()) ? "Data não informada" : date.toLocaleDateString("pt-BR");
+}
+
 function formatDateTime(
   value: string
 ): string {
@@ -589,6 +598,7 @@ function NoteDetailsPage() {
           >
             <Box flex={1}><Typography variant="body2" color="text.secondary">Loja</Typography><Typography fontWeight={600}>{note.storeId == null ? "Não informada" : getStoreById(note.storeId)?.name ?? `Loja #${note.storeId}`}</Typography></Box>
             <Box flex={1}><Typography variant="body2" color="text.secondary">Valor</Typography><Typography fontWeight={600}>{note.amount == null ? "Não informado" : note.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</Typography></Box>
+            <Box flex={1}><Typography variant="body2" color="text.secondary">Data da nota</Typography><Typography fontWeight={600}>{formatNoteDate(note.noteDate, note.createdAt)}</Typography></Box>
             <Box flex={1}>
               <Typography
                 variant="body2"

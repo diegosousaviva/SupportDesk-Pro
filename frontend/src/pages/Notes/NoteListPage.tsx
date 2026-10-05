@@ -80,6 +80,14 @@ function formatDateTime(
   );
 }
 
+function formatNoteDate(value: string | undefined, fallback: string): string {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+  return formatDateTime(fallback).split(",")[0];
+}
+
 function getCategoryColor(
   category: NoteCategory
 ):
@@ -186,6 +194,12 @@ function NoteListPage() {
   const effectiveStoreFilter = storeFilter !== "" && storeFilter !== "none" && !activeStores.some((store) => String(store.id) === storeFilter)
     ? ""
     : storeFilter;
+  const selectedStore = activeStores.find((store) => String(store.id) === effectiveStoreFilter);
+  const selectedStoreNotes = selectedStore
+    ? notes.filter((note) => note.storeId === selectedStore.id)
+    : [];
+  const selectedStoreTotalCents = selectedStoreNotes.reduce((total, note) => total + (note.amount == null ? 0 : Math.round(note.amount * 100)), 0);
+  const selectedStoreNotesWithAmount = selectedStoreNotes.filter((note) => note.amount != null).length;
 
   const filteredNotes =
     useMemo(() => {
@@ -437,6 +451,20 @@ function NoteListPage() {
           </FormControl>
         </Paper>
 
+        {selectedStore && (
+          <Paper variant="outlined" sx={{ p: 2.5, borderLeft: 4, borderLeftColor: "primary.main" }}>
+            <Typography variant="body2" color="text.secondary">
+              Soma dos valores das notas — {selectedStore.code} - {selectedStore.name}
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>
+              {(selectedStoreTotalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Total de {selectedStoreNotes.length} nota(s), independente da busca; {selectedStoreNotesWithAmount} com valor informado.
+            </Typography>
+          </Paper>
+        )}
+
         {notes.length ===
         0 ? (
           <Paper
@@ -594,6 +622,7 @@ function NoteListPage() {
                           />
                           <Chip size="small" label={storeLabel} variant="outlined" />
                           <Chip size="small" color={note.amount == null ? "default" : "success"} label={amountLabel} variant={note.amount == null ? "outlined" : "filled"} />
+                          <Chip size="small" label={`Data: ${formatNoteDate(note.noteDate, note.createdAt)}`} variant="outlined" />
                         </Stack>
 
                         <Typography

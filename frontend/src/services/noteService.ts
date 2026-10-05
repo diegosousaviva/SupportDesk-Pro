@@ -55,6 +55,13 @@ const VALID_CATEGORIES:
     "Outro",
   ];
 
+function isValidNoteDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 function isAdministrator(
   user: NoteAccessUser
 ): boolean {
@@ -410,6 +417,9 @@ export async function createNote(
   if (noteData.amount !== undefined && noteData.amount !== null && (!Number.isFinite(noteData.amount) || noteData.amount < 0 || Math.round(noteData.amount * 100) !== noteData.amount * 100)) {
     throw new Error("Informe um valor válido com até duas casas decimais.");
   }
+  if (noteData.noteDate !== undefined && !isValidNoteDate(noteData.noteDate)) {
+    throw new Error("Informe uma data válida para a nota.");
+  }
 
   const createdNote =
     await createNoteRepository({
@@ -423,6 +433,8 @@ export async function createNote(
       storeId: noteData.storeId ?? null,
 
       amount: noteData.amount ?? null,
+
+      noteDate: noteData.noteDate,
 
       authorUserId:
         user.id,
@@ -529,6 +541,11 @@ export async function updateNote(
     normalizedData.amount = updatedData.amount;
   }
 
+  if (updatedData.noteDate !== undefined) {
+    if (!isValidNoteDate(updatedData.noteDate)) throw new Error("Informe uma data válida para a nota.");
+    normalizedData.noteDate = updatedData.noteDate;
+  }
+
   const updatedNote =
     await updateNoteById(
       noteId,
@@ -580,6 +597,10 @@ export async function updateNote(
   if (note.amount !== updatedNote.amount) {
     const formatAmount = (value: number | null | undefined) => value == null ? "Sem valor" : value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     changedFields.push(`Valor: ${formatAmount(note.amount)} → ${formatAmount(updatedNote.amount)}`);
+  }
+
+  if (note.noteDate !== updatedNote.noteDate) {
+    changedFields.push(`Data da nota: ${note.noteDate ?? "Não informada"} → ${updatedNote.noteDate ?? "Não informada"}`);
   }
 
   if (

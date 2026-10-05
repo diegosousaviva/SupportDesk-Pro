@@ -171,6 +171,15 @@ function EditNotePageContent() {
 
   const [storeId, setStoreId] = useState(note?.storeId ? String(note.storeId) : "");
   const [amount, setAmount] = useState(note?.amount == null ? "" : note.amount.toFixed(2).replace(".", ","));
+  const [noteDate, setNoteDate] = useState(() => {
+    const savedDate = note?.noteDate ?? note?.createdAt;
+    if (savedDate && !Number.isNaN(new Date(savedDate).getTime())) {
+      const date = new Date(savedDate);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  });
 
   const [
     attachments,
@@ -704,6 +713,8 @@ function EditNotePageContent() {
             storeId: storeId ? Number(storeId) : null,
 
             amount: amount.trim() ? Number(amount.trim().replace(",", ".")) : null,
+
+            noteDate,
           },
           user
         );
@@ -1007,6 +1018,8 @@ function EditNotePageContent() {
               </FormControl>
 
               <TextField label="Valor (opcional)" placeholder="0,00" value={amount} onChange={(event) => setAmount(event.target.value)} inputProps={{ inputMode: "decimal" }} helperText="Informe em reais, usando até duas casas decimais." fullWidth disabled={isSubmitting} />
+
+              <TextField label="Data da nota" type="date" value={noteDate} onChange={(event) => setNoteDate(event.target.value)} fullWidth required disabled={isSubmitting} slotProps={{ inputLabel: { shrink: true } }} />
 
               <TextField
                 label="Descrição"

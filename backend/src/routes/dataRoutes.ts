@@ -82,6 +82,11 @@ async function validateReferences(
     if (!validOptionalId(payload.storeId)) return "Invalid store reference.";
     if (payload.storeId != null && !(await existingId("stores", payload.storeId))) return "The selected store does not exist.";
   }
+  if (entity === "notes") {
+    if (!validOptionalId(payload.storeId)) return "Invalid store reference.";
+    if (payload.storeId != null && !(await existingId("stores", payload.storeId))) return "The selected store does not exist.";
+    if (payload.amount !== null && payload.amount !== undefined && (typeof payload.amount !== "number" || !Number.isFinite(payload.amount) || payload.amount < 0 || Math.round(payload.amount * 100) !== payload.amount * 100)) return "Note amount must be a non-negative value with at most two decimal places.";
+  }
   if (entity === "inventory") {
     if (!Number.isSafeInteger(Number(payload.storeId)) || Number(payload.storeId) < 1) return "An inventory item requires a valid store.";
     if (!validOptionalId(payload.responsibleUserId)) return "Invalid responsible user reference.";
@@ -412,6 +417,13 @@ router.post("/:entity", async (req, res) => {
         referenceErrorMessage = referenceError;
         return undefined;
       }
+      if (entity === "notes" && user.role === "Solicitante" && payload.storeId != null) {
+        const requester = await findUserById(user.id);
+        if (!requester || Number(requester.storeId) !== Number(payload.storeId)) {
+          referenceErrorMessage = "A nota do solicitante só pode ser vinculada à sua própria loja.";
+          return undefined;
+        }
+      }
       return connection
         ? await insertRecordOnConnection<Record<string, unknown>>(connection, entity, payload, ownerUserId)
         : await insertRecord<Record<string, unknown>>(entity, payload, ownerUserId);
@@ -557,6 +569,10 @@ router.put("/:entity/:id", async (req, res) => {
     if (!(await canWriteRecord(entity, "PUT", user.role, user.id, payload, existing))) return res.status(403).json({ success: false, message: "Insufficient permission." });
     const referenceError = await validateReferences(entity, payload, existing.payload);
     if (referenceError) return res.status(400).json({ success: false, message: referenceError });
+    if (entity === "notes" && user.role === "Solicitante" && payload.storeId != null) {
+      const requester = await findUserById(user.id);
+      if (!requester || Number(requester.storeId) !== Number(payload.storeId)) return res.status(403).json({ success: false, message: "A nota do solicitante só pode ser vinculada à sua própria loja." });
+    }
     const record = await replaceRecord<Record<string, unknown>>(entity, id, payload);
     if (!record) return res.status(404).json({ success: false, message: "Record not found." });
     return res.json({ success: true, record: { id: record.id, ...record.payload, createdAt: record.createdAt, updatedAt: record.updatedAt } });

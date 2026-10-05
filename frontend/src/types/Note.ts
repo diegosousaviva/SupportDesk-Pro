@@ -16,6 +16,10 @@ export interface Note {
 
   category: NoteCategory;
 
+  storeId?: number | null;
+
+  amount?: number | null;
+
   authorUserId: number;
 
   createdAt: string;
@@ -30,6 +34,10 @@ export interface CreateNoteData {
 
   category: NoteCategory;
 
+  storeId?: number | null;
+
+  amount?: number | null;
+
   authorUserId: number;
 }
 
@@ -39,4 +47,8 @@ export interface UpdateNoteData {
   description?: string;
 
   category?: NoteCategory;
+
+  storeId?: number | null;
+
+  amount?: number | null;
 }

@@ -72,6 +72,12 @@ async function validateReferences(
   existingPayload?: Record<string, unknown>,
   connection?: PoolConnection,
 ): Promise<string | undefined> {
+  const isValidDateOnly = (value: unknown): value is string => {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  };
   const existingId = async (target: RecordEntity, value: unknown): Promise<boolean> => {
     const id = Number(value);
     return Number.isSafeInteger(id) && id > 0 && Boolean(await findRecord(target, id));
@@ -86,6 +92,7 @@ async function validateReferences(
     if (!validOptionalId(payload.storeId)) return "Invalid store reference.";
     if (payload.storeId != null && !(await existingId("stores", payload.storeId))) return "The selected store does not exist.";
     if (payload.amount !== null && payload.amount !== undefined && (typeof payload.amount !== "number" || !Number.isFinite(payload.amount) || payload.amount < 0 || Math.round(payload.amount * 100) !== payload.amount * 100)) return "Note amount must be a non-negative value with at most two decimal places.";
+    if (payload.noteDate !== undefined && !isValidDateOnly(payload.noteDate)) return "Note date must be a valid calendar date in YYYY-MM-DD format.";
   }
   if (entity === "inventory") {
     if (!Number.isSafeInteger(Number(payload.storeId)) || Number(payload.storeId) < 1) return "An inventory item requires a valid store.";
@@ -373,6 +380,7 @@ router.post("/:entity", async (req, res) => {
     delete payload.createdAt;
     delete payload.updatedAt;
     if (entity === "notes" || entity === "note-attachments") payload.authorUserId = user.id;
+    if (entity === "notes" && payload.noteDate === undefined) payload.noteDate = new Date().toISOString().slice(0, 10);
     if (entity === "tickets" && user.role === "Solicitante") {
       payload.requesterUserId = user.id;
       payload.assignedTechnicianId = null;

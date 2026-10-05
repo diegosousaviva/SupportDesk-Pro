@@ -20,6 +20,8 @@ export interface Note {
 
   amount?: number | null;
 
+  noteDate?: string;
+
   authorUserId: number;
 
   createdAt: string;
@@ -38,6 +40,8 @@ export interface CreateNoteData {
 
   amount?: number | null;
 
+  noteDate?: string;
+
   authorUserId: number;
 }
 
@@ -51,4 +55,6 @@ export interface UpdateNoteData {
   storeId?: number | null;
 
   amount?: number | null;
+
+  noteDate?: string;
 }

@@ -55,7 +55,7 @@ import {
 } from "../../services/recentActivityService";
 
 import {
-  getStores,
+  getActiveStores,
 } from "../../services/storeService";
 
 import {
@@ -127,7 +127,7 @@ function DashboardPage() {
     getInventoryItems();
 
   const allStores =
-    getStores();
+    getActiveStores();
 
   const visibleTickets =
     !user
@@ -159,7 +159,7 @@ function DashboardPage() {
       : [];
 
   const effectiveStoreFilter =
-    canUseStoreFilter
+    canUseStoreFilter && (storeFilter === "all" || allStores.some((store) => String(store.id) === storeFilter))
       ? storeFilter
       : "all";
 

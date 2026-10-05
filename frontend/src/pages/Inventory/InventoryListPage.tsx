@@ -50,7 +50,7 @@ import {
 } from "../../services/inventoryService";
 
 import {
-  getStores,
+  getActiveStores,
 } from "../../services/storeService";
 
 import {
@@ -147,7 +147,10 @@ function InventoryListPage() {
   ] = useState(false);
 
   const stores =
-    getStores();
+    getActiveStores();
+  const effectiveStoreFilter = storeFilter === ALL_STORES_VALUE || stores.some((store) => String(store.id) === storeFilter)
+    ? storeFilter
+    : ALL_STORES_VALUE;
 
   const users =
     getUsers();
@@ -232,11 +235,11 @@ function InventoryListPage() {
               conditionFilter;
 
           const matchesStore =
-            storeFilter ===
+            effectiveStoreFilter ===
               ALL_STORES_VALUE ||
             item.storeId ===
               Number(
-                storeFilter
+                effectiveStoreFilter
               );
 
           return (
@@ -252,7 +255,7 @@ function InventoryListPage() {
       search,
       statusFilter,
       conditionFilter,
-      storeFilter,
+      effectiveStoreFilter,
       stores,
       users,
     ]);
@@ -280,7 +283,7 @@ function InventoryListPage() {
       ALL_STATUS_VALUE ||
     conditionFilter !==
       ALL_CONDITIONS_VALUE ||
-    storeFilter !==
+    effectiveStoreFilter !==
       ALL_STORES_VALUE;
 
   function handleClearFilters():
@@ -617,7 +620,7 @@ function InventoryListPage() {
                 select
                 label="Loja"
                 value={
-                  storeFilter
+                  effectiveStoreFilter
                 }
                 onChange={(event) =>
                   setStoreFilter(

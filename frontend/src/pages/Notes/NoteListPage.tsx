@@ -59,7 +59,7 @@ import type {
   Note,
   NoteCategory,
 } from "../../types/Note";
-import { getStores, getStoreById } from "../../services/storeService";
+import { getActiveStores, getStoreById } from "../../services/storeService";
 
 function formatDateTime(
   value: string
@@ -182,6 +182,11 @@ function NoteListPage() {
     user?.role ===
     "Administrador";
 
+  const activeStores = getActiveStores();
+  const effectiveStoreFilter = storeFilter !== "" && storeFilter !== "none" && !activeStores.some((store) => String(store.id) === storeFilter)
+    ? ""
+    : storeFilter;
+
   const filteredNotes =
     useMemo(() => {
       const normalizedSearch =
@@ -193,8 +198,8 @@ function NoteListPage() {
 
       return notes.filter(
         (note) => {
-          if (storeFilter === "none" && note.storeId != null) return false;
-          if (storeFilter && storeFilter !== "none" && String(note.storeId ?? "") !== storeFilter) return false;
+          if (effectiveStoreFilter === "none" && note.storeId != null) return false;
+          if (effectiveStoreFilter && effectiveStoreFilter !== "none" && String(note.storeId ?? "") !== effectiveStoreFilter) return false;
           const author =
             getUserById(
               note.authorUserId
@@ -219,7 +224,7 @@ function NoteListPage() {
     }, [
       notes,
       searchTerm,
-      storeFilter,
+      effectiveStoreFilter,
     ]);
 
   function reloadNotes(): void {
@@ -424,10 +429,10 @@ function NoteListPage() {
         <Paper variant="outlined" sx={{ p: 2 }}>
           <FormControl fullWidth>
             <InputLabel id="notes-store-filter-label" htmlFor="notes-store-filter">Filtrar por loja</InputLabel>
-            <Select id="notes-store-filter" labelId="notes-store-filter-label" value={storeFilter} label="Filtrar por loja" onChange={(event) => setStoreFilter(event.target.value)}>
+            <Select id="notes-store-filter" labelId="notes-store-filter-label" value={effectiveStoreFilter} label="Filtrar por loja" onChange={(event) => setStoreFilter(event.target.value)}>
               <MenuItem value="">Todas as lojas</MenuItem>
               <MenuItem value="none">Sem loja</MenuItem>
-              {getStores().map((store) => <MenuItem key={store.id} value={String(store.id)}>{store.code} — {store.name}</MenuItem>)}
+              {activeStores.map((store) => <MenuItem key={store.id} value={String(store.id)}>{store.code} — {store.name}</MenuItem>)}
             </Select>
           </FormControl>
         </Paper>

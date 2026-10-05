@@ -18,6 +18,7 @@ import {
 import {
   getUserById,
 } from "./userService";
+import { getStoreById } from "./storeService";
 
 import type {
   CreateNoteData,
@@ -403,6 +404,13 @@ export async function createNote(
     noteData.category
   );
 
+  if (noteData.storeId !== undefined && noteData.storeId !== null && (!Number.isSafeInteger(noteData.storeId) || noteData.storeId < 1)) {
+    throw new Error("Selecione uma loja válida.");
+  }
+  if (noteData.amount !== undefined && noteData.amount !== null && (!Number.isFinite(noteData.amount) || noteData.amount < 0 || Math.round(noteData.amount * 100) !== noteData.amount * 100)) {
+    throw new Error("Informe um valor válido com até duas casas decimais.");
+  }
+
   const createdNote =
     await createNoteRepository({
       title,
@@ -411,6 +419,10 @@ export async function createNote(
 
       category:
         noteData.category,
+
+      storeId: noteData.storeId ?? null,
+
+      amount: noteData.amount ?? null,
 
       authorUserId:
         user.id,
@@ -507,6 +519,16 @@ export async function updateNote(
       updatedData.category;
   }
 
+  if (updatedData.storeId !== undefined) {
+    if (updatedData.storeId !== null && (!Number.isSafeInteger(updatedData.storeId) || updatedData.storeId < 1)) throw new Error("Selecione uma loja válida.");
+    normalizedData.storeId = updatedData.storeId;
+  }
+
+  if (updatedData.amount !== undefined) {
+    if (updatedData.amount !== null && (!Number.isFinite(updatedData.amount) || updatedData.amount < 0 || Math.round(updatedData.amount * 100) !== updatedData.amount * 100)) throw new Error("Informe um valor válido com até duas casas decimais.");
+    normalizedData.amount = updatedData.amount;
+  }
+
   const updatedNote =
     await updateNoteById(
       noteId,
@@ -547,6 +569,17 @@ export async function updateNote(
     changedFields.push(
       "Descrição alterada"
     );
+  }
+
+  if (note.storeId !== updatedNote.storeId) {
+    const previousStore = note.storeId == null ? "Sem loja" : getStoreById(note.storeId)?.name ?? `Loja #${note.storeId}`;
+    const nextStore = updatedNote.storeId == null ? "Sem loja" : getStoreById(updatedNote.storeId)?.name ?? `Loja #${updatedNote.storeId}`;
+    changedFields.push(`Loja: ${previousStore} → ${nextStore}`);
+  }
+
+  if (note.amount !== updatedNote.amount) {
+    const formatAmount = (value: number | null | undefined) => value == null ? "Sem valor" : value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    changedFields.push(`Valor: ${formatAmount(note.amount)} → ${formatAmount(updatedNote.amount)}`);
   }
 
   if (

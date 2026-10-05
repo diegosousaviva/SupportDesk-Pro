@@ -60,6 +60,7 @@ import {
 import type {
   NoteCategory,
 } from "../../types/Note";
+import { getActiveStores } from "../../services/storeService";
 
 const MINIMUM_TITLE_LENGTH =
   3;
@@ -138,6 +139,9 @@ function CreateNotePage() {
     description,
     setDescription,
   ] = useState("");
+
+  const [storeId, setStoreId] = useState("");
+  const [amount, setAmount] = useState("");
 
   const [
     selectedFiles,
@@ -221,6 +225,7 @@ function CreateNotePage() {
 
     const normalizedDescription =
       description.trim();
+    const normalizedAmount = amount.trim().replace(",", ".");
 
     let valid =
       true;
@@ -281,6 +286,11 @@ function CreateNotePage() {
       setErrorMessage(
         "Revise os campos destacados antes de continuar."
       );
+    }
+
+    if (normalizedAmount && !/^\d+(\.\d{1,2})?$/.test(normalizedAmount)) {
+      setErrorMessage("Informe um valor válido, com até duas casas decimais.");
+      valid = false;
     }
 
     return valid;
@@ -457,6 +467,10 @@ function CreateNotePage() {
               description.trim(),
 
             category,
+
+            storeId: storeId ? Number(storeId) : null,
+
+            amount: amount.trim() ? Number(amount.trim().replace(",", ".")) : null,
           },
           user
         );
@@ -726,6 +740,17 @@ function CreateNotePage() {
                   )}
                 </Select>
               </FormControl>
+
+              <FormControl fullWidth disabled={isSubmitting}>
+                <InputLabel id="note-store-label" htmlFor="note-store">Loja</InputLabel>
+                <Select id="note-store" name="storeId" labelId="note-store-label" value={storeId} label="Loja" onChange={(event) => setStoreId(event.target.value)}>
+                  <MenuItem value="">Sem loja</MenuItem>
+                  {getActiveStores().map((store) => <MenuItem key={store.id} value={String(store.id)}>{store.code} — {store.name}</MenuItem>)}
+                </Select>
+                <FormHelperText>Associe a nota a uma loja para filtrar depois.</FormHelperText>
+              </FormControl>
+
+              <TextField label="Valor (opcional)" placeholder="0,00" value={amount} onChange={(event) => setAmount(event.target.value)} inputProps={{ inputMode: "decimal" }} helperText="Informe em reais, usando até duas casas decimais." fullWidth disabled={isSubmitting} />
 
               <TextField
                 label="Descrição"

@@ -68,6 +68,7 @@ import {
 import type {
   NoteCategory,
 } from "../../types/Note";
+import { getActiveStores, getStoreById } from "../../services/storeService";
 
 import type {
   NoteAttachment,
@@ -167,6 +168,9 @@ function EditNotePageContent() {
     note?.description ??
       ""
   );
+
+  const [storeId, setStoreId] = useState(note?.storeId ? String(note.storeId) : "");
+  const [amount, setAmount] = useState(note?.amount == null ? "" : note.amount.toFixed(2).replace(".", ","));
 
   const [
     attachments,
@@ -350,6 +354,7 @@ function EditNotePageContent() {
 
     const normalizedDescription =
       description.trim();
+    const normalizedAmount = amount.trim().replace(",", ".");
 
     let valid =
       true;
@@ -406,6 +411,11 @@ function EditNotePageContent() {
       setErrorMessage(
         "Revise os campos destacados antes de continuar."
       );
+    }
+
+    if (normalizedAmount && !/^\d+(\.\d{1,2})?$/.test(normalizedAmount)) {
+      setErrorMessage("Informe um valor válido, com até duas casas decimais.");
+      valid = false;
     }
 
     return valid;
@@ -690,6 +700,10 @@ function EditNotePageContent() {
               description.trim(),
 
             category,
+
+            storeId: storeId ? Number(storeId) : null,
+
+            amount: amount.trim() ? Number(amount.trim().replace(",", ".")) : null,
           },
           user
         );
@@ -982,6 +996,17 @@ function EditNotePageContent() {
                   )}
                 </Select>
               </FormControl>
+
+              <FormControl fullWidth disabled={isSubmitting}>
+                <InputLabel id="edit-note-store-label" htmlFor="edit-note-store">Loja</InputLabel>
+                <Select id="edit-note-store" name="storeId" labelId="edit-note-store-label" value={storeId} label="Loja" onChange={(event) => setStoreId(event.target.value)}>
+                  <MenuItem value="">Sem loja</MenuItem>
+                  {getActiveStores().map((store) => <MenuItem key={store.id} value={String(store.id)}>{store.code} — {store.name}</MenuItem>)}
+                  {note?.storeId && !getActiveStores().some((store) => store.id === note.storeId) && <MenuItem value={String(note.storeId)}>{getStoreById(note.storeId)?.name ?? `Loja #${note.storeId}`} (inativa)</MenuItem>}
+                </Select>
+              </FormControl>
+
+              <TextField label="Valor (opcional)" placeholder="0,00" value={amount} onChange={(event) => setAmount(event.target.value)} inputProps={{ inputMode: "decimal" }} helperText="Informe em reais, usando até duas casas decimais." fullWidth disabled={isSubmitting} />
 
               <TextField
                 label="Descrição"

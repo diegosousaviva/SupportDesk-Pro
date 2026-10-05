@@ -64,6 +64,7 @@ import type {
 import type {
   NoteAttachment,
 } from "../../types/NoteAttachment";
+import { getStoreById } from "../../services/storeService";
 
 type ChipColor =
   | "default"
@@ -586,6 +587,8 @@ function NoteDetailsPage() {
             }}
             spacing={4}
           >
+            {note.storeId != null && <Box flex={1}><Typography variant="body2" color="text.secondary">Loja</Typography><Typography fontWeight={600}>{getStoreById(note.storeId)?.name ?? `Loja #${note.storeId}`}</Typography></Box>}
+            {note.amount != null && <Box flex={1}><Typography variant="body2" color="text.secondary">Valor</Typography><Typography fontWeight={600}>{note.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</Typography></Box>}
             <Box flex={1}>
               <Typography
                 variant="body2"

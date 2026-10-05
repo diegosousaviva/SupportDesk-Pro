@@ -4,9 +4,13 @@ import {
   Button,
   Chip,
   CircularProgress,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
   Paper,
   Stack,
+  Select,
   TextField,
   Tooltip,
   Typography,
@@ -55,6 +59,7 @@ import type {
   Note,
   NoteCategory,
 } from "../../types/Note";
+import { getStores, getStoreById } from "../../services/storeService";
 
 function formatDateTime(
   value: string
@@ -150,6 +155,8 @@ function NoteListPage() {
     setSearchTerm,
   ] = useState("");
 
+  const [storeFilter, setStoreFilter] = useState("");
+
   const [
     deletingNoteId,
     setDeletingNoteId,
@@ -184,12 +191,10 @@ function NoteListPage() {
             "pt-BR"
           );
 
-      if (!normalizedSearch) {
-        return notes;
-      }
-
       return notes.filter(
         (note) => {
+          if (storeFilter === "none" && note.storeId != null) return false;
+          if (storeFilter && storeFilter !== "none" && String(note.storeId ?? "") !== storeFilter) return false;
           const author =
             getUserById(
               note.authorUserId
@@ -199,6 +204,8 @@ function NoteListPage() {
             note.title,
             note.description,
             note.category,
+            note.amount == null ? "" : String(note.amount),
+            note.storeId == null ? "Sem loja" : (getStoreById(note.storeId)?.name ?? ""),
             author?.name ?? "",
           ]
             .join(" ")
@@ -206,14 +213,13 @@ function NoteListPage() {
               "pt-BR"
             );
 
-          return searchableText.includes(
-            normalizedSearch
-          );
+          return !normalizedSearch || searchableText.includes(normalizedSearch);
         }
       );
     }, [
       notes,
       searchTerm,
+      storeFilter,
     ]);
 
   function reloadNotes(): void {
@@ -415,6 +421,17 @@ function NoteListPage() {
           />
         </Paper>
 
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel id="notes-store-filter-label" htmlFor="notes-store-filter">Filtrar por loja</InputLabel>
+            <Select id="notes-store-filter" labelId="notes-store-filter-label" value={storeFilter} label="Filtrar por loja" onChange={(event) => setStoreFilter(event.target.value)}>
+              <MenuItem value="">Todas as lojas</MenuItem>
+              <MenuItem value="none">Sem loja</MenuItem>
+              {getStores().map((store) => <MenuItem key={store.id} value={String(store.id)}>{store.code} — {store.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </Paper>
+
         {notes.length ===
         0 ? (
           <Paper
@@ -562,6 +579,8 @@ function NoteListPage() {
                             )}
                             variant="outlined"
                           />
+                          {note.storeId != null && <Chip size="small" label={getStoreById(note.storeId) ? `${getStoreById(note.storeId)?.code} — ${getStoreById(note.storeId)?.name}` : `Loja #${note.storeId}`} variant="outlined" />}
+                          {note.amount != null && <Chip size="small" color="success" label={note.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />}
                         </Stack>
 
                         <Typography

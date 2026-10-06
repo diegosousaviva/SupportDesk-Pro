@@ -28,6 +28,8 @@ MySQL: users + supportdesk_records
 
 - `users` contém contas, e-mail único, hash de senha, perfil, status e associação opcional com loja.
 - `supportdesk_records` armazena entidades operacionais tipadas em JSON, incluindo lojas, chamados, comentários, histórico, inventário, notas, configurações, auditoria e notificações.
+- Anexos de notas e chamados são armazenados como entidades próprias (`note-attachments` e `ticket-attachments`); o conteúdo não é incluído nas respostas de listagem e só é retornado na leitura individual autorizada.
+- A exclusão de um equipamento remove seus eventos de histórico na mesma transação, mas continua bloqueada quando o equipamento está vinculado a um chamado. A auditoria geral da exclusão é mantida.
 - As operações CRUD do aplicativo são centralizadas na API; o frontend não abre conexão com MySQL.
 - `backend/src/database/schema.sql` declara as tabelas. O aplicativo não aplica esse SQL automaticamente.
 - `backend/src/database/development.sql` prepara somente o banco local de desenvolvimento; nunca usar em produção.

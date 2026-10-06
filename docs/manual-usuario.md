@@ -38,9 +38,17 @@ O acesso também é validado pela API; esconder uma opção na tela não substit
 ### Abrir e acompanhar um chamado
 
 1. Entre em **Chamados** e escolha a opção de criar chamado.
-2. Preencha as informações solicitadas, selecione categoria e loja quando aplicável e salve.
-3. Abra o chamado na lista para ver detalhes, histórico e comentários.
-4. Adicione informações complementares pelos comentários. Técnicos e administradores podem atualizar o andamento conforme suas permissões.
+2. Preencha as informações solicitadas e descreva o problema.
+3. Abaixo da descrição, use **Selecionar arquivos** para anexar documentos ou imagens, se necessário. Os anexos são opcionais; são aceitos PDF, Word, Excel, CSV, TXT e imagens JPG, PNG ou WEBP, com até 20 MB por arquivo.
+4. Selecione categoria, loja e demais campos quando aplicável e salve.
+5. Abra o chamado na lista para ver detalhes, histórico e comentários. Os anexos enviados aparecem nos detalhes e podem ser baixados.
+6. Adicione informações complementares pelos comentários. Técnicos e administradores podem atualizar o andamento conforme suas permissões.
+
+Se um anexo falhar no envio, o chamado ainda será criado e o sistema avisará. Confira os anexos disponíveis na tela de detalhes.
+
+### Excluir equipamento do inventário
+
+Um administrador pode excluir um equipamento pela ação de lixeira na tela **Inventário**. A exclusão também apaga o histórico de movimentações daquele equipamento; a ação de exclusão continua registrada na auditoria geral. Se houver um chamado vinculado ao equipamento, o sistema bloqueia a exclusão para preservar esse vínculo.
 
 ### Administrar usuários
 

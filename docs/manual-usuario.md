@@ -53,6 +53,14 @@ O acesso também é validado pela API; esconder uma opção na tela não substit
 
 Abra a seção de segurança/configurações da conta e use a opção de alterar senha. O formulário pede a senha atual e a nova senha. Após a troca, entre novamente usando a senha nova.
 
+### Criar e consultar notas
+
+1. Em **Notas**, escolha **Nova nota** e preencha título, categoria e descrição.
+2. A **Data da nota** começa preenchida com o dia atual e pode ser alterada. Ela representa a data do registro, separada da data em que a nota foi criada ou atualizada no sistema.
+3. Selecione uma loja, se aplicável, e informe o **Valor** em reais. Loja e valor são opcionais.
+4. Na lista de notas, use **Filtrar por loja** para ver as notas vinculadas à loja. Lojas inativas não aparecem nas opções do filtro. Ao escolher uma loja, o sistema mostra a soma dos valores informados em todas as notas dela, mesmo quando uma pesquisa por texto estiver ativa. Notas sem valor não aumentam a soma.
+5. A data, a loja e o valor ficam visíveis na lista e nos detalhes da nota. Notas antigas sem uma data específica usam a data de criação como referência.
+
 ### Filtrar o dashboard e relatórios
 
 Use os filtros de período e loja disponíveis na tela. Os indicadores refletem os dados e o intervalo selecionados. Exportações podem conter dados operacionais; armazene os arquivos com o mesmo cuidado aplicado aos dados do sistema.

@@ -250,3 +250,25 @@ export async function removeNoteAggregate(noteId: number): Promise<boolean> {
     connection.release();
   }
 }
+
+export async function removeInventoryAggregate(inventoryItemId: number): Promise<boolean> {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      "DELETE FROM supportdesk_records WHERE entity_type = 'inventory-history' AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.inventoryItemId')) = ?",
+      [String(inventoryItemId)],
+    );
+    const [result] = await connection.execute<ResultSetHeader>(
+      "DELETE FROM supportdesk_records WHERE entity_type = 'inventory' AND id = ?",
+      [inventoryItemId],
+    );
+    await connection.commit();
+    return result.affectedRows > 0;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}

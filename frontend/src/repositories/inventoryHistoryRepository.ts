@@ -21,3 +21,6 @@ export async function deleteInventoryHistoryByItemId(itemId: number): Promise<vo
   await Promise.all(matching.map((event) => deleteData("inventory-history", event.id)));
   events = events.filter((event) => event.inventoryItemId !== itemId);
 }
+export function removeInventoryHistoryFromCacheByItemId(itemId: number): void {
+  events = events.filter((event) => event.inventoryItemId !== itemId);
+}

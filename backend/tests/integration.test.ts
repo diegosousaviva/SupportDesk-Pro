@@ -535,11 +535,9 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
   expectStatus(await callApi(`/api/data/tickets/${ticketId}`, adminToken, "DELETE"), 200);
   createdTicketIds.splice(createdTicketIds.indexOf(ticketId), 1);
   expectStatus(await callApi(`/api/data/ticket-comments/${commentId}`, adminToken, "GET"), 404);
-  expectStatus(await callApi(`/api/data/inventory/${inventoryId}`, adminToken, "DELETE"), 409);
-  expectStatus(await callApi(`/api/data/inventory-history/${inventoryHistoryId}`, adminToken, "DELETE"), 200);
-  createdInventoryHistoryIds.pop();
   expectStatus(await callApi(`/api/data/inventory/${inventoryId}`, adminToken, "DELETE"), 200);
   createdInventoryIds.pop();
+  createdInventoryHistoryIds.pop();
   expectStatus(await callApi(`/api/data/stores/${storeId}`, adminToken, "DELETE"), 200);
   createdStoreIds.pop();
 

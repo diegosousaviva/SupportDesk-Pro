@@ -14,6 +14,7 @@ import {
   removeRecord,
   removeTicketAggregate,
   removeNoteAggregate,
+  removeInventoryAggregate,
   replaceRecord,
   findRecordOnConnection,
   insertRecordOnConnection,
@@ -603,7 +604,7 @@ router.delete("/:entity/:id", async (req, res) => {
     if (!(await canWriteRecord(entity, "DELETE", user.role, user.id, undefined, existing))) return res.status(403).json({ success: false, message: "Insufficient permission." });
     const references: Partial<Record<RecordEntity, Array<[RecordEntity, string]>>> = {
       stores: [["tickets", "storeId"], ["inventory", "storeId"]],
-      inventory: [["tickets", "inventoryItemId"], ["inventory-history", "inventoryItemId"]],
+      inventory: [["tickets", "inventoryItemId"]],
     };
     for (const [referencingEntity, field] of references[entity] ?? []) {
       if (await hasRecordReference(referencingEntity, field, id)) {
@@ -617,6 +618,8 @@ router.delete("/:entity/:id", async (req, res) => {
       ? await removeTicketAggregate(id)
       : entity === "notes"
         ? await removeNoteAggregate(id)
+        : entity === "inventory"
+          ? await removeInventoryAggregate(id)
         : await removeRecord(entity, id);
     if (!deleted) return res.status(404).json({ success: false, message: "Record not found." });
     return res.json({ success: true });

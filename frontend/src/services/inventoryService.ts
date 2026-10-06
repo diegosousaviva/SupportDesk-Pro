@@ -14,6 +14,10 @@ import {
 } from "./auditLogService";
 
 import {
+  removeInventoryHistoryFromCacheByItemId,
+} from "../repositories/inventoryHistoryRepository";
+
+import {
   getCurrentUser,
 } from "./authService";
 
@@ -1310,6 +1314,7 @@ export async function deleteInventoryItem(
     );
 
   if (deleted) {
+    removeInventoryHistoryFromCacheByItemId(currentItem.id);
     registerInventoryAudit(
       currentItem.id,
       "Exclusão",

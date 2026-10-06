@@ -25,7 +25,7 @@ import {
 
 const router = Router();
 const entities = new Set<RecordEntity>([
-  "stores", "tickets", "ticket-comments", "ticket-history",
+  "stores", "tickets", "ticket-attachments", "ticket-comments", "ticket-history",
   "inventory", "inventory-history", "notes", "note-attachments", "user-history", "settings",
   "audit-logs", "notifications", "sla-notification-dismissals",
 ]);
@@ -53,7 +53,7 @@ function currentUser(req: Request, res: Response): { id: number; role: string } 
 function canReadEntity(entity: RecordEntity, role: string): boolean {
   if (role === "Administrador") return true;
   if (entity === "settings") return true;
-  if (["tickets", "ticket-comments", "ticket-history", "notes", "note-attachments", "notifications", "sla-notification-dismissals"].includes(entity)) return true;
+  if (["tickets", "ticket-attachments", "ticket-comments", "ticket-history", "notes", "note-attachments", "notifications", "sla-notification-dismissals"].includes(entity)) return true;
   if (role === "Solicitante" && entity === "stores") return true;
   return role === "Técnico" && ["stores", "inventory", "inventory-history"].includes(entity);
 }
@@ -126,7 +126,7 @@ async function validateReferences(
       if (payload.storeId != null && Number(inventory.payload.storeId) !== Number(payload.storeId)) return "The linked inventory item belongs to another store.";
     }
   }
-  if (entity === "ticket-comments" || entity === "ticket-history") {
+  if (entity === "ticket-comments" || entity === "ticket-history" || entity === "ticket-attachments") {
     if (typeof payload.ticketId !== "number" || !Number.isSafeInteger(payload.ticketId) || !(await findRecord("tickets", payload.ticketId))) return "The target ticket does not exist.";
   }
   if (entity === "ticket-comments") {
@@ -200,8 +200,12 @@ async function validateReferences(
       }
     }
   }
-  if (entity === "note-attachments") {
-    if (typeof payload.noteId !== "number" || !Number.isSafeInteger(payload.noteId) || payload.noteId < 1 || !(await findRecord("notes", payload.noteId))) return "The target note does not exist.";
+  if (entity === "note-attachments" || entity === "ticket-attachments") {
+    const parentId = entity === "note-attachments" ? payload.noteId : payload.ticketId;
+    const parentEntity = entity === "note-attachments" ? "notes" : "tickets";
+    if (typeof parentId !== "number" || !Number.isSafeInteger(parentId) || parentId < 1 || !(await findRecord(parentEntity, parentId))) {
+      return entity === "note-attachments" ? "The target note does not exist." : "The target ticket does not exist.";
+    }
     const name = typeof payload.fileName === "string" ? payload.fileName.trim() : "";
     const ext = name.includes(".") ? name.split(".").pop()!.toLowerCase() : "";
     const encoded = payload.contentBase64;
@@ -230,11 +234,13 @@ async function canReadRecord(
   if (entity === "tickets") return ticketBelongsToUser(record.payload, userId);
   if (entity === "notes" || entity === "notifications") return record.ownerUserId === userId;
   if (entity === "sla-notification-dismissals") return record.ownerUserId === userId;
-  if (entity === "note-attachments") {
-    const noteId = Number(record.payload.noteId);
-    if (!Number.isSafeInteger(noteId) || noteId < 1) return false;
-    const note = await findRecord<Record<string, unknown>>("notes", noteId);
-    return Boolean(note && note.ownerUserId === userId);
+  if (entity === "note-attachments" || entity === "ticket-attachments") {
+    const parentId = Number(entity === "note-attachments" ? record.payload.noteId : record.payload.ticketId);
+    if (!Number.isSafeInteger(parentId) || parentId < 1) return false;
+    const parent = await findRecord<Record<string, unknown>>(entity === "note-attachments" ? "notes" : "tickets", parentId);
+    return entity === "note-attachments"
+      ? Boolean(parent && parent.ownerUserId === userId)
+      : Boolean(parent && ticketBelongsToUser(parent.payload, userId));
   }
   if (entity === "ticket-comments" || entity === "ticket-history") {
     const ticketId = Number(record.payload.ticketId);
@@ -306,6 +312,15 @@ async function canWriteRecord(
     }
     return existing !== undefined;
   }
+  if (entity === "ticket-attachments") {
+    if (method === "POST") {
+      const ticketId = Number(payload?.ticketId);
+      if (!Number.isSafeInteger(ticketId) || ticketId < 1) return false;
+      const ticket = await findRecord<Record<string, unknown>>("tickets", ticketId);
+      return Boolean(ticket && ticketBelongsToUser(ticket.payload, userId));
+    }
+    return existing !== undefined;
+  }
   if (entity === "inventory") return role === "Técnico" && method === "PUT";
   if (entity === "inventory-history") return role === "Técnico" && method === "POST";
   if (entity === "notifications") {
@@ -335,8 +350,9 @@ router.get("/:entity", async (req, res) => {
       if (await canReadRecord(entity, record, user.role, user.id)) records.push(record);
     }
     const serializedRecords = await Promise.all(records.map(async (record) => {
-      const { contentBase64: _contentBase64, ...metadata } = entity === "note-attachments" ? record.payload : {};
-      const serialized = { id: record.id, ...(entity === "note-attachments" ? metadata : record.payload), createdAt: record.createdAt, updatedAt: record.updatedAt };
+      const isAttachment = entity === "note-attachments" || entity === "ticket-attachments";
+      const { contentBase64: _contentBase64, ...metadata } = isAttachment ? record.payload : {};
+      const serialized = { id: record.id, ...(isAttachment ? metadata : record.payload), createdAt: record.createdAt, updatedAt: record.updatedAt };
       if (entity === "tickets") return addTicketDisplayReferences(serialized);
       if (entity === "stores" && user.role === "Solicitante") return requesterStoreSummary(serialized);
       return serialized;
@@ -392,6 +408,7 @@ router.post("/:entity", async (req, res) => {
       payload.authorUserId = user.id;
       payload.uploadedByUserId = user.id;
     }
+    if (entity === "ticket-attachments") payload.uploadedByUserId = user.id;
     if (entity === "inventory-history") {
       const itemId = Number(payload.inventoryItemId);
       if (!Number.isSafeInteger(itemId) || itemId < 1 || !(await findRecord("inventory", itemId))) {
@@ -415,7 +432,7 @@ router.post("/:entity", async (req, res) => {
     if (!(await canWriteRecord(entity, "POST", user.role, user.id, payload))) return res.status(403).json({ success: false, message: "Insufficient permission." });
     const ownerUserId = entity === "notes"
       ? Number(payload.authorUserId)
-      : ["note-attachments", "ticket-comments", "sla-notification-dismissals"].includes(entity)
+      : ["note-attachments", "ticket-attachments", "ticket-comments", "sla-notification-dismissals"].includes(entity)
         ? user.id
         : entity === "notifications" ? Number(payload.userId)
         : entity === "tickets" ? Number(payload.requesterUserId) : null;
@@ -441,8 +458,9 @@ router.post("/:entity", async (req, res) => {
       ? await withCategoryIntegrityLock((connection) => persist(connection))
       : await persist();
     if (!record) return res.status(400).json({ success: false, message: referenceErrorMessage ?? "Invalid references." });
-    const { contentBase64: _contentBase64, ...attachmentMetadata } = entity === "note-attachments" ? record.payload : {};
-    const responsePayload = entity === "note-attachments" ? attachmentMetadata : record.payload;
+    const isAttachment = entity === "note-attachments" || entity === "ticket-attachments";
+    const { contentBase64: _contentBase64, ...attachmentMetadata } = isAttachment ? record.payload : {};
+    const responsePayload = isAttachment ? attachmentMetadata : record.payload;
     return res.status(201).json({ success: true, record: { id: record.id, ...responsePayload, createdAt: record.createdAt, updatedAt: record.updatedAt } });
   } catch (error) {
     if (error instanceof CategoryIntegrityLockError) return res.status(503).json({ success: false, message: error.message });
@@ -574,7 +592,7 @@ router.put("/:entity/:id", async (req, res) => {
       payload.authorId = existing.payload.authorId;
       payload.authorName = existing.payload.authorName;
     }
-    if (entity === "note-attachments") return res.status(405).json({ success: false, message: "Attachments cannot be edited." });
+    if (entity === "note-attachments" || entity === "ticket-attachments") return res.status(405).json({ success: false, message: "Attachments cannot be edited." });
     if (!(await canWriteRecord(entity, "PUT", user.role, user.id, payload, existing))) return res.status(403).json({ success: false, message: "Insufficient permission." });
     const referenceError = await validateReferences(entity, payload, existing.payload);
     if (referenceError) return res.status(400).json({ success: false, message: referenceError });

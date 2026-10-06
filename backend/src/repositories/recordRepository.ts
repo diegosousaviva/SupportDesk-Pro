@@ -6,6 +6,7 @@ export type RecordEntity =
   | "categories"
   | "stores"
   | "tickets"
+  | "ticket-attachments"
   | "ticket-comments"
   | "ticket-history"
   | "inventory"
@@ -208,7 +209,7 @@ export async function removeTicketAggregate(ticketId: number): Promise<boolean> 
   try {
     await connection.beginTransaction();
     await connection.execute(
-      "DELETE FROM supportdesk_records WHERE entity_type IN ('ticket-comments', 'ticket-history') AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.ticketId')) = ?",
+      "DELETE FROM supportdesk_records WHERE entity_type IN ('ticket-comments', 'ticket-history', 'ticket-attachments') AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.ticketId')) = ?",
       [String(ticketId)],
     );
     await connection.execute(

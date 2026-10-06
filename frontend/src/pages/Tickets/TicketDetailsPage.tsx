@@ -21,6 +21,7 @@ import {
 } from "@mui/icons-material";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -42,6 +43,7 @@ import {
 import MainLayout from "../../components/layout/MainLayout";
 import SlaProgress from "../../components/sla/SlaProgress";
 import TicketActions from "../../components/tickets/TicketActions";
+import TicketAttachmentsCard from "../../components/tickets/TicketAttachmentsCard";
 import TicketDescriptionCard from "../../components/tickets/TicketDescriptionCard";
 import TicketEquipmentCard from "../../components/tickets/TicketEquipmentCard";
 import TicketHeader from "../../components/tickets/TicketHeader";
@@ -90,6 +92,8 @@ import {
 import {
   getUserById,
 } from "../../services/userService";
+import { getTicketAttachments } from "../../services/ticketAttachmentService";
+import type { TicketAttachment } from "../../types/TicketAttachment";
 
 import type {
   TicketStatus,
@@ -179,6 +183,27 @@ export default function TicketDetailsPage() {
 
   const ticketId =
     Number(id);
+
+  const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(true);
+  const [attachmentsError, setAttachmentsError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!Number.isSafeInteger(ticketId) || ticketId < 1) {
+      setAttachmentsLoading(false);
+      return () => { active = false; };
+    }
+    setAttachmentsLoading(true);
+    setAttachmentsError("");
+    void getTicketAttachments(ticketId)
+      .then((records) => { if (active) setAttachments(records); })
+      .catch((error: unknown) => {
+        if (active) setAttachmentsError(error instanceof Error ? error.message : "Não foi possível carregar os anexos.");
+      })
+      .finally(() => { if (active) setAttachmentsLoading(false); });
+    return () => { active = false; };
+  }, [ticketId]);
 
   const ticket =
     getTicketById(
@@ -893,6 +918,12 @@ export default function TicketDetailsPage() {
           description={
             currentTicket.description
           }
+        />
+
+        <TicketAttachmentsCard
+          attachments={attachments}
+          loading={attachmentsLoading}
+          error={attachmentsError}
         />
 
         <TicketEquipmentCard

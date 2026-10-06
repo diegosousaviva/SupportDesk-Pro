@@ -168,6 +168,7 @@ export async function hasUserReferences(userId: number): Promise<boolean> {
     ["ticket-comments", "authorId"],
     ["notes", "authorUserId"],
     ["note-attachments", "uploadedByUserId"],
+    ["ticket-attachments", "uploadedByUserId"],
   ];
   for (const [entity, field] of references) {
     const [rows] = await pool.execute(

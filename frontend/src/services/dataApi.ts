@@ -4,6 +4,7 @@ import { API_BASE_URL as API_URL } from "./apiBaseUrl";
 export type DataEntity =
   | "stores"
   | "tickets"
+  | "ticket-attachments"
   | "ticket-comments"
   | "ticket-history"
   | "inventory"

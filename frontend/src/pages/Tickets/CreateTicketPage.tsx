@@ -4,6 +4,7 @@ import {
 } from "react";
 
 import type {
+  ChangeEvent,
   FormEvent,
 } from "react";
 
@@ -18,6 +19,7 @@ import {
   Button,
   FormControl,
   FormHelperText,
+  IconButton,
   MenuItem,
   Paper,
   Select,
@@ -27,6 +29,9 @@ import {
 } from "@mui/material";
 
 import SaveIcon from "@mui/icons-material/Save";
+import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 
 import MainLayout from "../../components/layout/MainLayout";
 
@@ -66,6 +71,12 @@ import {
 import {
   createTicket,
 } from "../../services/ticketService";
+import {
+  addTicketAttachment,
+  getTicketAttachmentExtensions,
+  getTicketAttachmentLimit,
+  validateTicketAttachment,
+} from "../../services/ticketAttachmentService";
 
 import {
   getUsers,
@@ -325,6 +336,10 @@ function CreateTicketPage() {
       ""
     );
 
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const allowedAttachmentExtensions = getTicketAttachmentExtensions();
+  const attachmentSizeLimit = getTicketAttachmentLimit();
+
   const [
     errorMessage,
     setErrorMessage,
@@ -358,6 +373,34 @@ function CreateTicketPage() {
       0 &&
     normalizedDescription.length <
       MINIMUM_DESCRIPTION_LENGTH;
+
+  function formatAttachmentSize(size: number): string {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function handleAttachmentSelection(event: ChangeEvent<HTMLInputElement>): void {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    const invalidFile = files.find((file) => validateTicketAttachment(file));
+    if (invalidFile) {
+      showValidationMessage(validateTicketAttachment(invalidFile) ?? "Arquivo inválido.");
+      return;
+    }
+
+    setSelectedFiles((currentFiles) => {
+      const nextFiles = [...currentFiles];
+      for (const file of files) {
+        if (!nextFiles.some((current) => current.name === file.name && current.size === file.size && current.lastModified === file.lastModified)) {
+          nextFiles.push(file);
+        }
+      }
+      return nextFiles;
+    });
+  }
 
   function getNotificationSeverity():
     | "info"
@@ -968,13 +1011,25 @@ function CreateTicketPage() {
         });
       }
 
-      showSnackbar(
-        "Chamado criado com sucesso.",
-        {
-          severity:
-            "success",
+      const attachmentErrors: string[] = [];
+      let uploadedAttachmentCount = 0;
+      for (const file of selectedFiles) {
+        try {
+          await addTicketAttachment(createdTicket.id, file, user?.id ?? 1);
+          uploadedAttachmentCount += 1;
+        } catch (attachmentError) {
+          console.error(`Não foi possível anexar o arquivo ${file.name}.`, attachmentError);
+          attachmentErrors.push(file.name);
         }
-      );
+      }
+
+      if (attachmentErrors.length > 0) {
+        showSnackbar(`Chamado criado, mas ${attachmentErrors.length} anexo(s) não puderam ser enviados.`, { severity: "warning" });
+      } else if (uploadedAttachmentCount > 0) {
+        showSnackbar(`Chamado criado com sucesso com ${uploadedAttachmentCount} anexo(s).`, { severity: "success" });
+      } else {
+        showSnackbar("Chamado criado com sucesso.", { severity: "success" });
+      }
 
       navigate(
         `/tickets/${createdTicket.id}`
@@ -1615,6 +1670,53 @@ function CreateTicketPage() {
                   },
                 }}
               />
+
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.default" }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AttachFileOutlinedIcon color="primary" />
+                    <Typography variant="h6" fontWeight={700}>Anexos</Typography>
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    Adicione documentos ou imagens relacionados ao chamado. Os anexos são opcionais.
+                  </Typography>
+                  <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={isSubmitting} sx={{ alignSelf: "flex-start" }}>
+                    Selecionar arquivos
+                    <input
+                      hidden
+                      multiple
+                      type="file"
+                      id="ticket-attachments"
+                      name="attachments"
+                      aria-label="Selecionar arquivos para anexar ao chamado"
+                      accept={allowedAttachmentExtensions.map((extension) => `.${extension}`).join(",")}
+                      onChange={handleAttachmentSelection}
+                    />
+                  </Button>
+                  <FormHelperText>
+                    Formatos permitidos: {allowedAttachmentExtensions.map((extension) => `.${extension}`).join(", ")}. Limite de {formatAttachmentSize(attachmentSizeLimit)} por arquivo.
+                  </FormHelperText>
+                  {selectedFiles.length === 0 ? (
+                    <Alert severity="info">Nenhum arquivo selecionado. Você pode abrir o chamado sem anexos.</Alert>
+                  ) : (
+                    <Stack spacing={1}>
+                      {selectedFiles.map((file, index) => (
+                        <Paper key={`${file.name}-${file.size}-${file.lastModified}`} variant="outlined" sx={{ p: 1.5 }}>
+                          <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center">
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography variant="body2" fontWeight={600} sx={{ overflowWrap: "anywhere" }}>{file.name}</Typography>
+                              <Typography variant="caption" color="text.secondary">{formatAttachmentSize(file.size)}</Typography>
+                            </Box>
+                            <IconButton color="error" size="small" onClick={() => setSelectedFiles((files) => files.filter((_, currentIndex) => currentIndex !== index))} disabled={isSubmitting} aria-label={`Remover arquivo ${file.name}`}>
+                              <DeleteOutlineIcon />
+                            </IconButton>
+                          </Stack>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  )}
+                </Stack>
+              </Paper>
 
               <Box
                 sx={{

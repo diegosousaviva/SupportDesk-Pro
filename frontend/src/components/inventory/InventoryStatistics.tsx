@@ -6,6 +6,7 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ComputerOutlinedIcon from "@mui/icons-material/ComputerOutlined";
 import WarehouseOutlinedIcon from "@mui/icons-material/WarehouseOutlined";
 import BuildCircleOutlinedIcon from "@mui/icons-material/BuildCircleOutlined";
+import AttachMoneyOutlinedIcon from "@mui/icons-material/AttachMoneyOutlined";
 
 import StatCard from "../dashboard/StatCard";
 
@@ -44,15 +45,28 @@ function InventoryStatistics({
         "Em manutenção"
     ).length;
 
+  const totalValue =
+    items.reduce(
+      (sum, item) => sum + item.value,
+      0
+    );
+
+  const formattedTotalValue =
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(totalValue);
+
   return (
     <Grid
       container
+      columns={{ xs: 12, sm: 12, md: 15 }}
       spacing={2}
       sx={{
         mb: 3,
       }}
     >
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <StatCard
           title="Total de equipamentos"
           value={total}
@@ -62,7 +76,7 @@ function InventoryStatistics({
         />
       </Grid>
 
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <StatCard
           title="Em uso"
           value={inUse}
@@ -72,7 +86,7 @@ function InventoryStatistics({
         />
       </Grid>
 
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <StatCard
           title="Em estoque"
           value={stock}
@@ -82,13 +96,21 @@ function InventoryStatistics({
         />
       </Grid>
 
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <StatCard
           title="Em manutenção"
           value={maintenance}
           icon={
             <BuildCircleOutlinedIcon />
           }
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <StatCard
+          title="Valor total"
+          value={formattedTotalValue}
+          icon={<AttachMoneyOutlinedIcon />}
         />
       </Grid>
     </Grid>

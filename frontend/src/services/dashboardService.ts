@@ -147,6 +147,9 @@ export interface DashboardMainMetrics {
   criticalTickets:
     number;
 
+  criticalTicketsNeedingAttention:
+    number;
+
   highPriorityTickets:
     number;
 
@@ -519,6 +522,15 @@ function calculateMainMetrics(
         "Crítica"
     ).length;
 
+  const criticalTicketsNeedingAttention =
+    tickets.filter(
+      (ticket) =>
+        ticket.priority ===
+          "Crítica" &&
+        ticket.status !==
+          "Resolvido"
+    ).length;
+
   const highPriorityTickets =
     tickets.filter(
       (ticket) =>
@@ -561,6 +573,8 @@ function calculateMainMetrics(
     resolvedTickets,
 
     criticalTickets,
+
+    criticalTicketsNeedingAttention,
 
     highPriorityTickets,
 

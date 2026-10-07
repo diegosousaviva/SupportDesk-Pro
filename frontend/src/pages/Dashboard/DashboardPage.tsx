@@ -313,7 +313,7 @@ function DashboardPage() {
           }
         />
 
-        {mainMetrics.criticalTickets >
+        {mainMetrics.criticalTicketsNeedingAttention >
           0 && (
           <Alert
             severity="error"
@@ -324,15 +324,15 @@ function DashboardPage() {
             Existem{" "}
             <strong>
               {
-                mainMetrics.criticalTickets
+                mainMetrics.criticalTicketsNeedingAttention
               }{" "}
               chamado
-              {mainMetrics.criticalTickets ===
+              {mainMetrics.criticalTicketsNeedingAttention ===
               1
                 ? ""
                 : "s"}{" "}
               crítico
-              {mainMetrics.criticalTickets ===
+              {mainMetrics.criticalTicketsNeedingAttention ===
               1
                 ? ""
                 : "s"}

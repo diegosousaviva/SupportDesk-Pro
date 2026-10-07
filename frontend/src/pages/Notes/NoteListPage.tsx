@@ -195,11 +195,11 @@ function NoteListPage() {
     ? ""
     : storeFilter;
   const selectedStore = activeStores.find((store) => String(store.id) === effectiveStoreFilter);
-  const selectedStoreNotes = selectedStore
+  const notesInSummary = selectedStore
     ? notes.filter((note) => note.storeId === selectedStore.id)
-    : [];
-  const selectedStoreTotalCents = selectedStoreNotes.reduce((total, note) => total + (note.amount == null ? 0 : Math.round(note.amount * 100)), 0);
-  const selectedStoreNotesWithAmount = selectedStoreNotes.filter((note) => note.amount != null).length;
+    : notes;
+  const summaryTotalCents = notesInSummary.reduce((total, note) => total + (note.amount == null ? 0 : Math.round(note.amount * 100)), 0);
+  const summaryNotesWithAmount = notesInSummary.filter((note) => note.amount != null).length;
 
   const filteredNotes =
     useMemo(() => {
@@ -451,16 +451,18 @@ function NoteListPage() {
           </FormControl>
         </Paper>
 
-        {selectedStore && (
+        {effectiveStoreFilter !== "none" && (
           <Paper variant="outlined" sx={{ p: 2.5, borderLeft: 4, borderLeftColor: "primary.main" }}>
             <Typography variant="body2" color="text.secondary">
-              Soma dos valores das notas — {selectedStore.code} - {selectedStore.name}
+              {selectedStore
+                ? `Soma dos valores das notas - ${selectedStore.code} - ${selectedStore.name}`
+                : "Soma dos valores das notas - Todas as lojas"}
             </Typography>
             <Typography variant="h5" fontWeight={700}>
-              {(selectedStoreTotalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              {(summaryTotalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Total de {selectedStoreNotes.length} nota(s), independente da busca; {selectedStoreNotesWithAmount} com valor informado.
+              Total de {notesInSummary.length} nota(s), independente da busca; {summaryNotesWithAmount} com valor informado.
             </Typography>
           </Paper>
         )}

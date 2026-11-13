@@ -150,6 +150,10 @@ function TicketTable({
                 </TableSortLabel>
               </TableCell>
 
+              <TableCell>
+                <strong>Loja</strong>
+              </TableCell>
+
               <TableCell
                 sortDirection={getSortDirection(
                   "technician"
@@ -228,6 +232,17 @@ function TicketTable({
 
                 <TableCell>
                   {ticket.category}
+                </TableCell>
+
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    {ticket.storeCode && ticket.storeName
+                      ? `${ticket.storeCode} — ${ticket.storeName}`
+                      : ticket.storeName ?? "Não informada"}
+                  </Typography>
                 </TableCell>
 
                 <TableCell>
@@ -361,7 +376,7 @@ function TicketTable({
             {tickets.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={hasActions ? 7 : 6}
+                  colSpan={hasActions ? 8 : 7}
                   align="center"
                   sx={{ py: 6 }}
                 >

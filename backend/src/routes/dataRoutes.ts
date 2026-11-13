@@ -101,6 +101,7 @@ async function validateReferences(
     if (payload.responsibleUserId != null && !(await findUserById(Number(payload.responsibleUserId)))) return "The responsible user does not exist.";
   }
   if (entity === "tickets") {
+    if (!existingPayload && payload.storeId == null) return "A ticket requires a requester store.";
     const categoryChange = existingPayload
       ? preserveUnchangedTicketCategory(existingPayload.category, payload.category)
       : { changed: true, value: typeof payload.category === "string" ? payload.category.trim() : "" };

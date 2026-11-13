@@ -705,6 +705,12 @@ function CreateTicketPage() {
               selectedStoreId
             );
 
+      if (storeId === null) {
+        throw new Error(
+          "Selecione a loja solicitante para abrir o chamado."
+        );
+      }
+
       const selectedTechnicianId =
         assignedTechnicianId ===
         UNASSIGNED_TECHNICIAN_VALUE
@@ -1355,11 +1361,12 @@ function CreateTicketPage() {
                       0.75,
                   }}
                 >
-                  Loja solicitante
+                  Loja solicitante *
                 </Typography>
 
                 <FormControl
                   fullWidth
+                  required
                   disabled={
                     isSubmitting ||
                     stores.length ===
@@ -1382,14 +1389,17 @@ function CreateTicketPage() {
                     inputProps={{
                       "aria-label":
                         "Loja solicitante",
+                      "aria-required":
+                        true,
                     }}
                   >
                     <MenuItem
                       value={
                         NO_STORE_VALUE
                       }
+                      disabled
                     >
-                      Não informada
+                      Selecione uma loja
                     </MenuItem>
 
                     {stores.map(
@@ -1412,7 +1422,7 @@ function CreateTicketPage() {
                   </Select>
 
                   <FormHelperText>
-                    Selecione a loja para a qual o chamado está sendo aberto.
+                    Obrigatório. Selecione a loja para a qual o chamado está sendo aberto.
                   </FormHelperText>
                 </FormControl>
               </Box>

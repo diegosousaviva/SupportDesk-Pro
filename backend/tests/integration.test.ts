@@ -317,6 +317,7 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
     priority: "Baixa",
     status: "Aberto",
     requesterUserId: requester.id,
+    requesterName: "Solicitante de teste",
     storeId,
     assignedTechnicianId: technician.id,
     inventoryItemId: inventoryId,
@@ -392,7 +393,8 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
       priority: "Baixa",
       status: "Aberto",
       requesterUserId: requester.id,
-      storeId: null,
+      requesterName: "Solicitante de teste",
+      storeId,
       assignedTechnicianId: null,
       inventoryItemId: null,
       closedAt: null,
@@ -464,7 +466,7 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
     `Created own-ticket category must be active. Received: ${JSON.stringify(ownTicketCategoryDiagnostic)}`,
   );
 
-  const ownTicketReply = expectStatus(await callApi("/api/data/tickets", requesterLogin.token, "POST", {
+  const ownTicketInput = {
     title: "Chamado próprio local",
     description: "Chamado criado pelo solicitante de teste.",
     category: ownTicketCategoryInput.name,
@@ -472,13 +474,25 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
     status: "Resolvido",
     requesterUserId: outsider.id,
     assignedTechnicianId: technician.id,
-    storeId: null,
+    storeId,
     inventoryItemId: null,
     closedAt: new Date().toISOString(),
+  };
+  for (const requesterName of [undefined, "", "   ", 123, "a".repeat(121)]) {
+    const response = expectStatus(await callApi("/api/data/tickets", requesterLogin.token, "POST", {
+      ...ownTicketInput,
+      requesterName,
+    }), 400);
+    assert.equal(response.message, "Informe o nome do solicitante com até 120 caracteres.");
+  }
+  const ownTicketReply = expectStatus(await callApi("/api/data/tickets", requesterLogin.token, "POST", {
+    ...ownTicketInput,
+    requesterName: "  Solicitante da loja  ",
   }), 201);
   const ownTicketId = recordId(ownTicketReply);
   createdTicketIds.push(ownTicketId);
   assert.equal(ownTicketReply.record?.requesterUserId, requester.id);
+  assert.equal(ownTicketReply.record?.requesterName, "Solicitante da loja");
   assert.equal(ownTicketReply.record?.assignedTechnicianId, null);
   assert.equal(ownTicketReply.record?.status, "Aberto");
   expectStatus(await callApi(`/api/data/tickets/${ownTicketId}`, outsiderLogin.token, "GET"), 404);
@@ -487,6 +501,7 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
     assignedTechnicianId: technician.id,
   }), 200);
   assert.equal(protectedTicket.record?.status, "Aberto");
+  assert.equal(protectedTicket.record?.requesterName, "Solicitante da loja");
   assert.equal(protectedTicket.record?.assignedTechnicianId, null);
   expectStatus(await callApi(`/api/data/tickets/${ownTicketId}`, requesterLogin.token, "DELETE"), 403);
 
@@ -538,11 +553,10 @@ test("dev schema preflight and authenticated CRUD/permission flow", async () => 
   expectStatus(await callApi(`/api/data/inventory/${inventoryId}`, adminToken, "DELETE"), 200);
   createdInventoryIds.pop();
   createdInventoryHistoryIds.pop();
-  expectStatus(await callApi(`/api/data/stores/${storeId}`, adminToken, "DELETE"), 200);
-  createdStoreIds.pop();
-
   expectStatus(await callApi(`/api/data/tickets/${ownTicketId}`, adminToken, "DELETE"), 200);
   createdTicketIds.pop();
+  expectStatus(await callApi(`/api/data/stores/${storeId}`, adminToken, "DELETE"), 200);
+  createdStoreIds.pop();
   for (const id of [technician.id, requester.id, outsider.id]) {
     expectStatus(await callApi(`/api/users/${id}`, adminToken, "DELETE"), 200);
     createdUserIds.splice(createdUserIds.indexOf(id), 1);

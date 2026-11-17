@@ -102,6 +102,13 @@ async function validateReferences(
   }
   if (entity === "tickets") {
     if (!existingPayload && payload.storeId == null) return "A ticket requires a requester store.";
+    if (!existingPayload || payload.requesterName !== existingPayload.requesterName) {
+      const requesterName = typeof payload.requesterName === "string" ? payload.requesterName.trim() : "";
+      if (!requesterName || requesterName.length > 120) {
+        return "Informe o nome do solicitante com até 120 caracteres.";
+      }
+      payload.requesterName = requesterName;
+    }
     const categoryChange = existingPayload
       ? preserveUnchangedTicketCategory(existingPayload.category, payload.category)
       : { changed: true, value: typeof payload.category === "string" ? payload.category.trim() : "" };

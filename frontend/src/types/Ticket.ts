@@ -23,6 +23,7 @@ export interface Ticket {
   status: TicketStatus;
 
   requesterUserId: number;
+  requesterName?: string;
 
   /**
    * Loja solicitante do chamado.

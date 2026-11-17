@@ -933,6 +933,7 @@ export default function TicketDetailsPage() {
         />
 
         <TicketInfoCard
+          requesterName={ticket.requesterName}
           technicianName={
             technicianName
           }

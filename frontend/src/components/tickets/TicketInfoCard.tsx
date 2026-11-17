@@ -16,6 +16,7 @@ interface TicketInfoCardProps {
   technicianName: string;
   technicianInactive?: boolean;
   storeName: string;
+  requesterName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +55,7 @@ export default function TicketInfoCard({
   technicianName,
   technicianInactive = false,
   storeName,
+  requesterName,
   createdAt,
   updatedAt,
 }: TicketInfoCardProps) {
@@ -162,6 +164,17 @@ export default function TicketInfoCard({
             >
               {storeName}
             </Typography>
+
+            {requesterName && (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Nome do solicitante
+                </Typography>
+                <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>
+                  {requesterName}
+                </Typography>
+              </>
+            )}
           </Box>
         </Stack>
 

@@ -109,6 +109,8 @@ const MINIMUM_TITLE_LENGTH =
 const MAXIMUM_TITLE_LENGTH =
   120;
 
+const MAXIMUM_REQUESTER_NAME_LENGTH = 120;
+
 const MINIMUM_DESCRIPTION_LENGTH =
   10;
 
@@ -311,6 +313,8 @@ function CreateTicketPage() {
     useState(
       initialStoreId
     );
+
+  const [requesterName, setRequesterName] = useState("");
 
   const [
     assignedTechnicianId,
@@ -622,6 +626,12 @@ function CreateTicketPage() {
       ""
     );
 
+    const normalizedRequesterName = requesterName.trim();
+    if (!normalizedRequesterName) {
+      showValidationMessage("Informe o nome do solicitante.");
+      return;
+    }
+
     if (
       !normalizedTitle ||
       !category ||
@@ -876,6 +886,8 @@ function CreateTicketPage() {
           requesterUserId:
             user?.id ??
             1,
+
+          requesterName: normalizedRequesterName,
 
           storeId,
 
@@ -1426,6 +1438,18 @@ function CreateTicketPage() {
                   </FormHelperText>
                 </FormControl>
               </Box>
+
+              <TextField
+                id="ticket-requester-name"
+                name="requesterName"
+                label="Nome do solicitante"
+                value={requesterName}
+                onChange={(event) => setRequesterName(event.target.value)}
+                required
+                fullWidth
+                disabled={isSubmitting}
+                slotProps={{ htmlInput: { maxLength: MAXIMUM_REQUESTER_NAME_LENGTH } }}
+              />
 
               {stores.length ===
                 0 && (

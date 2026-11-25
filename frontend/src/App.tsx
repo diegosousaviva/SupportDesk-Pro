@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 
 import AppRoutes from "./routes";
+import TicketSoundAlert from "./components/notifications/TicketSoundAlert";
 
 import {
   useSessionTimeout,
@@ -59,6 +60,7 @@ function AppContent() {
       }
     >
       <AppRoutes />
+      <TicketSoundAlert />
     </Suspense>
   );
 }

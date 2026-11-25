@@ -346,6 +346,28 @@ async function canWriteRecord(
   return false;
 }
 
+router.get("/ticket-alerts", async (req, res) => {
+  try {
+    const user = currentUser(req, res);
+    if (!user) return;
+    if (!["Administrador", "Técnico"].includes(user.role)) {
+      return res.status(403).json({ success: false, message: "Insufficient permission." });
+    }
+    const afterId = Number(req.query.afterId ?? 0);
+    if (!Number.isSafeInteger(afterId) || afterId < 0) {
+      return res.status(400).json({ success: false, message: "Invalid alert cursor." });
+    }
+    const tickets = await listRecords<Record<string, unknown>>("tickets");
+    const storeTickets = tickets.filter((ticket) => ticket.payload.storeId != null);
+    const latestId = storeTickets.reduce((latest, ticket) => Math.max(latest, ticket.id), afterId);
+    const count = storeTickets.filter((ticket) => ticket.id > afterId).length;
+    return res.json({ success: true, record: { latestId, count } });
+  } catch (error) {
+    console.error("Failed to load ticket alerts.", error);
+    return res.status(500).json({ success: false, message: "Não foi possível consultar novos chamados." });
+  }
+});
+
 router.get("/:entity", async (req, res) => {
   try {
     const entity = entityFrom(req, res);

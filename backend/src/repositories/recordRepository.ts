@@ -65,6 +65,18 @@ export async function listRecords<T>(
   return rows.map(mapRow<T>);
 }
 
+export async function getTicketAlertSummary(afterId: number): Promise<{ latestId: number; count: number }> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT MAX(id) AS latest_id, COUNT(*) AS total
+     FROM supportdesk_records
+     WHERE entity_type = 'tickets' AND id > ?
+       AND JSON_EXTRACT(payload, '$.storeId') IS NOT NULL
+       AND JSON_TYPE(JSON_EXTRACT(payload, '$.storeId')) <> 'NULL'`,
+    [afterId],
+  );
+  return { latestId: Math.max(afterId, Number(rows[0].latest_id ?? 0)), count: Number(rows[0].total) };
+}
+
 export async function findRecord<T>(
   entity: RecordEntity,
   id: number,

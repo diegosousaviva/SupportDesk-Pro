@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { getSessionUser } from "../services/sessionService.js";
 import { findUserById, hasUsersForStore } from "../repositories/userRepository.js";
 import { findActiveCategoryByName } from "../services/categoryService.js";
 import { CategoryIntegrityLockError, withCategoryIntegrityLock } from "../database/categoryIntegrityLock.js";
@@ -11,6 +12,7 @@ import {
   hasRecordReference,
   insertRecord,
   listRecords,
+  getTicketAlertSummary,
   removeRecord,
   removeTicketAggregate,
   removeNoteAggregate,
@@ -357,15 +359,56 @@ router.get("/ticket-alerts", async (req, res) => {
     if (!Number.isSafeInteger(afterId) || afterId < 0) {
       return res.status(400).json({ success: false, message: "Invalid alert cursor." });
     }
-    const tickets = await listRecords<Record<string, unknown>>("tickets");
-    const storeTickets = tickets.filter((ticket) => ticket.payload.storeId != null);
-    const latestId = storeTickets.reduce((latest, ticket) => Math.max(latest, ticket.id), afterId);
-    const count = storeTickets.filter((ticket) => ticket.id > afterId).length;
-    return res.json({ success: true, record: { latestId, count } });
+    return res.json({ success: true, record: await getTicketAlertSummary(afterId) });
   } catch (error) {
     console.error("Failed to load ticket alerts.", error);
     return res.status(500).json({ success: false, message: "Não foi possível consultar novos chamados." });
   }
+});
+
+router.get("/ticket-alerts/stream", async (req, res) => {
+  const user = currentUser(req, res);
+  if (!user) return;
+  if (!["Administrador", "Técnico"].includes(user.role)) {
+    return res.status(403).json({ success: false, message: "Insufficient permission." });
+  }
+  let cursor = Number(req.query.afterId ?? 0);
+  if (!Number.isSafeInteger(cursor) || cursor < 0) {
+    return res.status(400).json({ success: false, message: "Invalid alert cursor." });
+  }
+  const token = req.headers.authorization!.trim().split(/\s+/)[1];
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+  let closed = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  res.on("close", () => {
+    closed = true;
+    clearTimeout(timeout);
+  });
+  async function sendAlerts() {
+    try {
+      const sessionUser = await getSessionUser(token);
+      if (!sessionUser || !["Administrador", "Técnico"].includes(sessionUser.role)) {
+        res.end();
+        return;
+      }
+      const summary = await getTicketAlertSummary(cursor);
+      if (closed) return;
+      // Stop a slow client instead of accumulating an unbounded output buffer.
+      if (!res.write(JSON.stringify(summary) + "\n")) {
+        res.end();
+        return;
+      }
+      cursor = summary.latestId;
+      timeout = setTimeout(() => { void sendAlerts(); }, 15_000);
+    } catch (error) {
+      console.error("Failed to stream ticket alerts.", error);
+      res.end();
+    }
+  }
+  await sendAlerts();
 });
 
 router.get("/:entity", async (req, res) => {

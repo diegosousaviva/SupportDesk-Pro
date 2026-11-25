@@ -63,6 +63,44 @@ export async function getTicketAlerts(afterId: number): Promise<{ latestId: numb
   return result.record;
 }
 
+export async function streamTicketAlerts(
+  afterId: number,
+  signal: AbortSignal,
+  onAlert: (summary: { latestId: number; count: number }) => void,
+): Promise<void> {
+  const token = getAuthToken();
+  if (!token) throw new Error("Sua sessão expirou. Entre novamente.");
+  const response = await fetch(`${API_URL}/api/data/ticket-alerts/stream?afterId=${afterId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  });
+  if (!response.ok || !response.body) throw new Error("Não foi possível conectar aos alertas.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let pending = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      const lines = pending.split("\n");
+      pending = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const summary = JSON.parse(line) as { latestId: number; count: number };
+        if (!Number.isSafeInteger(summary.latestId) || summary.latestId < 0 ||
+            !Number.isSafeInteger(summary.count) || summary.count < 0) {
+          throw new Error("O servidor retornou um alerta inválido.");
+        }
+        if (!signal.aborted) onAlert(summary);
+      }
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
 export async function createData<T>(entity: DataEntity, data: unknown): Promise<T> {
   const result = await request<ApiEnvelope<T>>(`/${entity}`, {
     method: "POST",

@@ -57,6 +57,12 @@ export async function listData<T>(entity: DataEntity): Promise<T[]> {
   return result.records ?? [];
 }
 
+export async function getTicketAlerts(afterId: number): Promise<{ latestId: number; count: number }> {
+  const result = await request<ApiEnvelope<{ latestId: number; count: number }>>(`/ticket-alerts?afterId=${afterId}`);
+  if (!result.record) throw new Error("O servidor não retornou os alertas.");
+  return result.record;
+}
+
 export async function createData<T>(entity: DataEntity, data: unknown): Promise<T> {
   const result = await request<ApiEnvelope<T>>(`/${entity}`, {
     method: "POST",
